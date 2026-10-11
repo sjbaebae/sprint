@@ -287,3 +287,11 @@ def test_worker_and_agent_share_public_data_but_not_private_validation(tmp_path)
     assert (task / "workers/train/worker_export.py").exists()
     assert not list((task / "workers").rglob("secret.txt"))
     assert "chmod 444" in (task / "workers/train/Dockerfile").read_text()
+
+
+def test_operator_setup_is_built_before_dropping_privileges():
+    from worlds.backends.harbor import dockerfile
+
+    image = dockerfile(Sandbox(setup=("install-toolchain",)), copy_workspace=False)
+    assert image.index("RUN install-toolchain") < image.index("USER agent")
+    assert image.index("RUN install-toolchain") < image.index("RUN useradd")

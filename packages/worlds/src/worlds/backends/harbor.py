@@ -28,6 +28,7 @@ def dockerfile(
 ):
     """Build tooling once in the image; do not download dependencies during grading."""
     lines = [f"FROM {sandbox.image}", "WORKDIR /app"]
+    lines.extend("RUN " + command for command in sandbox.setup)
     if sandbox.packages:
         lines.append(
             "RUN python -m pip install --no-cache-dir " + shlex.join(sandbox.packages)

@@ -151,3 +151,27 @@ def test_review_keeps_grade_with_malformed_transcript_and_shows_worker_records(
     assert "job-end" in page
     assert "observed" in page
     assert "<script>" not in page
+
+
+def test_review_numbers_only_agent_turns_and_marks_missing_reasoning(tmp_path):
+    agent = tmp_path / "native/trial/agent"
+    agent.mkdir(parents=True)
+    (agent / "trajectory.json").write_text(
+        json.dumps(
+            {
+                "steps": [
+                    {"step_id": 1, "source": "system", "message": "context"},
+                    {"step_id": 2, "source": "user", "message": "task"},
+                    {"step_id": 3, "source": "agent", "message": "action"},
+                ]
+            }
+        )
+    )
+    RunResult(
+        tmp_path,
+        (TrialResult("trial", "graded", 1, None, None, "native/trial", {}, None),),
+    ).save()
+    page = (tmp_path / "review.html").read_text()
+    assert "Turn 1: agent" in page
+    assert "Turn 3: agent" not in page
+    assert "No reasoning summary recorded" in page

@@ -13,10 +13,16 @@ class Sandbox:
 
     image: str = "python:3.12-slim"
     packages: tuple[str, ...] = ()
+    setup: tuple[str, ...] = ()
     internet: str = "none"
     allowed_hosts: tuple[str, ...] = ()
 
     def __post_init__(self):
+        for name, values in (("packages", self.packages), ("setup", self.setup)):
+            if not isinstance(values, (tuple, list)) or any(
+                not isinstance(value, str) or not value.strip() for value in values
+            ):
+                raise ValueError(f"{name} must be a sequence of nonempty strings")
         if self.internet not in {"none", "allowlist", "full"}:
             raise ValueError("internet must be none, allowlist, or full")
         if bool(self.allowed_hosts) != (self.internet == "allowlist"):

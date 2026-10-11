@@ -102,6 +102,26 @@ For Docker Desktop, pass `--backend docker --internet full`. This host rejects t
 requested no-network policy; public-network tests do not verify offline isolation.
 Unsupported policies fail closed.
 
+## Live Codex smoke test
+
+With existing local Codex sign-in:
+
+```sh
+uv run --package research-worlds --extra modal --no-default-groups python packages/worlds/examples/codex/preflight.py
+```
+
+This requests Astra, pins Codex 0.162.1 and injects existing authentication at runtime.
+The learner allows only the configured OpenAI service hosts; the worker and verifier
+remain offline. The allowlist applies to all processes in the learner, not just the
+harness. This is a small live inference test, not an offline-harness guarantee.
+The retained Astra smoke test passed with reward 1.0 and six tool calls. Recorded
+agent explanations and timestamps were present; reasoning summaries were empty
+despite requesting `detailed`, and the review page marks that absence explicitly.
+
+`Sandbox.setup` contains trusted image-build shell commands for system tooling.
+Do not put secrets in build commands. Tools are installed before learner execution;
+restricted runtime networking is not used to install dependencies.
+
 ## Review a run
 
 Open `<run-directory>/review.html`: vertical transcript, recorded turn timestamps,

@@ -76,8 +76,15 @@ class RunResult:
                     sections.append(
                         "<h3>Transcript unavailable</h3>" + pre(data["error"])
                     )
+                turn = 0
                 for step in data.get("steps", []):
-                    heading = f"Turn {step.get('step_id', '?')}: {step.get('source', 'unknown')}"
+                    if step.get("source") == "agent":
+                        turn += 1
+                        heading = f"Turn {turn}: agent"
+                    else:
+                        heading = (
+                            f"Conversation context: {step.get('source', 'unknown')}"
+                        )
                     sections.append(f"<h3>{html.escape(heading)}</h3>")
                     sections.append(
                         pre(step.get("timestamp") or "Timestamp unavailable")
@@ -87,6 +94,10 @@ class RunResult:
                         sections.append(
                             "<h4>Recorded reasoning</h4>"
                             + pre(step["reasoning_content"])
+                        )
+                    elif step.get("source") == "agent":
+                        sections.append(
+                            "<p>No reasoning summary recorded for this turn.</p>"
                         )
                     for call in step.get("tool_calls") or []:
                         sections.append("<h4>Tool call</h4>" + pre(call))
