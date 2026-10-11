@@ -7,7 +7,7 @@ when running Terminus 2 agent evaluations.
 Requirements:
     Install the tinker optional dependencies:
     ```bash
-    uv pip install harbor[tinker]
+    uv pip install research-sprint[tinker]
     ```
 """
 
@@ -94,7 +94,7 @@ class TinkerLLM(BaseLLM):
         if not TINKER_AVAILABLE:
             raise ImportError(
                 "TinkerLLM requires the 'tinker' and 'tinker-cookbook' packages. "
-                "Install them with: uv pip install harbor[tinker]"
+                "Install them with: uv pip install research-sprint[tinker]"
             )
 
         super().__init__(**kwargs)

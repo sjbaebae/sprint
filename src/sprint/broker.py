@@ -35,7 +35,7 @@ class ResourceBroker:
         """Poll through the provider control plane, with no learner-facing socket."""
         while True:
             result = await self.environment.exec(
-                "python -I -S /opt/worlds-resource.py _read",
+                "python -I -S /opt/sprint-resource.py _read",
                 user="root",
                 timeout_sec=30,
             )

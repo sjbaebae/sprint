@@ -88,7 +88,7 @@ if TYPE_CHECKING:
     from harbor.verifier.base import BaseVerifier
     from harbor.verifier.verifier import Verifier
 
-__version__ = importlib.metadata.version("harbor")
+__version__ = importlib.metadata.version("research-sprint")
 
 
 # Lazy imports to avoid loading heavy dependencies at package import time

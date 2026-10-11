@@ -4,8 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from worlds import Worker
-from worlds.workers import WorkerSession
+from sprint import Worker
+from sprint.workers import WorkerSession
 
 
 class FakeEnvironment:
@@ -86,7 +86,7 @@ async def test_worker_lifetime_expires_without_provisioning(tmp_path):
 
 @pytest.mark.asyncio
 async def test_cleanup_attempts_all_resources_when_one_provider_fails():
-    from worlds.workers import close_all
+    from sprint.workers import close_all
 
     called = []
 

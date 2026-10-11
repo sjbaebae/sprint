@@ -7,7 +7,7 @@ A single desktop/computer baseline agent with provider "flavors":
   with any vision model on the default Harbor install.
 - **anthropic / bedrock / gemini / openai** (native): each vendor's
   computer-use tool through its first-party SDK, available with
-  ``pip install 'harbor[computer-1]'``. ``StepProvider``s emit one
+  ``pip install 'research-sprint[computer-1]'``. ``StepProvider``s emit one
   ``NativeModelStep`` per turn (``_run_step_loop``); the OpenAI Responses API
   provider drives its own loop (``SelfDrivingProvider``).
 

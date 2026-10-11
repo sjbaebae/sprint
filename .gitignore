@@ -245,3 +245,6 @@ apps/*
 
 # Local Worlds execution records
 .worlds/
+
+# Sprint execution records
+.sprint/

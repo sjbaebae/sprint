@@ -19,7 +19,7 @@ test = [
     "pytest>=8.4.1",
 ]
 plugin = [
-    "harbor",
+    "research-sprint",
 ]
 
 [project.urls]
@@ -27,7 +27,7 @@ Repository = "https://github.com/harbor-framework/harbor"
 Issues = "https://github.com/harbor-framework/harbor/issues"
 
 [tool.uv.sources]
-harbor = { workspace = true }
+research-sprint = { workspace = true }
 
 [build-system]
 requires = ["hatchling>=1.27.0"]

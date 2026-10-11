@@ -34,7 +34,7 @@ Persist normalized results, lifecycle events, a readable review and submission
 diffs. Private evaluation files never enter the learner build context.
 
 Network restrictions apply from sandbox creation. Phase-only switching failed a
-real Modal TCP probe and is not used by Worlds. A model harness needing an API
+real Modal TCP probe and is not used by Sprint. A model harness needing an API
 requires an explicit transport allowlist and preinstalled tools when appropriate.
 
 ## Remaining integrations

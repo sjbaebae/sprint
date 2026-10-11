@@ -869,7 +869,7 @@ async def _run_claude_review_async(
     except ModuleNotFoundError as e:
         raise RuntimeError(
             "Adapter AI review requires the optional adapter dependencies. "
-            "Install them with `pip install 'harbor[adapter]'` or "
+            "Install them with `pip install 'research-sprint[adapter]'` or "
             "`uv tool install 'harbor[adapter]'`."
         ) from e
 

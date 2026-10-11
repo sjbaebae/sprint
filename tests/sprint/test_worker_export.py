@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from worlds import worker_export
+from sprint import worker_export
 
 
 def test_export_hashes_regular_file(tmp_path, monkeypatch):

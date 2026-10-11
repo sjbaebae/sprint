@@ -199,7 +199,7 @@ class WorkerSession:
             if self.closed or environment is None:
                 raise RuntimeError("worker is not available for collection")
             result = await environment.exec(
-                "python -I -S /opt/worlds-export.py " + shlex.quote(relative),
+                "python -I -S /opt/sprint-export.py " + shlex.quote(relative),
                 user="root",
                 timeout_sec=120,
             )
@@ -209,7 +209,7 @@ class WorkerSession:
             exported = metadata["path"]
             if (
                 not isinstance(exported, str)
-                or not exported.startswith("/tmp/worlds-export-")
+                or not exported.startswith("/tmp/sprint-export-")
                 or "/" in exported.removeprefix("/tmp/")
             ):
                 raise ValueError("invalid worker export path")

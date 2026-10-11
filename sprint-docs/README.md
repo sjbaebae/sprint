@@ -1,11 +1,11 @@
-# Worlds
+# Sprint
 
 Author a task and its evaluation. Reuse a sandbox, attach resources and choose an
 agent harness. This package lives in the [Harbor fork](https://github.com/sjbaebae/harbor/tree/worlds).
 
 ```python
 from pathlib import Path
-from worlds import Agent, Experiment, Files, Resources, Task, Validation, Worker, World
+from sprint import Agent, Experiment, Files, Resources, Task, Validation, Worker, World
 
 experiment = Experiment(
     task=Task("Improve the supplied implementation."),
@@ -19,7 +19,7 @@ experiment = Experiment(
     validation=Validation(bundle=Path("validation")),
     agent=Agent(model="gpt-6-astra", harness="codex"),
 )
-result = await experiment.run(directory=Path(".worlds/trial"), backend="modal")
+result = await experiment.run(directory=Path(".sprint/trial"), backend="modal")
 print(result.rewards)
 ```
 
@@ -36,7 +36,7 @@ the host. Do not put secrets or protected evaluation files in public assets.
 def verify(context):
     # submission: final artifact; private: validation bundle
     # records: collected agent logs, treated as untrusted evidence
-    # records/worlds-resources: operator-supplied worker code and execution records
+    # records/sprint-resources: operator-supplied worker code and execution records
     return {"score": 0.75, "metrics": {"accuracy": 0.75}}
 ```
 
@@ -67,10 +67,10 @@ workers. Worker images must contain required packages.
 Inside the learner:
 
 ```sh
-worlds-resource list
-worlds-resource run train experiment.py --wait 60
-worlds-resource status REQUEST_ID --wait 60
-worlds-resource collect REQUEST_ID checkpoint.pt --wait 60
+sprint-resource list
+sprint-resource run train experiment.py --wait 60
+sprint-resource status REQUEST_ID --wait 60
+sprint-resource collect REQUEST_ID checkpoint.pt --wait 60
 ```
 
 `run` returns a request ID and actual exit code/stdout/stderr when completed.
@@ -90,7 +90,7 @@ See [resource access](resource-access.md) for boundaries.
 From the fork root with existing Modal authentication:
 
 ```sh
-uv run --package research-worlds --extra modal --no-default-groups python packages/worlds/examples/worker/preflight.py --backend modal --gpu L4
+uv run --package research-sprint --extra modal --no-default-groups python examples/sprint/worker/preflight.py --backend modal --gpu L4
 ```
 
 This oracle preflight checks an offline L4 worker, checkpoint reuse, collection,
@@ -107,7 +107,7 @@ Unsupported policies fail closed.
 With existing local Codex sign-in:
 
 ```sh
-uv run --package research-worlds --extra modal --no-default-groups python packages/worlds/examples/codex/preflight.py
+uv run --package research-sprint --extra modal --no-default-groups python examples/sprint/codex/preflight.py
 ```
 
 This requests Astra, pins Codex 0.162.1 and injects existing authentication at runtime.
@@ -140,7 +140,7 @@ records may contain sensitive content and are ignored by Git.
 ## Development
 
 ```sh
-uv run --package research-worlds --extra harbor --with pytest --with pytest-asyncio --no-default-groups pytest packages/worlds/tests -q
+uv run --package research-sprint --with pytest --with pytest-asyncio --no-default-groups pytest tests/sprint -q
 ```
 
 [Architecture](architecture.md) describes the boundaries. Runpod can host the

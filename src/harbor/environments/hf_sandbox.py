@@ -71,7 +71,7 @@ class HFSandboxEnvironment(BaseEnvironment):
         except ImportError:
             raise SystemExit(
                 "huggingface_hub is not installed. "
-                "Install hf-sandbox with: pip install 'harbor[hf-sandbox]'"
+                "Install hf-sandbox with: pip install 'research-sprint[hf-sandbox]'"
             )
         if not get_token():
             raise SystemExit(

@@ -9,7 +9,7 @@ Tasks with ``docker-compose.yaml`` use a pre-built DinD template and run
 ``docker compose`` inside the sandbox (see ``scripts/build_novita_dind_template.py``).
 
 Requires:
-    - pip install 'harbor[novita]'
+    - pip install 'research-sprint[novita]'
     - NOVITA_API_KEY environment variable
 """
 

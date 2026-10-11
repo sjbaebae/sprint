@@ -28,7 +28,7 @@ class MissingExtraError(ImportError):
         message = (
             f"The '{package}' package is required but not installed. "
             f"Install it with:\n"
-            f"  pip install 'harbor[{extra}]'\n"
+            f"  pip install 'research-sprint[{extra}]'\n"
             f"  uv tool install 'harbor[{extra}]'"
         )
         if hint_line:

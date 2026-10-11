@@ -5,9 +5,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from worlds import Worker
-from worlds.broker import ResourceBroker
-from worlds import resource_client
+from sprint import Worker
+from sprint.broker import ResourceBroker
+from sprint import resource_client
 
 
 def test_queue_rejects_links_special_files_and_malformed_json(tmp_path, monkeypatch):

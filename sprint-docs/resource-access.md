@@ -21,10 +21,10 @@ created lazily and terminated at trial end.
 
 ## Minimal operations
 
-- `worlds-resource list`: names and permitted operations.
-- `worlds-resource run train script.py`: submit code to the named worker.
-- `worlds-resource status JOB`: status and full execution feedback.
-- `worlds-resource collect REQUEST_ID FILE --wait 60`: snapshot a regular file
+- `sprint-resource list`: names and permitted operations.
+- `sprint-resource run train script.py`: submit code to the named worker.
+- `sprint-resource status JOB`: status and full execution feedback.
+- `sprint-resource collect REQUEST_ID FILE --wait 60`: snapshot a regular file
   beneath the worker’s `/app`, returning a read-only path in the agent sandbox.
 - Read-only datasets appear under `/resources/data`.
 
@@ -56,8 +56,8 @@ and blocked outbound access before considering the attachment API ready.
 ## Operator-side worker test
 
 ```python
-from worlds import Resources, Worker
-from worlds.workers import WorkerSession
+from sprint import Resources, Worker
+from sprint.workers import WorkerSession
 
 async with WorkerSession(
     Worker(resources=Resources(gpu="L4")),
@@ -71,8 +71,8 @@ Jobs run as `agent`, reuse `/app` between successful calls and return exit code,
 stdout and stderr. The operator retains submitted source hashes and UTC execution
 events outside the sandbox. Context exit destroys the worker; execution exceptions
 also destroy it. `Experiment.run` starts the host broker at agent start and destroys all worker
-sandboxes before verification. The agent uses `worlds-resource run NAME SCRIPT.py
---wait 60` and `worlds-resource status REQUEST_ID --wait 60`. Results include actual
+sandboxes before verification. The agent uses `sprint-resource run NAME SCRIPT.py
+--wait 60` and `sprint-resource status REQUEST_ID --wait 60`. Results include actual
 exit code, stdout/stderr, or an exception type and message. Only Python code is
 accepted; resource names must be explicitly granted. Resource requests are limited
 to 200 per trial. Jobs are currently serialized by the broker.

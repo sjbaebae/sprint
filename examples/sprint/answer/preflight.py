@@ -7,7 +7,7 @@ import asyncio
 from uuid import uuid4
 
 from pathlib import Path
-from worlds import (
+from sprint import (
     Agent,
     Budget,
     Experiment,
@@ -21,8 +21,8 @@ from worlds import (
 
 async def main(backend, internet, gpu):
     here = Path(__file__).parent
-    root = Path(".worlds/preflight") / uuid4().hex[:12]
-    with tempfile.TemporaryDirectory(prefix="worlds-preflight-") as temporary:
+    root = Path(".sprint/preflight") / uuid4().hex[:12]
+    with tempfile.TemporaryDirectory(prefix="sprint-preflight-") as temporary:
         workspace = Path(temporary) / "workspace"
         shutil.copytree(here / "workspace", workspace)
         if internet == "none":

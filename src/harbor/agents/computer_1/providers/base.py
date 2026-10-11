@@ -203,7 +203,7 @@ def load_provider(name: str) -> type[ComputerProvider]:
         raise ImportError(
             f"The computer-1 {name!r} provider requires optional dependencies "
             f"that are not installed (missing: {exc.name}). Install them with: "
-            "pip install 'harbor[computer-1]'"
+            "pip install 'research-sprint[computer-1]'"
         ) from exc
     except ImportError as exc:  # pragma: no cover - defensive
         raise ImportError(

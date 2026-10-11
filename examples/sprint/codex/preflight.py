@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from uuid import uuid4
 
-from worlds import Agent, Budget, Experiment, Sandbox, Task, Validation, Worker, World
+from sprint import Agent, Budget, Experiment, Sandbox, Task, Validation, Worker, World
 
 
 async def main():
@@ -14,7 +14,7 @@ async def main():
     if not auth.is_file():
         raise RuntimeError("Sign into Codex locally before this preflight")
     os.environ["CODEX_AUTH_JSON_PATH"] = str(auth)
-    root = Path(".worlds/codex-preflight") / uuid4().hex
+    root = Path(".sprint/codex-preflight") / uuid4().hex
     root.mkdir(parents=True)
     private = root / "private"
     private.mkdir()
@@ -31,7 +31,7 @@ async def main():
     )
     experiment = Experiment(
         Task(
-            "Use worlds-resource to run Python on the worker named compute. Have it write answer.txt containing the sum of integers 1 through 9 minus 3. Collect answer.txt from that completed request and copy it to /app/submission/answer.txt. Explain briefly why you chose each action. No web search, no subagents. Do not inspect credentials. Finish after checking the answer exists."
+            "Use sprint-resource to run Python on the worker named compute. Have it write answer.txt containing the sum of integers 1 through 9 minus 3. Collect answer.txt from that completed request and copy it to /app/submission/answer.txt. Explain briefly why you chose each action. No web search, no subagents. Do not inspect credentials. Finish after checking the answer exists."
         ),
         Validation(private),
         Agent(

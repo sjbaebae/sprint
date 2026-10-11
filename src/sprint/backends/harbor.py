@@ -54,12 +54,12 @@ def dockerfile(
             )
         if workers:
             lines += [
-                "COPY resource_client.py /opt/worlds-resource.py",
+                "COPY resource_client.py /opt/sprint-resource.py",
                 "RUN mkdir -p /resources/control/requests /resources/control/results && "
                 "chown agent:agent /resources/control/requests && "
                 "chmod 755 /resources /resources/control /resources/control/results && "
-                "printf '#!/bin/sh\\nexec python -I -S /opt/worlds-resource.py \"$@\"\\n' > /usr/local/bin/worlds-resource && "
-                "chmod 755 /usr/local/bin/worlds-resource && chmod 444 /opt/worlds-resource.py",
+                "printf '#!/bin/sh\\nexec python -I -S /opt/sprint-resource.py \"$@\"\\n' > /usr/local/bin/sprint-resource && "
+                "chmod 755 /usr/local/bin/sprint-resource && chmod 444 /opt/sprint-resource.py",
                 "COPY resource_manifest.json /resources/control/manifest.json",
             ]
         lines.append("USER agent")
@@ -78,8 +78,8 @@ def build_worker(worker, directory, files=None):
             worker.sandbox, copy_workspace=False, attachments=tuple(files or {})
         ).replace(
             "USER agent\n",
-            "COPY worker_export.py /opt/worlds-export.py\n"
-            "RUN chmod 444 /opt/worlds-export.py\nUSER agent\n",
+            "COPY worker_export.py /opt/sprint-export.py\n"
+            "RUN chmod 444 /opt/sprint-export.py\nUSER agent\n",
         )
     )
     shutil.copyfile(
@@ -218,7 +218,7 @@ def compile_task(experiment, directory):
             if isinstance(value, Files)
         )
         + (
-            "\nUse worlds-resource list; worlds-resource run NAME SCRIPT.py --wait 60; worlds-resource status REQUEST_ID --wait 60; worlds-resource collect REQUEST_ID FILE_RELATIVE_TO_APP --wait 60. Collection returns a read-only artifact path to copy into your submission. Jobs execute Python on the named worker and preserve /app between calls.\n"
+            "\nUse sprint-resource list; sprint-resource run NAME SCRIPT.py --wait 60; sprint-resource status REQUEST_ID --wait 60; sprint-resource collect REQUEST_ID FILE_RELATIVE_TO_APP --wait 60. Collection returns a read-only artifact path to copy into your submission. Jobs execute Python on the named worker and preserve /app between calls.\n"
             if workers
             else ""
         )
@@ -242,7 +242,7 @@ def compile_task(experiment, directory):
     sandbox = world.sandbox
     config = {
         "schema_version": "1.4",
-        "task": {"name": "worlds/" + experiment.task.name, "version": "0.1.0"},
+        "task": {"name": "sprint/" + experiment.task.name, "version": "0.1.0"},
         "artifacts": [experiment.task.submission],
         "agent": {
             "timeout_sec": experiment.budget.seconds,
@@ -351,7 +351,7 @@ async def run(experiment, *, directory, backend, trials, parallel):
         # Replace learner-created lookalikes before supplying operator evidence.
         if event.environment is None:
             raise RuntimeError("missing trial environment for evidence transfer")
-        target = event.environment.trial_paths.agent_dir / "worlds-resources"
+        target = event.environment.trial_paths.agent_dir / "sprint-resources"
         if target.is_dir() and not target.is_symlink():
             shutil.rmtree(target)
         elif target.exists() or target.is_symlink():

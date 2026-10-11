@@ -515,7 +515,7 @@ class CuaCloudEnvironment(BaseEnvironment):
             except ImportError as exc:
                 raise ImportError(
                     "cua-train is required for the cua-cloud environment. "
-                    "Install it with: pip install 'harbor[cua]'"
+                    "Install it with: pip install 'research-sprint[cua]'"
                 ) from exc
             self._train = TrainClient.from_key(
                 token_url=self._token_url,

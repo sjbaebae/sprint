@@ -5,8 +5,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from worlds import Agent, Experiment, Sandbox, StateTracker, Task, Validation, World
-from worlds.validation import Context, evaluate
+from sprint import Agent, Experiment, Sandbox, StateTracker, Task, Validation, World
+from sprint.validation import Context, evaluate
 
 
 def make_experiment(tmp_path):
@@ -191,7 +191,7 @@ def test_unsafe_artifact_cannot_read_private_files_or_hang_grader(tmp_path, kind
 
 
 def test_gpu_and_validation_resources_are_independent(tmp_path):
-    from worlds import Resources
+    from sprint import Resources
 
     experiment = make_experiment(tmp_path)
     experiment = Experiment(
@@ -220,7 +220,7 @@ def test_agent_trace_requires_separate_verifier():
 
 def test_named_files_are_separate_read_only_attachments(tmp_path):
     from dataclasses import replace
-    from worlds import Files
+    from sprint import Files
 
     experiment = make_experiment(tmp_path)
     data = tmp_path / "data"
@@ -241,7 +241,7 @@ def test_named_files_are_separate_read_only_attachments(tmp_path):
 
 @pytest.mark.parametrize("name", ["../data", "a/b", "data;id", "", "with space"])
 def test_bad_attachment_names_are_rejected(tmp_path, name):
-    from worlds import Files
+    from sprint import Files
 
     with pytest.raises(ValueError, match="attachment names"):
         World(attachments={name: Files(tmp_path)})
@@ -249,7 +249,7 @@ def test_bad_attachment_names_are_rejected(tmp_path, name):
 
 def test_private_attachment_and_link_are_rejected(tmp_path):
     from dataclasses import replace
-    from worlds import Files
+    from sprint import Files
 
     experiment = make_experiment(tmp_path)
     private_world = replace(
@@ -269,7 +269,7 @@ def test_private_attachment_and_link_are_rejected(tmp_path):
 
 def test_worker_and_agent_share_public_data_but_not_private_validation(tmp_path):
     from dataclasses import replace
-    from worlds import Files, Worker
+    from sprint import Files, Worker
 
     experiment = make_experiment(tmp_path)
     data = tmp_path / "data"
@@ -290,7 +290,7 @@ def test_worker_and_agent_share_public_data_but_not_private_validation(tmp_path)
 
 
 def test_operator_setup_is_built_before_dropping_privileges():
-    from worlds.backends.harbor import dockerfile
+    from sprint.backends.harbor import dockerfile
 
     image = dockerfile(Sandbox(setup=("install-toolchain",)), copy_workspace=False)
     assert image.index("RUN install-toolchain") < image.index("USER agent")

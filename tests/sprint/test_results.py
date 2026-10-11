@@ -3,7 +3,7 @@
 import json
 from types import SimpleNamespace
 
-from worlds.results import RunResult, TrialResult, collect
+from sprint.results import RunResult, TrialResult, collect
 
 
 def test_review_escapes_trace_and_preserves_calls(tmp_path):
@@ -95,7 +95,7 @@ def test_runtime_failure_invalidates_existing_reward(tmp_path):
 
 
 def test_final_artifact_diff_is_scoped_to_submission(tmp_path):
-    from worlds.results import artifact_state
+    from sprint.results import artifact_state
 
     initial = tmp_path / "task/environment/workspace/submission"
     initial.mkdir(parents=True)

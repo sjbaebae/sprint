@@ -5,7 +5,7 @@ import asyncio
 from pathlib import Path
 from uuid import uuid4
 
-from worlds import (
+from sprint import (
     Agent,
     Budget,
     Experiment,
@@ -25,7 +25,7 @@ async def main():
     parser.add_argument("--internet", choices=["none", "full"], default="none")
     parser.add_argument("--gpu", default=None)
     args = parser.parse_args()
-    root = Path(".worlds/worker-preflight") / uuid4().hex
+    root = Path(".sprint/worker-preflight") / uuid4().hex
     root.mkdir(parents=True)
     data = root / "data"
     data.mkdir()
@@ -33,7 +33,7 @@ async def main():
     private = root / "private"
     private.mkdir()
     (private / "evaluate.py").write_text(
-        'def verify(context):\n    journal = context.records / "worlds-resources/train/jobs.jsonl"\n    return {"score": float((context.submission / "answer").read_text() == "retained" and "checkpoint-collected" in journal.read_text())}'
+        'def verify(context):\n    journal = context.records / "sprint-resources/train/jobs.jsonl"\n    return {"score": float((context.submission / "answer").read_text() == "retained" and "checkpoint-collected" in journal.read_text())}'
     )
     reference = root / "solve.sh"
     worker_check = ""
@@ -45,7 +45,7 @@ async def main():
     reference.write_text(
         """#!/bin/sh
 set -eu
-worlds-resource list
+sprint-resource list
 cat > /app/job.py <<'WORKER_CODE'
 """
         + worker_check
@@ -58,13 +58,13 @@ except PermissionError:
 else:
  raise RuntimeError("attached data was writable")
 WORKER_CODE
-worlds-resource run train /app/job.py --wait 120 > /app/first.json
+sprint-resource run train /app/job.py --wait 120 > /app/first.json
 python -c 'import json; assert json.load(open("/app/first.json"))["status"] == "completed"'
 printf 'from pathlib import Path; print(Path("checkpoint").read_text())\\n' > /app/job.py
-worlds-resource run train /app/job.py --wait 120 > /app/second.json
+sprint-resource run train /app/job.py --wait 120 > /app/second.json
 python -c 'import json; r=json.load(open("/app/second.json")); assert r["status"] == "completed"; assert r["stdout"].strip() == "retained"'
 REQUEST=$(python -c 'import json; print(json.load(open("/app/first.json"))["request_id"])')
-worlds-resource collect "$REQUEST" checkpoint --wait 120 > /app/collected.json
+sprint-resource collect "$REQUEST" checkpoint --wait 120 > /app/collected.json
 python -c 'import json,shutil; r=json.load(open("/app/collected.json")); assert r["status"] == "completed", r; shutil.copyfile(r["artifact"],"/app/submission/answer")'
 """
     )

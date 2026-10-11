@@ -32,7 +32,7 @@ class DspyImportError(ImportError):
     def __init__(self) -> None:
         super().__init__(
             "dspy is required for the dspy-rlm agent. "
-            "Install it with: pip install 'harbor[dspy]'"
+            "Install it with: pip install 'research-sprint[dspy]'"
         )
 
 
@@ -225,7 +225,7 @@ class DspyRlmAgent(BaseAgent):
     async environment.
 
     Requirements:
-        - Python: ``pip install 'harbor[dspy]'``
+        - Python: ``pip install 'research-sprint[dspy]'``
         - System: `Deno <https://docs.deno.com/runtime/getting_started/installation/>`_
           (required by dspy's PythonInterpreter sandbox)
     """

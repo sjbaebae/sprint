@@ -36,7 +36,7 @@ def snapshot(relative):
             digest = hashlib.sha256()
             total = 0
             with tempfile.NamedTemporaryFile(
-                prefix="worlds-export-", delete=False
+                prefix="sprint-export-", delete=False
             ) as target:
                 temporary = target.name
                 while block := source.read(1024 * 1024):

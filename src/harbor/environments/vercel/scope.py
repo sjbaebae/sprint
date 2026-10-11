@@ -160,7 +160,7 @@ async def ensure_scope(project_name: str = DEFAULT_PROJECT_NAME) -> None:
     if _vercel_projects is None:
         raise VercelScopeError(
             "The Vercel SDK is not installed. Install it with "
-            "`pip install 'harbor[vercel]'`."
+            "`pip install 'research-sprint[vercel]'`."
         )
     async with _lock:
         if os.environ.get("VERCEL_TEAM_ID") and os.environ.get("VERCEL_PROJECT_ID"):

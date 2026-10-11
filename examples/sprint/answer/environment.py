@@ -1,9 +1,9 @@
-"""Run from the repository root: uv run --package research-worlds --extra harbor python packages/worlds/examples/answer/environment.py."""
+"""Run from the repository root: uv run --package research-sprint python examples/sprint/answer/environment.py."""
 
 import asyncio
 from pathlib import Path
 
-from worlds import Agent, Budget, Experiment, Task, Validation, World
+from sprint import Agent, Budget, Experiment, Task, Validation, World
 
 experiment = Experiment(
     task=Task("Calculate 6 × 7 and write answer.txt in your submission directory."),
@@ -14,4 +14,4 @@ experiment = Experiment(
 )
 
 if __name__ == "__main__":
-    asyncio.run(experiment.run(directory=Path(".worlds/answer")))
+    asyncio.run(experiment.run(directory=Path(".sprint/answer")))
