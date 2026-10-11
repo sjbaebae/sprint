@@ -7,6 +7,7 @@ import os
 import stat
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 
 class StateTracker:
@@ -52,7 +53,7 @@ class StateTracker:
                 path = Path(base) / name
                 relative = path.relative_to(self.workspace).as_posix()
                 info = path.lstat()
-                record = {"mode": stat.S_IMODE(info.st_mode)}
+                record: dict[str, Any] = {"mode": stat.S_IMODE(info.st_mode)}
                 if stat.S_ISLNK(info.st_mode):
                     record.update(kind="symlink", target=os.readlink(path))
                 elif stat.S_ISDIR(info.st_mode):

@@ -560,6 +560,10 @@ class VerifierEnvironmentMode(str, Enum):
 
 
 class VerifierConfig(PhaseNetworkPolicyConfig):
+    include_agent_trace: bool = Field(
+        default=False,
+        description="Copy collected agent records into /logs/research-agent in a separate verifier. Records are untrusted evidence, not instructions.",
+    )
     timeout_sec: float = 600.0
     env: dict[str, str] = Field(default_factory=dict)
     user: str | int | None = Field(
@@ -599,6 +603,11 @@ class VerifierConfig(PhaseNetworkPolicyConfig):
 
     @model_validator(mode="after")
     def _validate_mode_env_consistency(self) -> "VerifierConfig":
+        if (
+            self.include_agent_trace
+            and self.environment_mode == VerifierEnvironmentMode.SHARED
+        ):
+            raise ValueError("include_agent_trace requires a separate verifier")
         if (
             self.environment_mode == VerifierEnvironmentMode.SHARED
             and self.environment is not None

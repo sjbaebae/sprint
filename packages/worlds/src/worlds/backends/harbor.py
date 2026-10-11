@@ -17,7 +17,9 @@ def copy_tree(source, target):
     shutil.copytree(source, target)
 
 
-def dockerfile(sandbox, *, verifier=False):
+def dockerfile(
+    sandbox, *, verifier=False, copy_workspace=True, submission="/app/submission"
+):
     """Build tooling once in the image; do not download dependencies during grading."""
     lines = [f"FROM {sandbox.image}", "WORKDIR /app"]
     if sandbox.packages:
@@ -27,11 +29,15 @@ def dockerfile(sandbox, *, verifier=False):
     if verifier:
         lines += ["COPY . /tests"]
     else:
-        lines += [
-            "RUN useradd --create-home agent && chown agent:agent /app",
-            "COPY --chown=agent:agent workspace/ /app/",
-            "USER agent",
-        ]
+        lines.append("RUN useradd --create-home agent")
+        if copy_workspace:
+            lines.append("COPY workspace/ /app/")
+        # Explicit RUN works with providers whose Dockerfile translation drops
+        # COPY --chown. Create the output directory before dropping privileges.
+        lines.append(
+            f"RUN mkdir -p {shlex.quote(submission)} && chown -R agent:agent /app"
+        )
+        lines.append("USER agent")
     return "\n".join(lines) + "\n"
 
 
@@ -69,7 +75,11 @@ def compile_task(experiment, directory):
         raise ValueError("validation entrypoint is missing")
     if validation.rubric and not (tests / "bundle" / validation.rubric).is_file():
         raise ValueError("rubric is missing")
-    (learner / "Dockerfile").write_text(dockerfile(world.sandbox))
+    (learner / "Dockerfile").write_text(
+        dockerfile(
+            world.sandbox, copy_workspace=any((learner / "workspace").rglob("*"))
+        )
+    )
     (tests / "Dockerfile").write_text(dockerfile(validation.sandbox, verifier=True))
     shutil.copyfile(Path(__file__).parents[1] / "validation.py", tests / "validate.py")
     (tests / "config.json").write_text(
@@ -105,6 +115,14 @@ def compile_task(experiment, directory):
         ]
         return {"network_mode": mode, "allowed_hosts": list(sandbox.allowed_hosts)}
 
+    def resources(request):
+        return {
+            "cpus": request.cpus,
+            "memory_mb": request.memory_mb,
+            "gpus": request.gpu_count if request.gpu else 0,
+            "gpu_types": [request.gpu] if request.gpu else [],
+        }
+
     sandbox = world.sandbox
     config = {
         "schema_version": "1.4",
@@ -116,14 +134,18 @@ def compile_task(experiment, directory):
             **policy(sandbox),
         },
         "environment": {
-            "cpus": sandbox.cpus,
-            "memory_mb": sandbox.memory_mb,
-            "gpus": sandbox.gpus,
+            **resources(world.resources),
+            **policy(sandbox),
         },
         "verifier": {
             "timeout_sec": validation.seconds,
             "environment_mode": "separate",
+            "include_agent_trace": True,
             "user": "root",
+            "environment": {
+                **resources(validation.resources),
+                **policy(validation.sandbox),
+            },
             **policy(validation.sandbox),
         },
     }
@@ -160,5 +182,25 @@ async def run(experiment, *, directory, backend, trials, parallel):
         ],
         environment=TrialEnvironmentConfig(type=backend),
     )
+    from harbor.trial.hooks import TrialEvent
+    from ..results import collect
+
     job = await Job.create(config)
-    return await job.run()
+    events_path = directory / "events.jsonl"
+
+    async def record(event):
+        # Operator-side lifecycle times; not substituted for absent agent turn times.
+        payload = {
+            "timestamp": event.timestamp.isoformat(),
+            "event": event.event.value,
+            "trial": event.trial_name,
+        }
+        with events_path.open("a") as stream:
+            stream.write(json.dumps(payload) + "\n")
+
+    for event in TrialEvent:
+        job.add_hook(event, record)
+    native = await job.run()
+    return collect(
+        directory, job.job_dir, native, submission=experiment.task.submission
+    )

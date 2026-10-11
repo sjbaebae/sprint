@@ -937,6 +937,17 @@ class Trial(ABC):
                     artifacts=artifacts,
                 )
 
+                if self.task.config.verifier.include_agent_trace:
+                    # Only operator-collected records enter the private verifier;
+                    # validate references before the provider packages this tree.
+                    from harbor.utils.path_safety import validate_input_tree
+
+                    validate_input_tree(self.paths.agent_dir, self.paths.agent_dir)
+                    await target_env.upload_dir(
+                        source_dir=self.paths.agent_dir,
+                        target_dir="/logs/research-agent",
+                    )
+
                 verifier = VerifierFactory.create_verifier_from_config(
                     self.config.verifier,
                     task=self.task,

@@ -795,3 +795,28 @@ async def test_verifier_timeout_classification(
     verifier.verify.assert_awaited_once()
     if mode == "separate":
         verifier_env.stop.assert_awaited_once_with(delete=False)
+
+
+async def test_collected_agent_records_are_only_uploaded_to_separate_verifier(tmp_path):
+    task_dir = _single_step_task_with_separate_verifier(tmp_path)
+    config_path = task_dir / "task.toml"
+    config_path.write_text(
+        config_path.read_text().replace(
+            "[verifier]\n", "[verifier]\ninclude_agent_trace = true\n"
+        )
+    )
+    agent_env = _stock_mock_env()
+    verifier_env = _stock_mock_env()
+    factory, _ = _make_factory_recorder(agent_env, [verifier_env])
+    await _run_trial(task_dir, tmp_path / "trials", factory)
+    transferred = [
+        call.kwargs
+        for call in verifier_env.upload_dir.await_args_list
+        if call.kwargs.get("target_dir") == "/logs/research-agent"
+    ]
+    assert len(transferred) == 1
+    assert transferred[0]["source_dir"].name == "agent"
+    assert not any(
+        call.kwargs.get("target_dir") == "/logs/research-agent"
+        for call in agent_env.upload_dir.await_args_list
+    )

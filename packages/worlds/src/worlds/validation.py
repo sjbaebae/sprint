@@ -3,9 +3,12 @@
 import importlib.util
 import json
 import math
+import os
+import stat
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -14,6 +17,7 @@ class Context:
 
     submission: Path
     private: Path
+    records: Path | None = None
 
 
 def component(value):
@@ -31,13 +35,45 @@ def component(value):
     return value
 
 
+def unsafe_artifact(root):
+    """Reject links and special files in the final, quiescent artifact tree."""
+    root = Path(root)
+    if root.is_symlink():
+        return "submission root is a symbolic link"
+    if not root.exists():
+        return None  # Missing artifact is an ordinary outcome for the verifier.
+    if not root.is_dir():
+        return "submission root must be a directory"
+    for directory, dirs, files in os.walk(root, followlinks=False):
+        for name in dirs + files:
+            path = Path(directory) / name
+            mode = path.lstat().st_mode
+            if not (stat.S_ISREG(mode) or stat.S_ISDIR(mode)):
+                return f"submission contains a link or special file: {path.relative_to(root)}"
+    return None
+
+
 def evaluate(module, context, *, weights=(1.0, 0.0), rubric=None):
     """Disqualifications gate grading; suspicion or grader errors remain unscored.
 
     Deterministic checks must supply evidence for confirmed violations. Model
     allegations alone belong in suspected. Failures never receive a default score.
     """
-    result = {"status": "graded", "violations": {"confirmed": [], "suspected": []}}
+    result: dict[str, Any] = {
+        "status": "graded",
+        "violations": {"confirmed": [], "suspected": []},
+    }
+    # A submitted link could point into private evaluation files; a FIFO could
+    # hang the grader. Inspect the quiescent transfer before any author code runs.
+    unsafe = unsafe_artifact(context.submission)
+    if unsafe:
+        result["violations"]["confirmed"].append(
+            {
+                "id": "unsafe_artifact",
+                "evidence": [unsafe],
+            }
+        )
+        return {**result, "status": "disqualified", "reward": 0.0}
     if hasattr(module, "disqualify"):
         violations = module.disqualify(context)
         if not isinstance(violations, dict) or set(violations) != {
@@ -78,13 +114,15 @@ def main(config_path):
         spec = importlib.util.spec_from_file_location(
             "world_validation", private / config["entrypoint"]
         )
+        if spec is None or spec.loader is None:
+            raise ValueError("validation entrypoint must be an importable Python file")
         module = importlib.util.module_from_spec(spec)
         sys.modules[spec.name] = module
         spec.loader.exec_module(module)
         rubric = (private / config["rubric"]).read_text() if config["rubric"] else None
         result = evaluate(
             module,
-            Context(Path(config["submission"]), private),
+            Context(Path(config["submission"]), private, Path("/logs/research-agent")),
             weights=config["weights"],
             rubric=rubric,
         )

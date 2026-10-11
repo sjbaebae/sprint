@@ -37,6 +37,9 @@ def test_compile_keeps_private_files_out_of_learner(tmp_path):
     parsed = tomllib.loads((task / "task.toml").read_text())
     assert parsed["verifier"]["environment_mode"] == "separate"
     assert parsed["agent"]["network_mode"] == "no-network"
+    assert parsed["environment"]["network_mode"] == "no-network"
+    assert parsed["verifier"]["environment"]["gpus"] == 0
+    assert parsed["verifier"]["environment"]["network_mode"] == "no-network"
     assert parsed["verifier"]["network_mode"] == "no-network"
     HarborTask(task)
     with pytest.raises(FileExistsError):
@@ -158,3 +161,58 @@ def test_oversized_content_is_explicitly_unverified(tmp_path):
     assert tracker.diff(before, after)[0]["status"] == "unverified"
     with pytest.raises(ValueError):
         StateTracker(work, work / "snapshots")
+
+
+@pytest.mark.parametrize("kind", ["file_link", "directory_link", "fifo", "root_link"])
+def test_unsafe_artifact_cannot_read_private_files_or_hang_grader(tmp_path, kind):
+    import os
+
+    submission = tmp_path / "submission"
+    private = tmp_path / "private"
+    private.mkdir()
+    (private / "answer").write_text("secret")
+    if kind == "root_link":
+        submission.symlink_to(private, target_is_directory=True)
+    else:
+        submission.mkdir()
+        if kind == "fifo":
+            os.mkfifo(submission / "answer")
+        else:
+            target = private if kind == "directory_link" else private / "answer"
+            (submission / "answer").symlink_to(target)
+
+    def never(context):
+        raise AssertionError("unsafe artifact must not reach evaluation")
+
+    result = evaluate(SimpleNamespace(verify=never), Context(submission, private))
+    assert result["status"] == "disqualified"
+    assert result["reward"] == 0
+    assert result["violations"]["confirmed"][0]["id"] == "unsafe_artifact"
+
+
+def test_gpu_and_validation_resources_are_independent(tmp_path):
+    from worlds import Resources
+
+    experiment = make_experiment(tmp_path)
+    experiment = Experiment(
+        experiment.task,
+        experiment.validation,
+        experiment.agent,
+        World(
+            files=experiment.world.files, resources=Resources(gpu="L4", memory_mb=16384)
+        ),
+    )
+    task = experiment.compile(tmp_path / "task")
+    config = tomllib.loads((task / "task.toml").read_text())
+    assert config["environment"]["gpu_types"] == ["L4"]
+    assert config["environment"]["gpus"] == 1
+    assert config["environment"]["memory_mb"] == 16384
+    assert config["verifier"]["environment"]["gpus"] == 0
+    assert config["verifier"]["environment"]["memory_mb"] == 4096
+
+
+def test_agent_trace_requires_separate_verifier():
+    from harbor.models.task.config import VerifierConfig
+
+    with pytest.raises(ValueError, match="separate"):
+        VerifierConfig(include_agent_trace=True, environment_mode="shared")

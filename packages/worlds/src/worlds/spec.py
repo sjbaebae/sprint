@@ -4,19 +4,17 @@ import math
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 
 @dataclass(frozen=True)
 class Sandbox:
-    """Reusable execution image, Python tooling, resources, and network policy."""
+    """Reusable execution image, Python tooling and network policy."""
 
     image: str = "python:3.12-slim"
     packages: tuple[str, ...] = ()
     internet: str = "none"
     allowed_hosts: tuple[str, ...] = ()
-    cpus: int = 2
-    memory_mb: int = 4096
-    gpus: int = 0
 
     def __post_init__(self):
         if self.internet not in {"none", "allowlist", "full"}:
@@ -27,8 +25,29 @@ class Sandbox:
             )
         if not self.image or any(c.isspace() for c in self.image):
             raise ValueError("image must be a single container image reference")
-        if self.cpus < 1 or self.memory_mb < 1 or self.gpus < 0:
-            raise ValueError("invalid sandbox resources")
+
+
+@dataclass(frozen=True)
+class Resources:
+    """Hardware for one sandbox role, independent of image and task.
+
+    The orchestration host is the process calling run(). These requests apply
+    only to provisioned workers; validation has its own request and no default GPU.
+    """
+
+    cpus: int = 2
+    memory_mb: int = 4096
+    gpu: str | None = None
+    gpu_count: int = 1
+
+    def __post_init__(self):
+        if any(
+            type(x) is not int or x < 1
+            for x in (self.cpus, self.memory_mb, self.gpu_count)
+        ):
+            raise ValueError("resource counts must be positive integers")
+        if self.gpu is not None and not re.fullmatch(r"[A-Za-z0-9_-]+", self.gpu):
+            raise ValueError("gpu must be an accelerator name such as L4 or A100")
 
 
 @dataclass(frozen=True)
@@ -42,6 +61,7 @@ class World:
 
     sandbox: Sandbox = field(default_factory=Sandbox)
     files: Path | None = None
+    resources: Resources = field(default_factory=Resources)
 
 
 @dataclass(frozen=True)
@@ -85,6 +105,7 @@ class Validation:
     sandbox: Sandbox = field(default_factory=Sandbox)
     seconds: int = 600
     reference: Path | None = None
+    resources: Resources = field(default_factory=Resources)
 
     def __post_init__(self):
         for name in (self.entrypoint, self.rubric):
@@ -112,7 +133,7 @@ class Agent:
 
     model: str
     harness: str = "codex"
-    options: dict = field(default_factory=dict)
+    options: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
