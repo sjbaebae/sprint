@@ -1,7 +1,7 @@
 # Sprint
 
 Author a task and its evaluation. Reuse a sandbox, attach resources and choose an
-agent harness. This package lives in the [Harbor fork](https://github.com/sjbaebae/harbor/tree/worlds).
+agent harness. Sprint is one root package. See [installation](../README.md#install-with-uv).
 
 ```python
 from pathlib import Path

@@ -1,11 +1,11 @@
 [project]
 name = "research-sprint"
 version = "0.24.0"
-description = "A framework for evaluating and optimizing agents and models using sandboxed environments."
+description = "Sprint: simple agent environments with attached resources and private evaluation."
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
-authors = [{ name = "Alex Shaw", email = "alexgshaw64@gmail.com" }]
+authors = [{ name = "Sprint contributors" }]
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.12.0",
@@ -32,6 +32,10 @@ dependencies = [
     "pyjwt>=2.10.1",
     "jsonschema>=4.23.0",
 ]
+
+[project.urls]
+Repository = "https://github.com/sjbaebae/sprint"
+Documentation = "https://github.com/sjbaebae/sprint/blob/worlds/README.md"
 
 [project.scripts]
 sprint = "harbor.cli.main:app"

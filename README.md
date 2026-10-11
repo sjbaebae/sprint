@@ -2,6 +2,34 @@
 
 Author agent environments by defining the world, task, validation, and agent. Attach CPU/GPU workers and shared files as named resources.
 
+## Install with uv
+
+Python 3.12+ is required. Install from GitHub (the package is not published to PyPI):
+
+```sh
+uv init my-environment
+cd my-environment
+uv add "research-sprint @ git+https://github.com/sjbaebae/sprint.git@worlds"
+# For Modal CPU/GPU workers:
+uv add "research-sprint[modal] @ git+https://github.com/sjbaebae/sprint.git@worlds"
+uv run python environment.py
+```
+
+For local development:
+
+```sh
+git clone --branch worlds https://github.com/sjbaebae/sprint.git
+cd sprint
+uv sync --no-default-groups
+# Optional Modal support:
+uv sync --no-default-groups --extra modal
+uv run --no-default-groups python examples/sprint/answer/environment.py
+```
+
+The examples require provider authentication and a configured agent harness. See the [authoring guide](sprint-docs/README.md) for deployment settings. For reproducible deployments, replace `@worlds` with a reviewed commit hash.
+
+## Define an environment
+
 ```python
 from pathlib import Path
 from sprint import Agent, Experiment, Task, Validation, World
