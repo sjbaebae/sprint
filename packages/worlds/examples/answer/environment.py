@@ -1,0 +1,16 @@
+"""Run from the repository root: uv run --extra harbor python examples/answer/environment.py."""
+
+import asyncio
+from pathlib import Path
+
+from worlds import Agent, Budget, Experiment, Task, Validation
+
+experiment = Experiment(
+    task=Task("Calculate 6 × 7 and write answer.txt in your submission directory."),
+    validation=Validation(bundle=Path(__file__).parent / "validation"),
+    agent=Agent(model="gpt-6-astra", harness="codex"),
+    budget=Budget(seconds=120),
+)
+
+if __name__ == "__main__":
+    asyncio.run(experiment.run(directory=Path(".worlds/answer")))
