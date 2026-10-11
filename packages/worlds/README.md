@@ -133,3 +133,19 @@ Per-action snapshots, named remote resource attachments, enforced action/subagen
 limits, screened dataset downloads and RL token/log-probability export are not
 connected in this initial library. Native harness logs are not tamper-proof.
 See [architecture.md](architecture.md) for the boundaries and next steps.
+
+### Attach public data
+
+```python
+from pathlib import Path
+from worlds import Files, World
+
+world = World(attachments={"data": Files(Path("datasets"))})
+```
+
+The agent reads `/resources/data`. Contents are copied into the learner image,
+owned by root and read-only for the agent. Attachments are excluded from the
+private verifier image. Names cannot contain paths; symlinks, special files and
+trees overlapping the private validation bundle are rejected. This is a copied
+image attachment, so very large datasets should use a future storage adapter.
+Named worker job submission is not implemented yet.

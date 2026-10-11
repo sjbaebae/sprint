@@ -18,7 +18,12 @@ def copy_tree(source, target):
 
 
 def dockerfile(
-    sandbox, *, verifier=False, copy_workspace=True, submission="/app/submission"
+    sandbox,
+    *,
+    verifier=False,
+    copy_workspace=True,
+    submission="/app/submission",
+    attachments=(),
 ):
     """Build tooling once in the image; do not download dependencies during grading."""
     lines = [f"FROM {sandbox.image}", "WORKDIR /app"]
@@ -37,6 +42,14 @@ def dockerfile(
         lines.append(
             f"RUN mkdir -p {shlex.quote(submission)} && chown -R agent:agent /app"
         )
+        for name in attachments:
+            lines.append(f"COPY resources/{name}/ /resources/{name}/")
+        if attachments:
+            lines.append(
+                "RUN chown -R root:root /resources && "
+                "find /resources -type d -exec chmod 555 {} + && "
+                "find /resources -type f -exec chmod 444 {} +"
+            )
         lines.append("USER agent")
     return "\n".join(lines) + "\n"
 
@@ -58,6 +71,17 @@ def compile_task(experiment, directory):
             raise ValueError("generated task cannot be inside the learner source tree")
     if directory.resolve().is_relative_to(Path(experiment.validation.bundle).resolve()):
         raise ValueError("generated task cannot be inside the validation source tree")
+    private = Path(experiment.validation.bundle).resolve()
+    for attachment in experiment.world.attachments.values():
+        source = Path(attachment.path).resolve()
+        if source.is_relative_to(private) or private.is_relative_to(source):
+            raise ValueError(
+                "attachments and private validation must be separate trees"
+            )
+        if directory.resolve().is_relative_to(source):
+            raise ValueError(
+                "generated task cannot be inside an attachment source tree"
+            )
     directory.mkdir(parents=True, exist_ok=False)
     directory.chmod(0o700)
     learner = directory / "environment"
@@ -70,6 +94,9 @@ def compile_task(experiment, directory):
         (learner / "workspace").mkdir()
     else:
         copy_tree(world.files, learner / "workspace")
+    for name, attachment in world.attachments.items():
+        (learner / "resources").mkdir(exist_ok=True)
+        copy_tree(attachment.path, learner / "resources" / name)
     copy_tree(validation.bundle, tests / "bundle")
     if not (tests / "bundle" / validation.entrypoint).is_file():
         raise ValueError("validation entrypoint is missing")
@@ -77,7 +104,10 @@ def compile_task(experiment, directory):
         raise ValueError("rubric is missing")
     (learner / "Dockerfile").write_text(
         dockerfile(
-            world.sandbox, copy_workspace=any((learner / "workspace").rglob("*"))
+            world.sandbox,
+            copy_workspace=any((learner / "workspace").rglob("*")),
+            submission=experiment.task.submission,
+            attachments=world.attachments,
         )
     )
     (tests / "Dockerfile").write_text(dockerfile(validation.sandbox, verifier=True))
@@ -106,6 +136,10 @@ def compile_task(experiment, directory):
         (solution / "solve.sh").chmod(0o755)
     (directory / "instruction.md").write_text(
         experiment.task.objective
+        + "".join(
+            f"\nRead-only resource {name}: /resources/{name}\n"
+            for name in world.attachments
+        )
         + f"\n\nWrite your final artifact under {experiment.task.submission}.\n"
     )
 

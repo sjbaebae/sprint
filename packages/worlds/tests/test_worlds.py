@@ -216,3 +216,52 @@ def test_agent_trace_requires_separate_verifier():
 
     with pytest.raises(ValueError, match="separate"):
         VerifierConfig(include_agent_trace=True, environment_mode="shared")
+
+
+def test_named_files_are_separate_read_only_attachments(tmp_path):
+    from dataclasses import replace
+    from worlds import Files
+
+    experiment = make_experiment(tmp_path)
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "rows.txt").write_text("public rows")
+    experiment = replace(
+        experiment, world=replace(experiment.world, attachments={"data": Files(data)})
+    )
+    task = experiment.compile(tmp_path / "task")
+    assert (task / "environment/resources/data/rows.txt").read_text() == "public rows"
+    assert not (task / "tests/bundle/rows.txt").exists()
+    dockerfile = (task / "environment/Dockerfile").read_text()
+    assert "COPY resources/data/ /resources/data/" in dockerfile
+    assert "chown -R root:root /resources" in dockerfile
+    assert "chmod 444" in dockerfile
+    assert "/resources/data" in (task / "instruction.md").read_text()
+
+
+@pytest.mark.parametrize("name", ["../data", "a/b", "data;id", "", "with space"])
+def test_bad_attachment_names_are_rejected(tmp_path, name):
+    from worlds import Files
+
+    with pytest.raises(ValueError, match="attachment names"):
+        World(attachments={name: Files(tmp_path)})
+
+
+def test_private_attachment_and_link_are_rejected(tmp_path):
+    from dataclasses import replace
+    from worlds import Files
+
+    experiment = make_experiment(tmp_path)
+    private_world = replace(
+        experiment.world, attachments={"data": Files(experiment.validation.bundle)}
+    )
+    with pytest.raises(ValueError, match="separate trees"):
+        replace(experiment, world=private_world).compile(tmp_path / "bad")
+    linked = tmp_path / "linked"
+    linked.mkdir()
+    (linked / "secret").symlink_to(experiment.validation.bundle / "secret.txt")
+    with pytest.raises(ValueError, match="symlink"):
+        replace(
+            experiment,
+            world=replace(experiment.world, attachments={"data": Files(linked)}),
+        ).compile(tmp_path / "linked-task")

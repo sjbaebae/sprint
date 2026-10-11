@@ -51,6 +51,17 @@ class Resources:
 
 
 @dataclass(frozen=True)
+class Files:
+    """Public directory attached read-only under /resources/<name>.
+
+    Contents are copied at compilation, never mounted from the operator host.
+    Protected evaluation data must remain in Validation.bundle.
+    """
+
+    path: Path
+
+
+@dataclass(frozen=True)
 class World:
     """Shared workspace and sandbox; reusable across tasks and evaluations.
 
@@ -62,6 +73,14 @@ class World:
     sandbox: Sandbox = field(default_factory=Sandbox)
     files: Path | None = None
     resources: Resources = field(default_factory=Resources)
+    attachments: dict[str, Files] = field(default_factory=dict)
+
+    def __post_init__(self):
+        for name, attachment in self.attachments.items():
+            if not re.fullmatch(r"[a-zA-Z][a-zA-Z0-9_-]*", name):
+                raise ValueError("attachment names must be simple identifiers")
+            if not isinstance(attachment, Files):
+                raise TypeError("only Files attachments are currently supported")
 
 
 @dataclass(frozen=True)

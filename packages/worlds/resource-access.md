@@ -1,14 +1,14 @@
 # Named resource access
 
-Implementation target; hardware requests already work. Named attachments are not
-implemented yet.
+Read-only named file attachments are implemented. Separate hardware requests already
+work. Named worker submission below is the next implementation target.
 
 ```python
 world = World(
     resources=Resources(cpus=2),
     attachments={
         "train": Worker(resources=Resources(gpu="L4"), sandbox=gpu_image),
-        "data": Files(path=Path("datasets"), read_only=True),
+        "data": Files(path=Path("datasets")),
     },
 )
 ```
