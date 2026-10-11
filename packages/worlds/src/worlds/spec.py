@@ -62,6 +62,19 @@ class Files:
 
 
 @dataclass(frozen=True)
+class Worker:
+    """Separate persistent sandbox for submitted Python jobs within one trial."""
+
+    sandbox: Sandbox = field(default_factory=Sandbox)
+    resources: Resources = field(default_factory=Resources)
+    seconds: int = 600
+
+    def __post_init__(self):
+        if type(self.seconds) is not int or self.seconds < 1:
+            raise ValueError("worker timeout must be a positive integer")
+
+
+@dataclass(frozen=True)
 class World:
     """Shared workspace and sandbox; reusable across tasks and evaluations.
 
@@ -73,14 +86,14 @@ class World:
     sandbox: Sandbox = field(default_factory=Sandbox)
     files: Path | None = None
     resources: Resources = field(default_factory=Resources)
-    attachments: dict[str, Files] = field(default_factory=dict)
+    attachments: dict[str, Files | Worker] = field(default_factory=dict)
 
     def __post_init__(self):
         for name, attachment in self.attachments.items():
             if not re.fullmatch(r"[a-zA-Z][a-zA-Z0-9_-]*", name):
                 raise ValueError("attachment names must be simple identifiers")
-            if not isinstance(attachment, Files):
-                raise TypeError("only Files attachments are currently supported")
+            if not isinstance(attachment, (Files, Worker)):
+                raise TypeError("attachments must be Files or Worker")
 
 
 @dataclass(frozen=True)

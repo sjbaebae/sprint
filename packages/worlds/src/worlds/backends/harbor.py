@@ -57,6 +57,7 @@ def dockerfile(
 def compile_task(experiment, directory):
     """Emit a new task with separate verifier; refuse to overwrite authored state."""
     import toml
+    from ..spec import Files, Worker
     from harbor.models.task.config import TaskConfig
 
     directory = Path(directory)
@@ -73,6 +74,8 @@ def compile_task(experiment, directory):
         raise ValueError("generated task cannot be inside the validation source tree")
     private = Path(experiment.validation.bundle).resolve()
     for attachment in experiment.world.attachments.values():
+        if not isinstance(attachment, Files):
+            continue
         source = Path(attachment.path).resolve()
         if source.is_relative_to(private) or private.is_relative_to(source):
             raise ValueError(
@@ -95,6 +98,13 @@ def compile_task(experiment, directory):
     else:
         copy_tree(world.files, learner / "workspace")
     for name, attachment in world.attachments.items():
+        if isinstance(attachment, Worker):
+            worker_dir = directory / "workers" / name
+            worker_dir.mkdir(parents=True)
+            (worker_dir / "Dockerfile").write_text(
+                dockerfile(attachment.sandbox, copy_workspace=False)
+            )
+            continue
         (learner / "resources").mkdir(exist_ok=True)
         copy_tree(attachment.path, learner / "resources" / name)
     copy_tree(validation.bundle, tests / "bundle")
@@ -107,7 +117,11 @@ def compile_task(experiment, directory):
             world.sandbox,
             copy_workspace=any((learner / "workspace").rglob("*")),
             submission=experiment.task.submission,
-            attachments=world.attachments,
+            attachments=[
+                name
+                for name, value in world.attachments.items()
+                if isinstance(value, Files)
+            ],
         )
     )
     (tests / "Dockerfile").write_text(dockerfile(validation.sandbox, verifier=True))
@@ -138,7 +152,8 @@ def compile_task(experiment, directory):
         experiment.task.objective
         + "".join(
             f"\nRead-only resource {name}: /resources/{name}\n"
-            for name in world.attachments
+            for name, value in world.attachments.items()
+            if isinstance(value, Files)
         )
         + f"\n\nWrite your final artifact under {experiment.task.submission}.\n"
     )
@@ -198,6 +213,14 @@ async def run(experiment, *, directory, backend, trials, parallel):
         TrialTaskConfig,
     )
 
+    from ..spec import Worker
+
+    if any(
+        isinstance(value, Worker) for value in experiment.world.attachments.values()
+    ):
+        raise NotImplementedError(
+            "worker attachments require the pending agent queue adapter; use WorkerSession for operator tests"
+        )
     if trials < 1 or parallel < 1:
         raise ValueError("trials and parallel must be positive")
     directory = Path(directory).resolve()

@@ -148,4 +148,5 @@ owned by root and read-only for the agent. Attachments are excluded from the
 private verifier image. Names cannot contain paths; symlinks, special files and
 trees overlapping the private validation bundle are rejected. This is a copied
 image attachment, so very large datasets should use a future storage adapter.
-Named worker job submission is not implemented yet.
+Operator-side `WorkerSession` supports persistent worker jobs; agent-facing worker
+submission is not implemented yet. See [resource access](resource-access.md).

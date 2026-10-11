@@ -1,7 +1,8 @@
 # Named resource access
 
 Read-only named file attachments are implemented. Separate hardware requests already
-work. Named worker submission below is the next implementation target.
+work. `WorkerSession` now provisions persistent workers and executes bounded Python jobs.
+The agent-facing queue and output collection below remain the implementation target.
 
 ```python
 world = World(
@@ -49,3 +50,23 @@ Run a CPU-host trial with an attached L4 worker, execute a small GPU operation,
 collect its artifact, and grade it in an independent CPU verifier. Check denied
 resource names, invalid requests, failed jobs, timeout cleanup, checkpoint reuse
 and blocked outbound access before considering the attachment API ready.
+
+## Operator-side worker test
+
+```python
+from worlds import Resources, Worker
+from worlds.workers import WorkerSession
+
+async with WorkerSession(
+    Worker(resources=Resources(gpu="L4")),
+    directory=Path("run/worker"),
+    backend="modal",
+) as worker:
+    result = await worker.run("import torch; print(torch.cuda.is_available())")
+```
+
+Jobs run as `agent`, reuse `/app` between successful calls and return exit code,
+stdout and stderr. The operator retains submitted source hashes and UTC execution
+events outside the sandbox. Context exit destroys the worker; execution exceptions
+also destroy it. Named workers can be compiled for inspection, but `Experiment.run`
+rejects them until the agent queue is connected.
