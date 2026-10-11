@@ -5,7 +5,7 @@ an agent. Provider configuration stays behind execution adapters.
 
 | Layer | Owns |
 |---|---|
-| World | Public assets, tools and resource access |
+| Env | Public assets, tools and resource access |
 | Sandbox | Isolation, image, tooling and network policy |
 | Resources | Hardware capacity and named resource capabilities |
 | Task | Objective, constraints and submission contract |
@@ -46,3 +46,34 @@ These are distinct from the verified initial lifecycle.
 Harbor internals may change substantially to support this contract. End users
 should not need Harbor job models, Compose templates or provider scripts to
 author an ordinary environment.
+
+
+## Full-run checkpoints: required contract, not yet implemented
+
+A resumable checkpoint must restore the mid-task RL run, rather than start a new
+trial with copied files. Capture CPU/process memory, registers and process trees;
+all writable disks and resource filesystems; native agent conversation and harness
+state; queue entries, completed/pending request IDs and feedback; budgets, action
+counters, RNG state, and pinned environment versions. Running GPU resources require
+device-state checkpoint support. Never silently downgrade to filesystem-only state.
+
+Incremental storage is an optimization of this complete checkpoint: retain an
+immutable base plus disk blocks and dirty memory pages. Restore materializes the
+same complete state. Human-readable file diffs are an inspection view, not the
+state representation and not sufficient for restoration.
+
+Freeze the participating runtimes and host scheduler into one consistent cut.
+Publish the checkpoint only after every component is durable. On failure, record
+an incomplete checkpoint and resume or safely stop the original run; never expose
+a partially successful checkpoint as restorable. Restore into an isolated branch,
+with the saved remaining budget, and retain its parent checkpoint ID.
+
+External API services and irreversible external side effects are outside the
+snapshot. Record in-flight operations and their recovery policy; never assume an
+inference request, network connection, or remote write can be rolled back. Runtime
+snapshots may contain credentials and private data and require private storage.
+
+Current state: submission manifests/text diffs and worker artifact collection are
+implemented. Full-run suspend/restore is not. Modal filesystem snapshots alone do
+not meet this contract; its memory-snapshot limitations exclude the current live
+GPU workflow. A process/VM backend with appropriate device support is required.

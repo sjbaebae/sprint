@@ -1,6 +1,7 @@
 """Translate the small authoring API into native Harbor tasks and jobs."""
 
 import json
+import os
 import shlex
 import shutil
 from pathlib import Path
@@ -95,8 +96,8 @@ def compile_task(experiment, directory):
     from sprint.models.task.config import TaskConfig
 
     directory = Path(directory)
-    if experiment.world.files is not None:
-        public = Path(experiment.world.files).resolve()
+    if experiment.env.files is not None:
+        public = Path(experiment.env.files).resolve()
         private = Path(experiment.validation.bundle).resolve()
         if public.is_relative_to(private) or private.is_relative_to(public):
             raise ValueError(
@@ -107,7 +108,7 @@ def compile_task(experiment, directory):
     if directory.resolve().is_relative_to(Path(experiment.validation.bundle).resolve()):
         raise ValueError("generated task cannot be inside the validation source tree")
     private = Path(experiment.validation.bundle).resolve()
-    for attachment in experiment.world.attachments.values():
+    for attachment in experiment.env.attachments.values():
         if not isinstance(attachment, Files):
             continue
         source = Path(attachment.path).resolve()
@@ -125,7 +126,7 @@ def compile_task(experiment, directory):
     tests = directory / "tests"
     learner.mkdir()
     tests.mkdir()
-    world = experiment.world
+    world = experiment.env
     validation = experiment.validation
     if world.files is None:
         (learner / "workspace").mkdir()
@@ -270,6 +271,19 @@ def compile_task(experiment, directory):
     return directory
 
 
+def agent_auth_env(agent):
+    """Select API billing explicitly without persisting keys in author definitions."""
+    if agent.auth == "auto":
+        return {}
+    name = "OPENAI_API_KEY" if agent.harness == "codex" else "ANTHROPIC_API_KEY"
+    key = os.environ.get(name, "").strip()
+    if not key:
+        raise ValueError(f"{name} must be set on the host for API-key authentication")
+    if agent.harness == "codex":
+        return {name: key, "CODEX_AUTH_JSON_PATH": "", "CODEX_FORCE_AUTH_JSON": "0"}
+    return {name: key, "CLAUDE_CODE_OAUTH_TOKEN": "", "CLAUDE_FORCE_OAUTH": "0"}
+
+
 async def run(experiment, *, directory, backend, trials, parallel):
     """Use Harbor scheduling and native agent adapters rather than another runner."""
     from sprint import (
@@ -285,6 +299,7 @@ async def run(experiment, *, directory, backend, trials, parallel):
     if trials < 1 or parallel < 1:
         raise ValueError("trials and parallel must be positive")
     directory = Path(directory).resolve()
+    auth_env = agent_auth_env(experiment.agent)
     task = compile_task(experiment, directory / "task")
     config = JobConfig(
         jobs_dir=directory / "runs",
@@ -296,6 +311,7 @@ async def run(experiment, *, directory, backend, trials, parallel):
                 name=experiment.agent.harness,
                 model_name=experiment.agent.model,
                 kwargs=experiment.agent.options,
+                env=auth_env,
             )
         ],
         environment=TrialEnvironmentConfig(type=backend),
@@ -327,7 +343,7 @@ async def run(experiment, *, directory, backend, trials, parallel):
         if event.event == TrialEvent.AGENT_START:
             workers = {
                 name: value
-                for name, value in experiment.world.attachments.items()
+                for name, value in experiment.env.attachments.items()
                 if isinstance(value, Worker)
             }
             if workers:

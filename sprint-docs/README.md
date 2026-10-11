@@ -5,11 +5,11 @@ agent harness. Sprint is one root package. See [installation](../README.md#insta
 
 ```python
 from pathlib import Path
-from sprint import Agent, Experiment, Files, Resources, Task, Validation, Worker, World
+from sprint import Agent, Experiment, Files, Resources, Task, Validation, Worker, Env
 
 experiment = Experiment(
     task=Task("Improve the supplied implementation."),
-    world=World(
+    env=Env(
         files=Path("workspace"),
         attachments={
             "data": Files(Path("datasets")),
@@ -54,13 +54,13 @@ code in the trusted grader process.
 
 | Definition | Agent access |
 |---|---|
-| `World(files=...)` | Writable `/app` workspace |
+| `Env(files=...)` | Writable `/app` workspace |
 | `Files(path)` | Read-only `/resources/<name>`, copied into the learner image |
 | `Worker(sandbox=..., resources=...)` | Separate sandbox for Python jobs |
 | `Validation(resources=...)` | Private grading sandbox, inaccessible to agent |
 
 `Resources` requests CPU, RAM and optional GPU. `Sandbox` sets image, packages and
-network policy. World, worker and verifier hardware/network settings are independent.
+network policy. Env, worker and verifier hardware/network settings are independent.
 Read-only file attachments are available at the same paths in the learner and its
 workers. Worker images must contain required packages.
 

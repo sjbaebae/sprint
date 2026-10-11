@@ -3,14 +3,14 @@
 import asyncio
 from pathlib import Path
 
-from sprint import Agent, Budget, Experiment, Task, Validation, World
+from sprint import Agent, Budget, Experiment, Task, Validation, Env
 
 experiment = Experiment(
     task=Task("Calculate 6 × 7 and write answer.txt in your submission directory."),
     validation=Validation(bundle=Path(__file__).parent / "validation"),
     agent=Agent(model="gpt-6-astra", harness="codex"),
     budget=Budget(seconds=120),
-    world=World(files=Path(__file__).parent / "workspace"),
+    env=Env(files=Path(__file__).parent / "workspace"),
 )
 
 if __name__ == "__main__":

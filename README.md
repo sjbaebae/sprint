@@ -37,7 +37,7 @@ def verify(context):
     return {"score": float(correct), "metrics": {"correct": correct}}
 ```
 
-The validation bundle is copied only into the separate verifier. Put hidden answers and test data here. Public workspace files belong in `World(files=Path("workspace"))`; never place private evaluation data there.
+The validation bundle is copied only into the separate verifier. Put hidden answers and test data here. Public workspace files belong in `Env(files=Path("workspace"))`; never place private evaluation data there.
 
 ## 3. Define and run the environment
 
@@ -50,7 +50,7 @@ import asyncio
 import os
 from pathlib import Path
 
-from sprint import Agent, Budget, Experiment, Sandbox, Task, Validation, World
+from sprint import Agent, Budget, Experiment, Sandbox, Task, Validation, Env
 
 async def main():
     auth = Path.home() / ".codex/auth.json"
@@ -59,7 +59,7 @@ async def main():
     os.environ["CODEX_AUTH_JSON_PATH"] = str(auth)
 
     experiment = Experiment(
-        world=World(sandbox=Sandbox(
+        env=Env(sandbox=Sandbox(
             setup=(
                 "apt-get update && apt-get install -y --no-install-recommends nodejs npm ca-certificates && rm -rf /var/lib/apt/lists/*",
                 "npm install -g @openai/codex@0.162.1",
@@ -96,6 +96,21 @@ The host orchestrates the trial; Modal runs its sandboxes. `Sandbox.setup` runs 
 
 For repeated independent trials, use `trials=6, parallel=6` in `experiment.run(...)`. Use a new output directory for a new campaign. `experiment.compile(Path("compiled"))` writes the task for inspection without launching it.
 
+### API-key billing: Codex or Claude Code
+
+Set the appropriate key in the host environment or secret manager. Keep keys out of Python files, Git, and image build commands.
+
+```python
+codex = Agent(model="gpt-6-astra", harness="codex", auth="api-key")
+claude = Agent(model="YOUR_CLAUDE_MODEL_ID", harness="claude-code", auth="api-key")
+```
+
+Codex uses `OPENAI_API_KEY`; Claude Code uses `ANTHROPIC_API_KEY`. `auth="api-key"` requires the key before provisioning and suppresses subscription authentication for that trial. Default `auth="auto"` retains the existing adapter authentication behavior, including the Codex sign-in setup above.
+
+Choose the agent in `Experiment(agent=codex, ...)` or `Experiment(agent=claude, ...)`. For Codex API access allow `api.openai.com`; for Claude Code allow `api.anthropic.com`. Preinstall the corresponding CLI in the image (`@openai/codex` or `@anthropic-ai/claude-code`) or provide build-time installation in `Sandbox.setup`. Use a model ID available to your API account. API-key billing is separate from subscription usage. See [Codex authentication](https://learn.chatgpt.com/docs/auth).
+
+Credentials are injected into the harness at runtime and redacted from serialized agent configuration. They are accessible inside its sandbox; this is not a credential-isolating inference proxy. Worker jobs do not inherit harness credentials.
+
 ## 4. Inspect results
 
 Open `.sprint/answer/review.html` for the transcript, turn timestamps, tool calls, worker feedback, and grading. `result.json` and `events.jsonl` contain structured records. Submission snapshots and diffs are retained per trial. Missing reasoning summaries or timestamps are displayed as missing; requesting summaries does not guarantee the provider returns them.
@@ -103,16 +118,22 @@ Open `.sprint/answer/review.html` for the transcript, turn timestamps, tool call
 ## Attach GPU workers or data
 
 ```python
-from sprint import Files, Resources, Worker
+from pathlib import Path
+from sprint import Env, Files, Resources, Sandbox, Worker
 
-world = World(
-    sandbox=learner_sandbox,
+env = Env(
+    sandbox=Sandbox(
+        internet="allowlist",
+        allowed_hosts=("chatgpt.com", "auth.openai.com", "api.openai.com"),
+    ),
     attachments={
         "data": Files(Path("datasets")),
         "train": Worker(resources=Resources(gpu="L4"), seconds=600),
     },
 )
 ```
+
+Pass this as `Experiment(env=env, ...)`. Use a preinstalled harness image or the `Sandbox.setup` from the full example above.
 
 `Files` mounts read-only public data at `/resources/data` in the learner and workers. A named worker is created on first use and retains its workspace until the trial ends. Configure its sandbox packages/image for your training stack. The learner submits Python scripts using:
 

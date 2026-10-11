@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from sprint import Agent, Experiment, Sandbox, StateTracker, Task, Validation, World
+from sprint import Agent, Experiment, Sandbox, StateTracker, Task, Validation, Env
 from sprint.validation import Context, evaluate
 
 
@@ -21,7 +21,7 @@ def make_experiment(tmp_path):
         Task("Solve the task"),
         Validation(private),
         Agent("test-model"),
-        World(files=public),
+        Env(files=public),
     )
 
 
@@ -50,7 +50,7 @@ def test_compile_rejects_overlapping_public_private(tmp_path):
     pytest.importorskip("sprint")
     experiment = make_experiment(tmp_path)
     experiment = Experiment(
-        experiment.task, experiment.validation, experiment.agent, World(files=tmp_path)
+        experiment.task, experiment.validation, experiment.agent, Env(files=tmp_path)
     )
     with pytest.raises(ValueError, match="separate trees"):
         experiment.compile(tmp_path / "task")
@@ -59,7 +59,7 @@ def test_compile_rejects_overlapping_public_private(tmp_path):
 def test_compile_rejects_symlink_bundle(tmp_path):
     pytest.importorskip("sprint")
     experiment = make_experiment(tmp_path)
-    (experiment.world.files / "leak").symlink_to(experiment.validation.bundle)
+    (experiment.env.files / "leak").symlink_to(experiment.validation.bundle)
     with pytest.raises(ValueError, match="symlink"):
         experiment.compile(tmp_path / "task")
 
@@ -198,9 +198,7 @@ def test_gpu_and_validation_resources_are_independent(tmp_path):
         experiment.task,
         experiment.validation,
         experiment.agent,
-        World(
-            files=experiment.world.files, resources=Resources(gpu="L4", memory_mb=16384)
-        ),
+        Env(files=experiment.env.files, resources=Resources(gpu="L4", memory_mb=16384)),
     )
     task = experiment.compile(tmp_path / "task")
     config = tomllib.loads((task / "task.toml").read_text())
@@ -227,7 +225,7 @@ def test_named_files_are_separate_read_only_attachments(tmp_path):
     data.mkdir()
     (data / "rows.txt").write_text("public rows")
     experiment = replace(
-        experiment, world=replace(experiment.world, attachments={"data": Files(data)})
+        experiment, env=replace(experiment.env, attachments={"data": Files(data)})
     )
     task = experiment.compile(tmp_path / "task")
     assert (task / "environment/resources/data/rows.txt").read_text() == "public rows"
@@ -244,7 +242,7 @@ def test_bad_attachment_names_are_rejected(tmp_path, name):
     from sprint import Files
 
     with pytest.raises(ValueError, match="attachment names"):
-        World(attachments={name: Files(tmp_path)})
+        Env(attachments={name: Files(tmp_path)})
 
 
 def test_private_attachment_and_link_are_rejected(tmp_path):
@@ -253,17 +251,17 @@ def test_private_attachment_and_link_are_rejected(tmp_path):
 
     experiment = make_experiment(tmp_path)
     private_world = replace(
-        experiment.world, attachments={"data": Files(experiment.validation.bundle)}
+        experiment.env, attachments={"data": Files(experiment.validation.bundle)}
     )
     with pytest.raises(ValueError, match="separate trees"):
-        replace(experiment, world=private_world).compile(tmp_path / "bad")
+        replace(experiment, env=private_world).compile(tmp_path / "bad")
     linked = tmp_path / "linked"
     linked.mkdir()
     (linked / "secret").symlink_to(experiment.validation.bundle / "secret.txt")
     with pytest.raises(ValueError, match="symlink"):
         replace(
             experiment,
-            world=replace(experiment.world, attachments={"data": Files(linked)}),
+            env=replace(experiment.env, attachments={"data": Files(linked)}),
         ).compile(tmp_path / "linked-task")
 
 
@@ -277,8 +275,8 @@ def test_worker_and_agent_share_public_data_but_not_private_validation(tmp_path)
     (data / "rows.txt").write_text("public")
     experiment = replace(
         experiment,
-        world=replace(
-            experiment.world, attachments={"data": Files(data), "train": Worker()}
+        env=replace(
+            experiment.env, attachments={"data": Files(data), "train": Worker()}
         ),
     )
     task = experiment.compile(tmp_path / "task")
@@ -295,3 +293,30 @@ def test_operator_setup_is_built_before_dropping_privileges():
     image = dockerfile(Sandbox(setup=("install-toolchain",)), copy_workspace=False)
     assert image.index("RUN install-toolchain") < image.index("USER agent")
     assert image.index("RUN install-toolchain") < image.index("RUN useradd")
+
+
+def test_api_auth_requires_host_key_and_overrides_subscription(monkeypatch):
+    from sprint.backends.runtime import agent_auth_env
+
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    with pytest.raises(ValueError, match="OPENAI_API_KEY"):
+        agent_auth_env(Agent("test", auth="api-key"))
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key-not-real")
+    resolved = agent_auth_env(Agent("test", auth="api-key"))
+    assert resolved["OPENAI_API_KEY"] == "test-key-not-real"
+    assert resolved["CODEX_AUTH_JSON_PATH"] == ""
+    assert resolved["CODEX_FORCE_AUTH_JSON"] == "0"
+
+
+def test_claude_api_auth_suppresses_oauth_and_serialization_redacts(monkeypatch):
+    from sprint.backends.runtime import agent_auth_env
+    from sprint.models.trial.config import AgentConfig
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-not-real")
+    agent = Agent("test", harness="claude-code", auth="api-key")
+    env = agent_auth_env(agent)
+    assert env["CLAUDE_CODE_OAUTH_TOKEN"] == ""
+    assert env["CLAUDE_FORCE_OAUTH"] == "0"
+    config = AgentConfig(name="claude-code", model_name="test", env=env)
+    assert "test-key-not-real" not in config.model_dump_json()
+    assert agent_auth_env(Agent("test")) == {}

@@ -84,7 +84,7 @@ class Worker:
 
 
 @dataclass(frozen=True)
-class World:
+class Env:
     """Shared workspace and sandbox; reusable across tasks and evaluations.
 
     Files are copied into the learner workspace. Never put protected data here.
@@ -175,6 +175,13 @@ class Agent:
     model: str
     harness: str = "codex"
     options: dict[str, Any] = field(default_factory=dict)
+    auth: str = "auto"
+
+    def __post_init__(self):
+        if self.auth not in {"auto", "api-key"}:
+            raise ValueError("agent auth must be auto or api-key")
+        if self.auth == "api-key" and self.harness not in {"codex", "claude-code"}:
+            raise ValueError("explicit API-key auth supports codex and claude-code")
 
 
 @dataclass(frozen=True)
@@ -195,7 +202,7 @@ class Experiment:
     task: Task
     validation: Validation
     agent: Agent
-    world: World = field(default_factory=World)
+    env: Env = field(default_factory=Env)
     budget: Budget = field(default_factory=Budget)
 
     def compile(self, directory: Path):

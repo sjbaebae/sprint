@@ -11,7 +11,7 @@ from .spec import (
     Sandbox,
     Task,
     Validation,
-    World,
+    Env,
     Worker,
 )
 from .state import StateTracker
@@ -276,6 +276,6 @@ __all__ = [
     "StateTracker",
     "Task",
     "Validation",
-    "World",
+    "Env",
     "Worker",
 ]

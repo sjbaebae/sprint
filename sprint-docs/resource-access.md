@@ -5,7 +5,7 @@ work. `WorkerSession` now provisions persistent workers and executes bounded Pyt
 The agent-facing queue supports run/status. Regular-file checkpoint collection is implemented.
 
 ```python
-world = World(
+world = Env(
     resources=Resources(cpus=2),
     attachments={
         "train": Worker(resources=Resources(gpu="L4"), sandbox=gpu_image),

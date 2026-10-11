@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Breaking (authoring):** Rename `World` and `Experiment.world` to `Env` and `Experiment.env`. Add explicit API-key authentication for Codex and Claude Code.
+
 - **Breaking (Sprint):** Rename the distribution and Python namespace to `sprint`; merge authoring and execution code under `src/sprint`. Update imports from `harbor` or `worlds` to `sprint`.
 
 - Add the experimental Sprint authoring library with independent resources, named data/worker attachments, checkpoint collection, isolated validation, persisted review records and optional agent-trace transfer to separate verifiers.

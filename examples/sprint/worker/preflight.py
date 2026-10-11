@@ -15,7 +15,7 @@ from sprint import (
     Task,
     Validation,
     Worker,
-    World,
+    Env,
 )
 
 
@@ -73,7 +73,7 @@ python -c 'import json,shutil; r=json.load(open("/app/collected.json")); assert 
         Task("Use the train worker and retain its checkpoint."),
         Validation(private, reference=reference, sandbox=sandbox),
         Agent("test", harness="oracle"),
-        World(
+        Env(
             sandbox=sandbox,
             attachments={
                 "data": Files(data),

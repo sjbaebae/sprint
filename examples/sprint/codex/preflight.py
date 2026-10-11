@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from uuid import uuid4
 
-from sprint import Agent, Budget, Experiment, Sandbox, Task, Validation, Worker, World
+from sprint import Agent, Budget, Experiment, Sandbox, Task, Validation, Worker, Env
 
 
 async def main():
@@ -47,7 +47,7 @@ async def main():
                 },
             },
         ),
-        World(sandbox=sandbox, attachments={"compute": Worker()}),
+        Env(sandbox=sandbox, attachments={"compute": Worker()}),
         Budget(seconds=300),
     )
     result = await experiment.run(directory=root / "run", backend="modal")

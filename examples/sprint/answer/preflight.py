@@ -14,7 +14,7 @@ from sprint import (
     Task,
     Validation,
     Sandbox,
-    World,
+    Env,
     Resources,
 )
 
@@ -43,7 +43,7 @@ async def check(here, root, workspace, backend, internet, gpu):
                 reference=here / "solve.sh",
                 sandbox=Sandbox(internet=internet),
             ),
-            world=World(
+            env=Env(
                 sandbox=Sandbox(internet=internet),
                 files=workspace,
                 resources=Resources(gpu=gpu),
