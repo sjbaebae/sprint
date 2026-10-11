@@ -90,7 +90,7 @@ class World:
 
     def __post_init__(self):
         for name, attachment in self.attachments.items():
-            if not re.fullmatch(r"[a-zA-Z][a-zA-Z0-9_-]*", name):
+            if name == "control" or not re.fullmatch(r"[a-zA-Z][a-zA-Z0-9_-]*", name):
                 raise ValueError("attachment names must be simple identifiers")
             if not isinstance(attachment, (Files, Worker)):
                 raise TypeError("attachments must be Files or Worker")

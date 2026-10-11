@@ -485,6 +485,7 @@ class Trial(ABC):
             config=self.config,
             result=self.result,
             lock=self._trial_lock,
+            environment=getattr(self, "agent_environment", None),
         )
         for hook in self._hooks[event]:
             await hook(hook_event)

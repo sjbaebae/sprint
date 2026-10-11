@@ -2,7 +2,7 @@
 
 Read-only named file attachments are implemented. Separate hardware requests already
 work. `WorkerSession` now provisions persistent workers and executes bounded Python jobs.
-The agent-facing queue and output collection below remain the implementation target.
+The agent-facing queue supports run/status. Output collection remains the next implementation target.
 
 ```python
 world = World(
@@ -68,5 +68,9 @@ async with WorkerSession(
 Jobs run as `agent`, reuse `/app` between successful calls and return exit code,
 stdout and stderr. The operator retains submitted source hashes and UTC execution
 events outside the sandbox. Context exit destroys the worker; execution exceptions
-also destroy it. Named workers can be compiled for inspection, but `Experiment.run`
-rejects them until the agent queue is connected.
+also destroy it. `Experiment.run` starts the host broker at agent start and destroys all worker
+sandboxes before verification. The agent uses `worlds-resource run NAME SCRIPT.py
+--wait 60` and `worlds-resource status REQUEST_ID --wait 60`. Results include actual
+exit code, stdout/stderr, or an exception type and message. Only Python code is
+accepted; resource names must be explicitly granted. Resource requests are limited
+to 200 per trial. Jobs are currently serialized by the broker.

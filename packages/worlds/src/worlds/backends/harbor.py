@@ -24,6 +24,7 @@ def dockerfile(
     copy_workspace=True,
     submission="/app/submission",
     attachments=(),
+    workers=(),
 ):
     """Build tooling once in the image; do not download dependencies during grading."""
     lines = [f"FROM {sandbox.image}", "WORKDIR /app"]
@@ -50,6 +51,16 @@ def dockerfile(
                 "find /resources -type d -exec chmod 555 {} + && "
                 "find /resources -type f -exec chmod 444 {} +"
             )
+        if workers:
+            lines += [
+                "COPY resource_client.py /opt/worlds-resource.py",
+                "RUN mkdir -p /resources/control/requests /resources/control/results && "
+                "chown agent:agent /resources/control/requests && "
+                "chmod 755 /resources /resources/control /resources/control/results && "
+                "printf '#!/bin/sh\\nexec python -I -S /opt/worlds-resource.py \"$@\"\\n' > /usr/local/bin/worlds-resource && "
+                "chmod 755 /usr/local/bin/worlds-resource && chmod 444 /opt/worlds-resource.py",
+                "COPY resource_manifest.json /resources/control/manifest.json",
+            ]
         lines.append("USER agent")
     return "\n".join(lines) + "\n"
 
@@ -112,10 +123,33 @@ def compile_task(experiment, directory):
         raise ValueError("validation entrypoint is missing")
     if validation.rubric and not (tests / "bundle" / validation.rubric).is_file():
         raise ValueError("rubric is missing")
+    workers = {
+        name: value
+        for name, value in world.attachments.items()
+        if isinstance(value, Worker)
+    }
+    if workers:
+        shutil.copyfile(
+            Path(__file__).parents[1] / "resource_client.py",
+            learner / "resource_client.py",
+        )
+        (learner / "resource_manifest.json").write_text(
+            json.dumps(
+                {
+                    name: {
+                        "operations": ["run", "status"],
+                        "seconds": value.seconds,
+                        "gpu": value.resources.gpu,
+                    }
+                    for name, value in workers.items()
+                }
+            )
+        )
     (learner / "Dockerfile").write_text(
         dockerfile(
             world.sandbox,
             copy_workspace=any((learner / "workspace").rglob("*")),
+            workers=workers,
             submission=experiment.task.submission,
             attachments=[
                 name
@@ -154,6 +188,11 @@ def compile_task(experiment, directory):
             f"\nRead-only resource {name}: /resources/{name}\n"
             for name, value in world.attachments.items()
             if isinstance(value, Files)
+        )
+        + (
+            "\nUse worlds-resource list; worlds-resource run NAME SCRIPT.py --wait 60; worlds-resource status REQUEST_ID --wait 60. Jobs execute Python on the named worker and preserve /app between calls.\n"
+            if workers
+            else ""
         )
         + f"\n\nWrite your final artifact under {experiment.task.submission}.\n"
     )
@@ -215,12 +254,6 @@ async def run(experiment, *, directory, backend, trials, parallel):
 
     from ..spec import Worker
 
-    if any(
-        isinstance(value, Worker) for value in experiment.world.attachments.values()
-    ):
-        raise NotImplementedError(
-            "worker attachments require the pending agent queue adapter; use WorkerSession for operator tests"
-        )
     if trials < 1 or parallel < 1:
         raise ValueError("trials and parallel must be positive")
     directory = Path(directory).resolve()
@@ -257,7 +290,38 @@ async def run(experiment, *, directory, backend, trials, parallel):
 
     for event in TrialEvent:
         job.add_hook(event, record)
-    native = await job.run()
+    from ..broker import ResourceBroker
+
+    brokers = {}
+
+    async def resources(event):
+        if event.event == TrialEvent.AGENT_START:
+            workers = {
+                name: value
+                for name, value in experiment.world.attachments.items()
+                if isinstance(value, Worker)
+            }
+            if workers:
+                broker = ResourceBroker(
+                    event.environment,
+                    workers,
+                    directory=directory / "resources" / event.trial_name,
+                    backend=backend,
+                )
+                brokers[event.trial_name] = broker
+                await broker.start()
+        elif event.event == TrialEvent.AGENT_END:
+            broker = brokers.pop(event.trial_name, None)
+            if broker is not None:
+                await broker.close()
+
+    job.add_hook(TrialEvent.AGENT_START, resources)
+    job.add_hook(TrialEvent.AGENT_END, resources)
+    try:
+        native = await job.run()
+    finally:
+        for broker in brokers.values():
+            await broker.close()
     return collect(
         directory, job.job_dir, native, submission=experiment.task.submission
     )

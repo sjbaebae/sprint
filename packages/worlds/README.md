@@ -148,5 +148,8 @@ owned by root and read-only for the agent. Attachments are excluded from the
 private verifier image. Names cannot contain paths; symlinks, special files and
 trees overlapping the private validation bundle are rejected. This is a copied
 image attachment, so very large datasets should use a future storage adapter.
-Operator-side `WorkerSession` supports persistent worker jobs; agent-facing worker
-submission is not implemented yet. See [resource access](resource-access.md).
+Attach a separate worker with `Worker(resources=Resources(gpu="L4"))`. The agent
+submits Python using `worlds-resource run NAME SCRIPT.py --wait 60` and retrieves
+feedback with `worlds-resource status REQUEST_ID`. The host owns provider
+credentials and cleanup. Checkpoints persist under the worker's `/app` between
+jobs. Artifact collection is not implemented yet. See [resource access](resource-access.md).

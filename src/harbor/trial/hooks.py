@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Awaitable, Callable, Literal
+from typing import Any, Awaitable, Callable, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field, computed_field
@@ -38,6 +38,7 @@ class TrialHookEvent(BaseModel):
 
     model_config = {"arbitrary_types_allowed": True}
 
+    environment: Any = Field(default=None, exclude=True)
     event: TrialEvent
     task_name: str
     config: TrialConfig
