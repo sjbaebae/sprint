@@ -8,14 +8,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from harbor.agents.capabilities import AgentCapabilities
-from harbor.agents.installed.base import BaseInstalledAgent
-from harbor.environments.base import ExecResult
-from harbor.models.agent.context import AgentContext
-from harbor.models.task.config import TaskOS
-from harbor.models.trial.config import TrialConfig
-from harbor.models.trial.paths import EnvironmentPaths
-from harbor.models.trial.result import AgentInfo
+from sprint.agents.capabilities import AgentCapabilities
+from sprint.agents.installed.base import BaseInstalledAgent
+from sprint.environments.base import ExecResult
+from sprint.models.agent.context import AgentContext
+from sprint.models.task.config import TaskOS
+from sprint.models.trial.config import TrialConfig
+from sprint.models.trial.paths import EnvironmentPaths
+from sprint.models.trial.result import AgentInfo
 
 
 def _make_single_step_task(tmp_path: Path) -> Path:
@@ -240,15 +240,15 @@ async def test_single_step_task_unchanged(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         result = await trial.run()
@@ -303,15 +303,15 @@ async def test_single_step_non_mounted_uploads_generated_agent_logs_before_verif
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         result = await trial.run()
@@ -374,15 +374,15 @@ async def test_multi_step_executes_all_steps(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         result = await trial.run()
@@ -440,15 +440,15 @@ async def test_multi_step_uses_final_reward_when_configured(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         result = await trial.run()
@@ -475,15 +475,15 @@ async def test_multi_step_creates_step_directories(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         await trial.run()
@@ -517,15 +517,15 @@ async def test_multi_step_downloads_agent_logs_before_relocation_for_non_mounted
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         await trial.run()
@@ -570,15 +570,15 @@ async def test_multi_step_populates_installed_agent_context_from_downloaded_logs
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         result = await trial.run()
@@ -638,15 +638,15 @@ async def test_multi_step_resume_preserves_previous_agent_logs(
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         result = await trial.run()
@@ -705,15 +705,15 @@ async def test_multi_step_reuploads_generated_agent_logs_before_step_verificatio
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         result = await trial.run()
@@ -748,15 +748,15 @@ async def test_multi_step_shared_tests_uploaded_before_step_tests(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         await trial.run()
@@ -819,7 +819,7 @@ async def test_multi_step_cleans_previous_shared_verifier_state_before_next_agen
 
     async def mock_empty_dirs(dirs, *, chmod=True):
         """Mock empty_dirs that calls through to exec like the real implementation."""
-        from harbor.environments.base import BaseEnvironment
+        from sprint.environments.base import BaseEnvironment
 
         command = BaseEnvironment._empty_dirs_command(
             mock_env,
@@ -835,15 +835,15 @@ async def test_multi_step_cleans_previous_shared_verifier_state_before_next_agen
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         await trial.run()
@@ -895,15 +895,15 @@ async def test_multi_step_disabled_verifier_preserves_agent_tests(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         await trial.run()
@@ -932,15 +932,15 @@ async def test_multi_step_aborts_on_fatal_failure(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         result = await trial.run()
@@ -975,15 +975,15 @@ async def test_multi_step_step_workdir_upload(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         await trial.run()
@@ -1015,15 +1015,15 @@ async def test_multi_step_result_json_serializable(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         result = await trial.run()
@@ -1058,15 +1058,15 @@ async def test_multi_step_removes_empty_trial_root_mount_dirs(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         await trial.run()
@@ -1099,15 +1099,15 @@ async def test_multi_step_writes_per_step_artifact_manifest_mounted(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         await trial.run()
@@ -1163,15 +1163,15 @@ async def test_multi_step_relocates_mounted_convention_artifacts(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         await trial.run()
@@ -1207,15 +1207,15 @@ async def test_multi_step_downloads_convention_artifacts_per_step_non_mounted(tm
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         await trial.run()
@@ -1260,15 +1260,15 @@ async def test_multi_step_does_not_write_trial_root_artifact_manifest(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         await trial.run()
@@ -1298,15 +1298,15 @@ async def test_single_step_still_writes_trial_root_artifact_manifest(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         await trial.run()
@@ -1350,15 +1350,15 @@ async def test_multi_step_early_failure_still_cleans_up_mount_dirs(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         await trial.run()
@@ -1420,15 +1420,15 @@ async def test_multi_step_step_level_agent_user_overrides_task_level(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         await trial.run()
@@ -1481,16 +1481,16 @@ async def test_multi_step_step_timeout_falls_back_to_task_level(tmp_path):
     async def record_agent_run(*, timeout_sec, **_kwargs):
         agent_timeouts.append(timeout_sec)
 
-    from harbor.trial.trial import Trial as _TrialCls
+    from sprint.trial.trial import Trial as _TrialCls
 
     with (
         patch.object(_TrialCls, "_run_agent_phase", side_effect=record_agent_run),
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
@@ -1595,15 +1595,15 @@ async def test_multi_step_collects_sidecar_artifacts_per_step(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         await trial.run()
@@ -1683,15 +1683,15 @@ async def test_multi_step_merges_task_and_step_artifacts(tmp_path):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=mock_env,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=mock_agent,
         ),
     ):
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         trial = await Trial.create(config=config)
         await trial.run()

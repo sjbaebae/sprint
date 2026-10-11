@@ -5,10 +5,10 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from harbor.models.job.config import DatasetConfig, JobConfig
-from harbor.models.job.result import JobResult, JobStats
-from harbor.models.trial.config import TaskConfig
-from harbor.viewer.server import create_app
+from sprint.models.job.config import DatasetConfig, JobConfig
+from sprint.models.job.result import JobResult, JobStats
+from sprint.models.trial.config import TaskConfig
+from sprint.viewer.server import create_app
 
 
 def _write_job(

@@ -5,11 +5,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from harbor.constants import MAIN_SERVICE_NAME
-from harbor.models.task.verifier_mode import VerifierEnvironmentMode
-from harbor.models.trial.paths import EnvironmentPaths
-from harbor.trial.errors import EnvironmentStartTimeoutError, VerifierTimeoutError
-from harbor.trial.single_step import SingleStepTrial
+from sprint.constants import MAIN_SERVICE_NAME
+from sprint.models.task.verifier_mode import VerifierEnvironmentMode
+from sprint.models.trial.paths import EnvironmentPaths
+from sprint.trial.errors import EnvironmentStartTimeoutError, VerifierTimeoutError
+from sprint.trial.single_step import SingleStepTrial
 
 
 def _single_step_trial(tmp_path: Path) -> SingleStepTrial:
@@ -297,7 +297,7 @@ async def test_verifier_errors_propagate_unchanged(
 
     with (
         patch(
-            "harbor.trial.single_step.resolve_task_verifier_mode",
+            "sprint.trial.single_step.resolve_task_verifier_mode",
             return_value=mode,
         ),
         pytest.raises(type(error)) as exc_info,

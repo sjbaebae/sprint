@@ -10,9 +10,9 @@ from daytona import Resources
 from daytona._async.snapshot import SnapshotState
 from daytona.common.errors import DaytonaError, DaytonaNotFoundError
 
-from harbor.environments.base import SandboxBuildFailedError
-from harbor.environments.daytona.snapshots import DaytonaSnapshotService
-from harbor.utils.logger import logger
+from sprint.environments.base import SandboxBuildFailedError
+from sprint.environments.daytona.snapshots import DaytonaSnapshotService
+from sprint.utils.logger import logger
 
 
 @pytest.fixture

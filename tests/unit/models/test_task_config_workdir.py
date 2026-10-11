@@ -1,4 +1,4 @@
-from harbor.models.task.config import EnvironmentConfig, TaskConfig
+from sprint.models.task.config import EnvironmentConfig, TaskConfig
 
 
 class TestWorkdirConfig:

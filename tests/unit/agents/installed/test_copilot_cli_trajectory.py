@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from harbor.agents.installed.copilot_cli import CopilotCli
-from harbor.models.agent.context import AgentContext
+from sprint.agents.installed.copilot_cli import CopilotCli
+from sprint.models.agent.context import AgentContext
 
 
 def _write_jsonl(directory: Path, events: list[Any]) -> Path:

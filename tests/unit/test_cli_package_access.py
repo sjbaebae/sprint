@@ -10,11 +10,11 @@ from postgrest.exceptions import APIError
 from pydantic import ValidationError
 from typer.testing import CliRunner
 
-from harbor.cli import package_access
-from harbor.cli.datasets import datasets_app
-from harbor.cli.tasks import tasks_app
-from harbor.cli.utils import package_error_message, package_visibility_error_message
-from harbor.models.package.access import PackageAccess, PackageAccessUpdate, PackageType
+from sprint.cli import package_access
+from sprint.cli.datasets import datasets_app
+from sprint.cli.tasks import tasks_app
+from sprint.cli.utils import package_error_message, package_visibility_error_message
+from sprint.models.package.access import PackageAccess, PackageAccessUpdate, PackageType
 
 runner = CliRunner()
 pytestmark = pytest.mark.unit
@@ -140,7 +140,7 @@ def _patch_db(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     db = MagicMock()
     db.get_package_access = AsyncMock()
     db.update_package_org_access = AsyncMock()
-    monkeypatch.setattr("harbor.db.client.RegistryDB", MagicMock(return_value=db))
+    monkeypatch.setattr("sprint.db.client.RegistryDB", MagicMock(return_value=db))
     return db
 
 

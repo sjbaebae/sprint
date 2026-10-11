@@ -1,4 +1,4 @@
-from harbor.db.client import RegistryDB, _normalize_content_hash
+from sprint.db.client import RegistryDB, _normalize_content_hash
 
 
 def test_normalize_content_hash_strips_sha256_prefix() -> None:

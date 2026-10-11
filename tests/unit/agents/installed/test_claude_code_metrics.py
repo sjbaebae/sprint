@@ -1,6 +1,6 @@
 """Unit tests for Claude Code per-message usage -> Metrics conversion."""
 
-from harbor.agents.installed.claude_code import ClaudeCode
+from sprint.agents.installed.claude_code import ClaudeCode
 
 
 class TestBuildMetricsNoneUsage:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from harbor.cli.adapter_wizard import (
+from sprint.cli.adapter_wizard import (
     AdapterWizard,
     _to_adapter_id_from_vanilla,
 )

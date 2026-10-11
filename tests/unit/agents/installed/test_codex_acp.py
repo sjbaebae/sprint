@@ -12,9 +12,9 @@ from unittest.mock import AsyncMock
 import pytest
 import toml
 
-from harbor.agents.installed.codex import Codex
-from harbor.bridges.acp import build_acpx_config
-from harbor.models.bridge import BridgeKind
+from sprint.agents.installed.codex import Codex
+from sprint.bridges.acp import build_acpx_config
+from sprint.models.bridge import BridgeKind
 
 _NVM_BIN = "/home/agent/.nvm/versions/node/v22.0.0/bin"
 _DISCOVERY = f"none:{_NVM_BIN}/node:{_NVM_BIN}/codex-acp:{_NVM_BIN}/codex"

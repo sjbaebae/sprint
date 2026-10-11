@@ -8,11 +8,11 @@ import toml
 import yaml
 from typer.testing import CliRunner
 
-from harbor.cli.exec import EXPERIMENTAL_WARNING, FILE_MENTION_PATTERN
-from harbor.cli.main import app
-from harbor.exec import ExecPhaseResult, ExecResult
-from harbor.models.exec import ExecConfig
-from harbor.models.job.result import JobResult
+from sprint.cli.exec import EXPERIMENTAL_WARNING, FILE_MENTION_PATTERN
+from sprint.cli.main import app
+from sprint.exec import ExecPhaseResult, ExecResult
+from sprint.models.exec import ExecConfig
+from sprint.models.job.result import JobResult
 
 pytestmark = pytest.mark.unit
 runner = CliRunner()
@@ -585,8 +585,8 @@ def test_exec_default_task_output_dir_is_cleaned_up(
                 )
             )
 
-    monkeypatch.setattr("harbor.cli.exec.Executor", FakeExecutor)
-    monkeypatch.setattr("harbor.cli.exec.print_job_results_tables", lambda _: None)
+    monkeypatch.setattr("sprint.cli.exec.Executor", FakeExecutor)
+    monkeypatch.setattr("sprint.cli.exec.print_job_results_tables", lambda _: None)
 
     result = runner.invoke(
         app,
@@ -658,8 +658,8 @@ def test_exec_config_hides_temporary_reduce_task_output_path(
                 ),
             )
 
-    monkeypatch.setattr("harbor.cli.exec.Executor", FakeExecutor)
-    monkeypatch.setattr("harbor.cli.exec.print_job_results_tables", lambda _: None)
+    monkeypatch.setattr("sprint.cli.exec.Executor", FakeExecutor)
+    monkeypatch.setattr("sprint.cli.exec.print_job_results_tables", lambda _: None)
 
     result = runner.invoke(app, ["exec", "--config", str(config_path)])
 
@@ -1353,8 +1353,8 @@ def _patch_capturing_executor(
                 )
             )
 
-    monkeypatch.setattr("harbor.cli.exec.Executor", FakeExecutor)
-    monkeypatch.setattr("harbor.cli.exec.print_job_results_tables", lambda _: None)
+    monkeypatch.setattr("sprint.cli.exec.Executor", FakeExecutor)
+    monkeypatch.setattr("sprint.cli.exec.print_job_results_tables", lambda _: None)
     return captured
 
 

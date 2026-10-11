@@ -6,22 +6,22 @@ from pathlib import Path
 
 import pytest
 
-from harbor.agents.base import BaseAgent
-from harbor.agents.factory import AgentFactory
-from harbor.agents.installed.aider import Aider
-from harbor.agents.nop import NopAgent
-from harbor.environments.base import BaseEnvironment, ExecResult
-from harbor.environments.capabilities import EnvironmentCapabilities
-from harbor.models.agent.context import AgentContext
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.trial.config import (
+from sprint.agents.base import BaseAgent
+from sprint.agents.factory import AgentFactory
+from sprint.agents.installed.aider import Aider
+from sprint.agents.nop import NopAgent
+from sprint.environments.base import BaseEnvironment, ExecResult
+from sprint.environments.capabilities import EnvironmentCapabilities
+from sprint.models.agent.context import AgentContext
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.trial.config import (
     AgentConfig,
     EnvironmentConfig,
     TaskConfig,
     TrialConfig,
     VerifierConfig,
 )
-from harbor.trial.trial import Trial
+from sprint.trial.trial import Trial
 
 pytestmark = pytest.mark.unit
 
@@ -256,7 +256,7 @@ def _create_task_dir(root: Path) -> Path:
 
 
 def _make_trial_paths(root: Path):
-    from harbor.models.trial.paths import TrialPaths
+    from sprint.models.trial.paths import TrialPaths
 
     trial_paths = TrialPaths(trial_dir=root / "trial")
     trial_paths.mkdir()
@@ -264,7 +264,7 @@ def _make_trial_paths(root: Path):
 
 
 def _make_task_env_config():
-    from harbor.models.task.config import EnvironmentConfig as TaskEnvironmentConfig
+    from sprint.models.task.config import EnvironmentConfig as TaskEnvironmentConfig
 
     return TaskEnvironmentConfig()
 

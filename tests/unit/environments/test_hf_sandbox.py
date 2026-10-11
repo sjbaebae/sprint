@@ -8,9 +8,9 @@ pytest.importorskip("huggingface_hub")
 
 from huggingface_hub import Sandbox
 
-from harbor.environments.hf_sandbox import HFSandboxEnvironment
-from harbor.models.task.config import EnvironmentConfig
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments.hf_sandbox import HFSandboxEnvironment
+from sprint.models.task.config import EnvironmentConfig
+from sprint.models.trial.paths import TrialPaths
 
 
 class _FakeSandbox:

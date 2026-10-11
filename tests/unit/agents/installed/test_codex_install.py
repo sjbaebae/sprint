@@ -5,7 +5,7 @@ from typing import Any, cast
 
 import pytest
 
-from harbor.agents.installed.codex import Codex
+from sprint.agents.installed.codex import Codex
 
 
 class TestCodexInstall:

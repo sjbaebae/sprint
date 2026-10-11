@@ -12,8 +12,8 @@ from typing import Any
 
 import pytest
 
-from harbor.agents.installed.strands_trajectory import convert_strands_to_atif
-from harbor.models.trajectories import Trajectory
+from sprint.agents.installed.strands_trajectory import convert_strands_to_atif
+from sprint.models.trajectories import Trajectory
 
 
 def _load_runner(monkeypatch: pytest.MonkeyPatch):
@@ -260,7 +260,7 @@ def _load_runner(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delitem(sys.modules, module_name, raising=False)
     runner_path = (
         Path(__file__).resolve().parents[4]
-        / "src/harbor/agents/installed/strands_runner.py"
+        / "src/sprint/agents/installed/strands_runner.py"
     )
     spec = importlib.util.spec_from_file_location(module_name, runner_path)
     assert spec is not None

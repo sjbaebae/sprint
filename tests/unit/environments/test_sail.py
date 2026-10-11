@@ -12,19 +12,19 @@ import pytest
 
 pytest.importorskip("sail")
 
-import harbor.environments.sail as sail_mod
-from harbor.environments.base import ExecResult, ServiceOperationsUnsupportedError
-from harbor.environments.sail import (
+import sprint.environments.sail as sail_mod
+from sprint.environments.base import ExecResult, ServiceOperationsUnsupportedError
+from sprint.environments.sail import (
     SailEnvironment,
     _SailDinD,
     _SailDirect,
     _referenced_env_names,
     _select_size,
 )
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.config import ServiceVolumeConfig
-from harbor.models.trial.paths import TrialPaths
-from harbor.utils.optional_import import MissingExtraError
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.config import ServiceVolumeConfig
+from sprint.models.trial.paths import TrialPaths
+from sprint.utils.optional_import import MissingExtraError
 
 NO_NETWORK = NetworkPolicy(network_mode=NetworkMode.NO_NETWORK)
 ALLOWLIST = NetworkPolicy(

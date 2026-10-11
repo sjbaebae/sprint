@@ -8,11 +8,11 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.agents.factory import AgentFactory
-from harbor.agents.installed.base import BaseInstalledAgent
-from harbor.agents.installed.code_puppy import CodePuppy, CodePuppyOptions
-from harbor.models.agent.context import AgentContext
-from harbor.models.agent.name import AgentName
+from sprint.agents.factory import AgentFactory
+from sprint.agents.installed.base import BaseInstalledAgent
+from sprint.agents.installed.code_puppy import CodePuppy, CodePuppyOptions
+from sprint.models.agent.context import AgentContext
+from sprint.models.agent.name import AgentName
 
 
 def _environment() -> AsyncMock:
@@ -197,7 +197,7 @@ def test_responses_provider_keeps_responses_transport(tmp_path, provider) -> Non
 
 
 def test_custom_model_type_matrix() -> None:
-    from harbor.agents.installed.code_puppy import _custom_model_type
+    from sprint.agents.installed.code_puppy import _custom_model_type
 
     assert _custom_model_type("anthropic") == "custom_anthropic"
     assert _custom_model_type("openai-responses") == "custom_openai_responses"

@@ -5,11 +5,11 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.factory import AgentFactory
-from harbor.agents.installed.kimi_code import KimiCode
-from harbor.models.agent.context import AgentContext
-from harbor.models.agent.name import AgentName
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.factory import AgentFactory
+from sprint.agents.installed.kimi_code import KimiCode
+from sprint.models.agent.context import AgentContext
+from sprint.models.agent.name import AgentName
+from sprint.models.task.config import MCPServerConfig
 
 
 @pytest.fixture

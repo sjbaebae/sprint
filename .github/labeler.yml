@@ -1,17 +1,17 @@
 "area:agents":
   - changed-files:
       - any-glob-to-any-file:
-          - src/harbor/agents/**
+          - src/sprint/agents/**
 
 "area:cli":
   - changed-files:
       - any-glob-to-any-file:
-          - src/harbor/cli/**
+          - src/sprint/cli/**
 
 "area:environments":
   - changed-files:
       - any-glob-to-any-file:
-          - src/harbor/environments/**
+          - src/sprint/environments/**
 
 "area:adapters":
   - changed-files:
@@ -22,16 +22,16 @@
 "area:registry":
   - changed-files:
       - any-glob-to-any-file:
-          - src/harbor/auth/**
-          - src/harbor/db/**
-          - src/harbor/publisher/**
-          - src/harbor/registry/**
-          - src/harbor/storage/**
+          - src/sprint/auth/**
+          - src/sprint/db/**
+          - src/sprint/publisher/**
+          - src/sprint/registry/**
+          - src/sprint/storage/**
 
 "area:viewer":
   - changed-files:
       - any-glob-to-any-file:
-          - src/harbor/viewer/**
+          - src/sprint/viewer/**
           - apps/viewer/**
 
 "area:tests":
@@ -61,13 +61,13 @@
 "area:core":
   - changed-files:
       - any-glob-to-any-file:
-          - src/harbor/models/**
-          - src/harbor/orchestrators/**
-          - src/harbor/verifier/**
-          - src/harbor/llms/**
-          - src/harbor/tasks/**
-          - src/harbor/trial/**
-          - src/harbor/metrics/**
-          - src/harbor/mappers/**
-          - src/harbor/utils/**
-          - src/harbor/*.py
+          - src/sprint/models/**
+          - src/sprint/orchestrators/**
+          - src/sprint/verifier/**
+          - src/sprint/llms/**
+          - src/sprint/tasks/**
+          - src/sprint/trial/**
+          - src/sprint/metrics/**
+          - src/sprint/mappers/**
+          - src/sprint/utils/**
+          - src/sprint/*.py

@@ -2,12 +2,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from harbor.cli.publish import (
+from sprint.cli.publish import (
     _humanize_bytes,
     _publish_datasets,
     _resolve_paths,
 )
-from harbor.publisher.publisher import DatasetPublishResult
+from sprint.publisher.publisher import DatasetPublishResult
 
 
 class TestResolvePaths:
@@ -102,7 +102,7 @@ async def test_public_dataset_publish_prompt_describes_access_semantics(
 ) -> None:
     dataset_dir = tmp_path / "demo-dataset"
     dataset_dir.mkdir()
-    monkeypatch.setattr("harbor.cli.sync.sync_dataset", MagicMock(return_value=[]))
+    monkeypatch.setattr("sprint.cli.sync.sync_dataset", MagicMock(return_value=[]))
     publisher = MagicMock()
     publisher.publish_dataset = AsyncMock(
         return_value=DatasetPublishResult(
@@ -145,7 +145,7 @@ async def test_declining_public_dataset_prompt_skips_publish(
 ) -> None:
     dataset_dir = tmp_path / "demo-dataset"
     dataset_dir.mkdir()
-    monkeypatch.setattr("harbor.cli.sync.sync_dataset", MagicMock(return_value=[]))
+    monkeypatch.setattr("sprint.cli.sync.sync_dataset", MagicMock(return_value=[]))
     publisher = MagicMock()
     publisher.publish_dataset = AsyncMock()
     console = MagicMock()
@@ -168,8 +168,8 @@ def test_publish_share(monkeypatch, tmp_path, kind, skipped):
     from typer import Typer
     from typer.testing import CliRunner
 
-    from harbor.cli.publish import publish_command
-    from harbor.publisher.publisher import BatchPublishResult, PublishResult
+    from sprint.cli.publish import publish_command
+    from sprint.publisher.publisher import BatchPublishResult, PublishResult
 
     package_dir = tmp_path / "package"
     package_dir.mkdir()
@@ -209,10 +209,10 @@ def test_publish_share(monkeypatch, tmp_path, kind, skipped):
         return BatchPublishResult(results=[result], total_time_sec=0)
 
     publisher.publish_tasks = AsyncMock(side_effect=publish_tasks)
-    monkeypatch.setattr("harbor.publisher.publisher.Publisher", lambda: publisher)
-    monkeypatch.setattr("harbor.cli.sync.sync_dataset", lambda _: [])
+    monkeypatch.setattr("sprint.publisher.publisher.Publisher", lambda: publisher)
+    monkeypatch.setattr("sprint.cli.sync.sync_dataset", lambda _: [])
     grant = AsyncMock()
-    monkeypatch.setattr("harbor.cli.package_access._grant", grant)
+    monkeypatch.setattr("sprint.cli.package_access._grant", grant)
     app = Typer()
     app.command()(publish_command)
     result = CliRunner().invoke(
@@ -234,7 +234,7 @@ def test_publish_sharing_failures_and_default(monkeypatch, tmp_path, failure):
     from typer import Typer
     from typer.testing import CliRunner
 
-    from harbor.cli.publish import publish_command
+    from sprint.cli.publish import publish_command
 
     (tmp_path / "dataset.toml").touch()
     publisher = MagicMock()
@@ -249,12 +249,12 @@ def test_publish_sharing_failures_and_default(monkeypatch, tmp_path, failure):
         ),
         side_effect=RuntimeError("publish failed") if failure == "publish" else None,
     )
-    monkeypatch.setattr("harbor.publisher.publisher.Publisher", lambda: publisher)
-    monkeypatch.setattr("harbor.cli.sync.sync_dataset", lambda _: [])
+    monkeypatch.setattr("sprint.publisher.publisher.Publisher", lambda: publisher)
+    monkeypatch.setattr("sprint.cli.sync.sync_dataset", lambda _: [])
     grant = AsyncMock(
         side_effect=RuntimeError("share failed") if failure == "share" else None
     )
-    monkeypatch.setattr("harbor.cli.package_access._grant", grant)
+    monkeypatch.setattr("sprint.cli.package_access._grant", grant)
     app = Typer()
     app.command()(publish_command)
     args = [str(tmp_path)] + (["--share", "team-a"] if failure else [])

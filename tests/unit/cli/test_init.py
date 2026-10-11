@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 import typer
 
-from harbor.cli.init import (
+from sprint.cli.init import (
     STANDARD_METADATA,
     _init_dataset,
     _init_task,
@@ -25,15 +25,15 @@ class TestResolveName:
         assert _resolve_name("myname", "myorg") == "myorg/myname"
 
     def test_none_name_prompts(self):
-        with patch("harbor.cli.init.typer.prompt", return_value="myorg/myname"):
+        with patch("sprint.cli.init.typer.prompt", return_value="myorg/myname"):
             assert _resolve_name(None, None) == "myorg/myname"
 
     def test_none_name_prompt_without_slash_prompts_for_org(self):
-        with patch("harbor.cli.init.typer.prompt", side_effect=["myname", "myorg"]):
+        with patch("sprint.cli.init.typer.prompt", side_effect=["myname", "myorg"]):
             assert _resolve_name(None, None) == "myorg/myname"
 
     def test_name_without_slash_no_org_prompts_for_org(self):
-        with patch("harbor.cli.init.typer.prompt", return_value="myorg"):
+        with patch("sprint.cli.init.typer.prompt", return_value="myorg"):
             assert _resolve_name("myname", None) == "myorg/myname"
 
 
@@ -178,7 +178,7 @@ class TestInitTask:
         assert "harbor-canary" in (task_dir / "tests" / "test.sh").read_text()
 
     def test_auto_adds_task_to_existing_dataset_manifest(self, tmp_path: Path):
-        from harbor.models.dataset.manifest import DatasetManifest
+        from sprint.models.dataset.manifest import DatasetManifest
 
         _init_dataset("org/mydataset", tmp_path)
 
@@ -189,7 +189,7 @@ class TestInitTask:
         assert manifest.tasks[0].digest.startswith("sha256:")
 
     def test_no_package_skips_auto_add_to_dataset_manifest(self, tmp_path: Path):
-        from harbor.models.dataset.manifest import DatasetManifest
+        from sprint.models.dataset.manifest import DatasetManifest
 
         _init_dataset("org/mydataset", tmp_path)
 
@@ -199,8 +199,8 @@ class TestInitTask:
         assert manifest.tasks == []
 
     def test_auto_add_does_not_duplicate_existing_task(self, tmp_path: Path):
-        from harbor.models.dataset.manifest import DatasetManifest
-        from harbor.models.task.config import TaskConfig
+        from sprint.models.dataset.manifest import DatasetManifest
+        from sprint.models.task.config import TaskConfig
 
         _init_dataset("org/mydataset", tmp_path)
         _init_task("org/mytask", tmp_path)
@@ -226,7 +226,7 @@ class TestInitDataset:
         assert 'version = "1.0.0"' in content
 
     def test_dataset_toml_round_trips(self, tmp_path: Path):
-        from harbor.models.dataset.manifest import DatasetManifest
+        from sprint.models.dataset.manifest import DatasetManifest
 
         _init_dataset("org/mydataset", tmp_path, description="My dataset")
 
@@ -333,20 +333,20 @@ class TestInitCommand:
             )
 
     def test_prompt_routes_to_task(self, tmp_path: Path):
-        with patch("harbor.cli.init.typer.prompt", return_value="t"):
+        with patch("sprint.cli.init.typer.prompt", return_value="t"):
             init_command(name="org/test", output_dir=tmp_path)
 
         assert (tmp_path / "test" / "task.toml").exists()
 
     def test_prompt_routes_to_dataset(self, tmp_path: Path):
-        with patch("harbor.cli.init.typer.prompt", return_value="d"):
+        with patch("sprint.cli.init.typer.prompt", return_value="d"):
             init_command(name="org/test", output_dir=tmp_path)
 
         assert (tmp_path / "dataset.toml").exists()
 
     def test_invalid_prompt_choice_raises(self, tmp_path: Path):
         with (
-            patch("harbor.cli.init.typer.prompt", return_value="x"),
+            patch("sprint.cli.init.typer.prompt", return_value="x"),
             pytest.raises(typer.Exit),
         ):
             init_command(name="org/test", output_dir=tmp_path)
@@ -358,7 +358,7 @@ class TestInitCommand:
         assert (tmp_path / "test" / "instruction.md").exists()
 
     def test_task_flag_auto_adds_to_existing_dataset_manifest(self, tmp_path: Path):
-        from harbor.models.dataset.manifest import DatasetManifest
+        from sprint.models.dataset.manifest import DatasetManifest
 
         _init_dataset("org/mydataset", tmp_path)
 

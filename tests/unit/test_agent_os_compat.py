@@ -3,11 +3,11 @@
 import pytest
 from pydantic import ValidationError
 
-from harbor.agents.base import BaseAgent
-from harbor.agents.capabilities import AgentCapabilities
-from harbor.agents.nop import NopAgent
-from harbor.agents.oracle import OracleAgent
-from harbor.models.task.config import TaskOS
+from sprint.agents.base import BaseAgent
+from sprint.agents.capabilities import AgentCapabilities
+from sprint.agents.nop import NopAgent
+from sprint.agents.oracle import OracleAgent
+from sprint.models.task.config import TaskOS
 
 
 # ---------------------------------------------------------------------------
@@ -35,7 +35,7 @@ class TestLinuxOnlyAgentsDoNotSupportWindows:
 
     @pytest.fixture(scope="class")
     def installed_agents(self):
-        from harbor.agents.factory import AgentFactory
+        from sprint.agents.factory import AgentFactory
 
         agents = {}
         for name in AgentFactory._AGENT_MAP:
@@ -69,7 +69,7 @@ class TestPreflightCheck:
         """Factory to create a minimal Trial with controllable agent + OS."""
         from unittest.mock import MagicMock
 
-        from harbor.trial.trial import Trial
+        from sprint.trial.trial import Trial
 
         class _TestTrial(Trial):
             async def _run(self) -> None:

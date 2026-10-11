@@ -10,19 +10,19 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from pydantic import ValidationError
 
-from harbor.agents.oracle import OracleAgent
-from harbor.environments.base import ExecResult
-from harbor.models.agent.context import AgentContext
-from harbor.models.task.config import StepConfig, TaskConfig, TaskOS
-from harbor.models.task.paths import TaskPaths
-from harbor.models.task.task import Task
-from harbor.models.task.verifier_mode import resolve_verifier_environment_definition
-from harbor.models.trial.paths import EnvironmentPaths, TrialPaths
-from harbor.publisher.publisher import _build_step_payload
-from harbor.trial.artifact_handler import ArtifactHandler
-from harbor.trial.multi_step import MultiStepTrial
-from harbor.verifier.verifier import AddTestsDirError, Verifier
-from harbor.viewer.task_scanner import TaskDefinitionScanner
+from sprint.agents.oracle import OracleAgent
+from sprint.environments.base import ExecResult
+from sprint.models.agent.context import AgentContext
+from sprint.models.task.config import StepConfig, TaskConfig, TaskOS
+from sprint.models.task.paths import TaskPaths
+from sprint.models.task.task import Task
+from sprint.models.task.verifier_mode import resolve_verifier_environment_definition
+from sprint.models.trial.paths import EnvironmentPaths, TrialPaths
+from sprint.publisher.publisher import _build_step_payload
+from sprint.trial.artifact_handler import ArtifactHandler
+from sprint.trial.multi_step import MultiStepTrial
+from sprint.verifier.verifier import AddTestsDirError, Verifier
+from sprint.viewer.task_scanner import TaskDefinitionScanner
 
 pytestmark = pytest.mark.unit
 

@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.opencode import OpenCode
-from harbor.models.bridge import BridgeKind
+from sprint.agents.installed.opencode import OpenCode
+from sprint.models.bridge import BridgeKind
 
 _NVM_BIN = "/home/agent/.nvm/versions/node/v22.0.0/bin"
 _DISCOVERY = f"{_NVM_BIN}/opencode"

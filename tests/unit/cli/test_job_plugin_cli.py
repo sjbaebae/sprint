@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from harbor.cli.job_plugins import PluginConfig
+from sprint.cli.job_plugins import PluginConfig
 
 
 def _make_task_dir(tmp_path: Path) -> Path:
@@ -38,23 +38,23 @@ def _patch_job_run(tmp_path: Path, monkeypatch):
 
     attach_job_plugins = AsyncMock(return_value=[])
 
-    monkeypatch.setattr("harbor.job.Job.create", fake_create)
+    monkeypatch.setattr("sprint.job.Job.create", fake_create)
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight",
+        "sprint.environments.factory.EnvironmentFactory.run_preflight",
         lambda **_: None,
     )
     monkeypatch.setattr(
-        "harbor.cli.jobs.show_registry_hint_if_first_run", lambda _: None
+        "sprint.cli.jobs.show_registry_hint_if_first_run", lambda _: None
     )
-    monkeypatch.setattr("harbor.cli.jobs.print_job_results_tables", lambda _: None)
-    monkeypatch.setattr("harbor.cli.job_plugins.attach_job_plugins", attach_job_plugins)
+    monkeypatch.setattr("sprint.cli.jobs.print_job_results_tables", lambda _: None)
+    monkeypatch.setattr("sprint.cli.job_plugins.attach_job_plugins", attach_job_plugins)
 
     return lambda: captured_config, attach_job_plugins
 
 
 @pytest.mark.unit
 def test_start_sets_plugin_from_cli(tmp_path: Path, monkeypatch):
-    from harbor.cli.jobs import start
+    from sprint.cli.jobs import start
 
     task_dir = _make_task_dir(tmp_path)
     get_config, attach_job_plugins = _patch_job_run(tmp_path, monkeypatch)
@@ -81,7 +81,7 @@ def test_start_sets_plugin_from_cli(tmp_path: Path, monkeypatch):
 
 @pytest.mark.unit
 def test_start_sets_multiple_plugins_from_cli(tmp_path: Path, monkeypatch):
-    from harbor.cli.jobs import start
+    from sprint.cli.jobs import start
 
     task_dir = _make_task_dir(tmp_path)
     _, attach_job_plugins = _patch_job_run(tmp_path, monkeypatch)
@@ -102,7 +102,7 @@ def test_start_sets_multiple_plugins_from_cli(tmp_path: Path, monkeypatch):
 
 @pytest.mark.unit
 def test_start_ignores_plugins_in_config_file(tmp_path: Path, monkeypatch):
-    from harbor.cli.jobs import start
+    from sprint.cli.jobs import start
 
     task_dir = _make_task_dir(tmp_path)
     get_config, attach_job_plugins = _patch_job_run(tmp_path, monkeypatch)
@@ -126,7 +126,7 @@ def test_start_ignores_plugins_in_config_file(tmp_path: Path, monkeypatch):
 
 @pytest.mark.unit
 def test_start_sets_prefixed_plugin_kwargs_from_cli(tmp_path: Path, monkeypatch):
-    from harbor.cli.jobs import start
+    from sprint.cli.jobs import start
 
     task_dir = _make_task_dir(tmp_path)
     _, attach_job_plugins = _patch_job_run(tmp_path, monkeypatch)
@@ -149,7 +149,7 @@ def test_start_sets_prefixed_plugin_kwargs_from_cli(tmp_path: Path, monkeypatch)
 @pytest.mark.unit
 class TestPluginConfigsFromCli:
     def _configs(self, plugins, kwargs):
-        from harbor.cli.job_plugins import plugin_configs_from_cli
+        from sprint.cli.job_plugins import plugin_configs_from_cli
 
         return plugin_configs_from_cli(plugins, kwargs)
 
@@ -226,7 +226,7 @@ class TestPluginConfigsFromCli:
 
 @pytest.mark.unit
 def test_start_rejects_plugin_kwargs_with_multiple_plugins():
-    from harbor.cli.jobs import start
+    from sprint.cli.jobs import start
 
     with pytest.raises(ValueError, match="Plugin kwargs require exactly one --plugin"):
         start(
@@ -237,7 +237,7 @@ def test_start_rejects_plugin_kwargs_with_multiple_plugins():
 
 @pytest.mark.unit
 def test_start_rejects_plugin_kwargs_without_plugin():
-    from harbor.cli.jobs import start
+    from sprint.cli.jobs import start
 
     with pytest.raises(ValueError, match="Plugin kwargs require"):
         start(plugin_kwargs=["flag=true"])

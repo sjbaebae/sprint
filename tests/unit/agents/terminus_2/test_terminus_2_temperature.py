@@ -1,6 +1,6 @@
-from harbor.agents.terminus_2.terminus_2 import Terminus2
-from harbor.llms.base import LLMBackend
-from harbor.llms.litellm_config import configure_litellm_debug
+from sprint.agents.terminus_2.terminus_2 import Terminus2
+from sprint.llms.base import LLMBackend
+from sprint.llms.litellm_config import configure_litellm_debug
 
 
 def test_terminus_2_temperature_defaults_to_none(temp_dir, monkeypatch):
@@ -25,7 +25,7 @@ def test_terminus_2_omits_default_temperature_for_litellm(monkeypatch):
         def __init__(self, **kwargs):
             captured_kwargs.update(kwargs)
 
-    monkeypatch.setattr("harbor.agents.terminus_2.terminus_2.LiteLLM", FakeLiteLLM)
+    monkeypatch.setattr("sprint.agents.terminus_2.terminus_2.LiteLLM", FakeLiteLLM)
 
     agent = object.__new__(Terminus2)
     agent._init_llm(
@@ -52,7 +52,7 @@ def test_terminus_2_forwards_explicit_temperature_for_litellm(monkeypatch):
         def __init__(self, **kwargs):
             captured_kwargs.update(kwargs)
 
-    monkeypatch.setattr("harbor.agents.terminus_2.terminus_2.LiteLLM", FakeLiteLLM)
+    monkeypatch.setattr("sprint.agents.terminus_2.terminus_2.LiteLLM", FakeLiteLLM)
 
     agent = object.__new__(Terminus2)
     agent._init_llm(
@@ -79,7 +79,7 @@ def test_terminus_2_forwards_session_id_for_litellm(monkeypatch):
         def __init__(self, **kwargs):
             captured_kwargs.update(kwargs)
 
-    monkeypatch.setattr("harbor.agents.terminus_2.terminus_2.LiteLLM", FakeLiteLLM)
+    monkeypatch.setattr("sprint.agents.terminus_2.terminus_2.LiteLLM", FakeLiteLLM)
 
     agent = object.__new__(Terminus2)
     agent._init_llm(
@@ -106,7 +106,7 @@ def test_terminus_2_suppresses_litellm_debug_by_default(monkeypatch):
         def __init__(self, **kwargs):
             pass
 
-    monkeypatch.setattr("harbor.agents.terminus_2.terminus_2.LiteLLM", FakeLiteLLM)
+    monkeypatch.setattr("sprint.agents.terminus_2.terminus_2.LiteLLM", FakeLiteLLM)
 
     agent = object.__new__(Terminus2)
     agent._init_llm(
@@ -135,7 +135,7 @@ def test_terminus_2_enables_litellm_debug_via_llm_kwargs(monkeypatch):
         def __init__(self, **kwargs):
             captured_kwargs.update(kwargs)
 
-    monkeypatch.setattr("harbor.agents.terminus_2.terminus_2.LiteLLM", FakeLiteLLM)
+    monkeypatch.setattr("sprint.agents.terminus_2.terminus_2.LiteLLM", FakeLiteLLM)
 
     agent = object.__new__(Terminus2)
     agent._init_llm(

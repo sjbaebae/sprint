@@ -14,16 +14,16 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from harbor.environments.ssh import SSHAccess, StreamHandle
-from harbor.models.asp import ASPConfig, ASPConnection
-from harbor.viewer import stream
-from harbor.viewer.stream import (
+from sprint.environments.ssh import SSHAccess, StreamHandle
+from sprint.models.asp import ASPConfig, ASPConnection
+from sprint.viewer import stream
+from sprint.viewer.stream import (
     StreamConnection,
     StreamError,
     StreamManager,
     register_stream_endpoints,
 )
-from harbor.viewer.server import create_app
+from sprint.viewer.server import create_app
 
 
 def handle(path: Path) -> StreamHandle:

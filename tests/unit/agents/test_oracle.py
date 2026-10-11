@@ -4,11 +4,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from harbor.agents.oracle import OracleAgent
-from harbor.environments.base import ExecResult
-from harbor.models.agent.context import AgentContext
-from harbor.models.task.config import TaskOS
-from harbor.models.trial.paths import TrialPaths
+from sprint.agents.oracle import OracleAgent
+from sprint.environments.base import ExecResult
+from sprint.models.agent.context import AgentContext
+from sprint.models.task.config import TaskOS
+from sprint.models.trial.paths import TrialPaths
 
 
 def _make_multi_step_oracle_task(tmp_path: Path) -> Path:

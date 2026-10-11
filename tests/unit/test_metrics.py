@@ -1,7 +1,7 @@
-from harbor.metrics.max import Max
-from harbor.metrics.mean import Mean
-from harbor.metrics.min import Min
-from harbor.metrics.sum import Sum
+from sprint.metrics.max import Max
+from sprint.metrics.mean import Mean
+from sprint.metrics.min import Min
+from sprint.metrics.sum import Sum
 
 
 def test_mean_preserves_single_key_output_shape() -> None:

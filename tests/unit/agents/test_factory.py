@@ -2,13 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from harbor.agents.base import BaseAgent
-from harbor.agents.installed.acp import AcpAgent
-from harbor.agents.installed.openclaw import OpenClaw
-from harbor.agents.factory import AgentFactory
-from harbor.environments.base import BaseEnvironment
-from harbor.models.agent.context import AgentContext
-from harbor.models.trial.config import AgentConfig
+from sprint.agents.base import BaseAgent
+from sprint.agents.installed.acp import AcpAgent
+from sprint.agents.installed.openclaw import OpenClaw
+from sprint.agents.factory import AgentFactory
+from sprint.environments.base import BaseEnvironment
+from sprint.models.agent.context import AgentContext
+from sprint.models.trial.config import AgentConfig
 
 
 class CaptureAgent(BaseAgent):

@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from harbor.viewer.server import create_app
+from sprint.viewer.server import create_app
 
 
 @pytest.mark.unit

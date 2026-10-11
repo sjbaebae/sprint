@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.agents.installed.cursor_cli import CursorCli
+from sprint.agents.installed.cursor_cli import CursorCli
 
 MODEL = "anthropic/claude-opus-4-8"
 

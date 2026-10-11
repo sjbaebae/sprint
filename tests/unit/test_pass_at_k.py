@@ -1,6 +1,6 @@
-"""Unit tests for the pass@k metric utility (``harbor.utils.pass_at_k``).
+"""Unit tests for the pass@k metric utility (``sprint.utils.pass_at_k``).
 
-``pass@k`` is a user-facing metric: it is computed in ``harbor.job`` via
+``pass@k`` is a user-facing metric: it is computed in ``sprint.job`` via
 ``compute_pass_at_k_by_evals``, stored on ``JobStats`` and rendered by the
 ``harbor jobs`` CLI. These tests pin the math against an independent reference
 implementation and cover the grouping/guard behavior of the public API.
@@ -12,11 +12,11 @@ from pathlib import Path
 
 import pytest
 
-from harbor.models.task.id import LocalTaskId
-from harbor.models.trial.config import TrialConfig
-from harbor.models.trial.result import AgentInfo, ModelInfo, TrialResult
-from harbor.models.verifier.result import VerifierResult
-from harbor.utils.pass_at_k import (
+from sprint.models.task.id import LocalTaskId
+from sprint.models.trial.config import TrialConfig
+from sprint.models.trial.result import AgentInfo, ModelInfo, TrialResult
+from sprint.models.verifier.result import VerifierResult
+from sprint.utils.pass_at_k import (
     _eligible_k_values,
     _pass_at_k_for_task,
     compute_pass_at_k_by_evals,

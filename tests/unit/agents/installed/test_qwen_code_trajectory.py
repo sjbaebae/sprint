@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from harbor.agents.installed.qwen_code import QwenCode
+from sprint.agents.installed.qwen_code import QwenCode
 
 
 def _write_jsonl(path: Path, events: list[dict]) -> None:
@@ -386,7 +386,7 @@ def test_folds_subagent_token_usage_into_root_final_metrics(temp_dir):
 
 
 def test_malformed_subagent_falls_back_to_main_trajectory(temp_dir):
-    from harbor.models.agent.context import AgentContext
+    from sprint.models.agent.context import AgentContext
 
     agent = QwenCode(logs_dir=temp_dir, model_name="qwen3-coder-plus")
     project_dir = temp_dir / "qwen-sessions" / "project"

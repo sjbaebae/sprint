@@ -5,12 +5,12 @@ from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
 
-from harbor.environments.base import BaseEnvironment
-from harbor.environments.capabilities import EnvironmentCapabilities
-from harbor.environments.factory import EnvironmentFactory
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import EnvironmentConfig
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments.base import BaseEnvironment
+from sprint.environments.capabilities import EnvironmentCapabilities
+from sprint.environments.factory import EnvironmentFactory
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import EnvironmentConfig
+from sprint.models.trial.paths import TrialPaths
 
 
 class _EnvStub(BaseEnvironment):
@@ -153,7 +153,7 @@ def test_environment_factory_preserves_legacy_arguments(tmp_path: Path) -> None:
     task_env_config = EnvironmentConfig()
     logger = logging.getLogger(__name__)
     with patch(
-        "harbor.environments.factory._load_environment_class",
+        "sprint.environments.factory._load_environment_class",
         return_value=_StrictEnvironment,
     ):
         EnvironmentFactory.create_environment(
@@ -173,7 +173,7 @@ def test_environment_factory_preserves_legacy_arguments(tmp_path: Path) -> None:
 
 
 def test_agent_stores_session_and_context_ids() -> None:
-    from harbor.agents.nop import NopAgent
+    from sprint.agents.nop import NopAgent
 
     context_id = uuid4()
     agent = NopAgent(logs_dir=Path("/tmp/agent-logs"))
@@ -185,7 +185,7 @@ def test_agent_stores_session_and_context_ids() -> None:
 
 
 def test_agent_factory_keeps_strict_custom_agent_compatible() -> None:
-    from harbor.agents import factory as agent_factory
+    from sprint.agents import factory as agent_factory
 
     captured: dict[str, object] = {}
 

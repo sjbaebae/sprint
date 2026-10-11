@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from harbor.models.agent.context import AgentContext, ModelUsage
-from harbor.models.trajectories import Agent, Metrics, Step, Trajectory
-from harbor.utils.trajectory_utils import (
+from sprint.models.agent.context import AgentContext, ModelUsage
+from sprint.models.trajectories import Agent, Metrics, Step, Trajectory
+from sprint.utils.trajectory_utils import (
     compute_model_usage,
     load_model_usage_from_trajectory,
 )

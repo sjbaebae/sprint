@@ -12,13 +12,13 @@ from typing import ClassVar
 import yaml
 
 try:
-    from harbor.models.task.paths import TaskPaths
+    from sprint.models.task.paths import TaskPaths
 except (ImportError, ModuleNotFoundError):
     repo_src = Path(__file__).resolve().parents[4] / "src"
     repo_src_str = str(repo_src)
     if repo_src_str not in sys.path:
         sys.path.insert(0, repo_src_str)
-    from harbor.models.task.paths import TaskPaths
+    from sprint.models.task.paths import TaskPaths
 
 ADAPTER_NAME = "MLGYM-BENCH"
 TEMPLATE_DIR = Path(__file__).parent / "task-template"

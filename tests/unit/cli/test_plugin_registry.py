@@ -2,7 +2,7 @@ from importlib.metadata import EntryPoint
 
 import pytest
 
-from harbor.cli.plugin_registry import (
+from sprint.cli.plugin_registry import (
     list_plugin_entry_points,
     resolve_plugin_import_path,
 )
@@ -16,11 +16,11 @@ def test_resolve_plugin_import_path_uses_entry_point(monkeypatch):
     entry_point = EntryPoint(
         name="langsmith",
         value="harbor_langsmith:LangSmithPlugin",
-        group="harbor.plugins",
+        group="sprint.plugins",
     )
     monkeypatch.setattr(
-        "harbor.cli.plugin_registry.entry_points",
-        lambda *, group: [entry_point] if group == "harbor.plugins" else [],
+        "sprint.cli.plugin_registry.entry_points",
+        lambda *, group: [entry_point] if group == "sprint.plugins" else [],
     )
 
     assert resolve_plugin_import_path("langsmith") == "harbor_langsmith:LangSmithPlugin"
@@ -28,7 +28,7 @@ def test_resolve_plugin_import_path_uses_entry_point(monkeypatch):
 
 def test_resolve_plugin_import_path_unknown_plugin(monkeypatch):
     monkeypatch.setattr(
-        "harbor.cli.plugin_registry.entry_points",
+        "sprint.cli.plugin_registry.entry_points",
         lambda *, group: [],
     )
 
@@ -41,17 +41,17 @@ def test_list_plugin_entry_points(monkeypatch):
         EntryPoint(
             name="b",
             value="pkg_b:PluginB",
-            group="harbor.plugins",
+            group="sprint.plugins",
         ),
         EntryPoint(
             name="a",
             value="pkg_a:PluginA",
-            group="harbor.plugins",
+            group="sprint.plugins",
         ),
     ]
     monkeypatch.setattr(
-        "harbor.cli.plugin_registry.entry_points",
-        lambda *, group: entry_points if group == "harbor.plugins" else [],
+        "sprint.cli.plugin_registry.entry_points",
+        lambda *, group: entry_points if group == "sprint.plugins" else [],
     )
 
     assert list_plugin_entry_points() == {

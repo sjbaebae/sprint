@@ -10,14 +10,14 @@ from typing import ClassVar, cast
 
 import pytest
 
-from harbor.models.task.config import (
+from sprint.models.task.config import (
     EnvironmentConfig,
     NetworkMode,
     NetworkPolicy,
     TaskOS,
 )
-from harbor.models.trial.paths import TrialPaths
-from harbor.environments import mosaic as mosaic_integration
+from sprint.models.trial.paths import TrialPaths
+from sprint.environments import mosaic as mosaic_integration
 
 pytestmark = pytest.mark.unit
 

@@ -6,11 +6,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from harbor.environments.base import ExecResult
-from harbor.models.task.config import TaskOS
-from harbor.models.task.task import Task
-from harbor.models.trial.paths import TrialPaths
-from harbor.verifier.verifier import Verifier, VerifierOutputParseError
+from sprint.environments.base import ExecResult
+from sprint.models.task.config import TaskOS
+from sprint.models.task.task import Task
+from sprint.models.trial.paths import TrialPaths
+from sprint.verifier.verifier import Verifier, VerifierOutputParseError
 
 
 def _create_task_dir(root: Path) -> Path:

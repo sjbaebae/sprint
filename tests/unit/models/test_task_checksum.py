@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from harbor.models.task.task import Task
+from sprint.models.task.task import Task
 
 
 def _scaffold_task(task_dir: Path) -> None:

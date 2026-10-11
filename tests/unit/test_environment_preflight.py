@@ -5,18 +5,18 @@ from unittest.mock import patch
 
 import pytest
 
-from harbor.environments.apple_container import AppleContainerEnvironment
-from harbor.environments.blaxel import BlaxelEnvironment
-from harbor.environments.daytona import DaytonaEnvironment
-from harbor.environments.docker.docker import DockerEnvironment
-from harbor.environments.e2b import E2BEnvironment
-from harbor.environments.ec2 import EC2Environment
-from harbor.environments.factory import EnvironmentFactory
-from harbor.environments.gke import GKEEnvironment
-from harbor.environments.langsmith import LangSmithEnvironment
-from harbor.environments.modal import ModalEnvironment
-from harbor.environments.runloop import RunloopEnvironment
-from harbor.models.environment_type import EnvironmentType
+from sprint.environments.apple_container import AppleContainerEnvironment
+from sprint.environments.blaxel import BlaxelEnvironment
+from sprint.environments.daytona import DaytonaEnvironment
+from sprint.environments.docker.docker import DockerEnvironment
+from sprint.environments.e2b import E2BEnvironment
+from sprint.environments.ec2 import EC2Environment
+from sprint.environments.factory import EnvironmentFactory
+from sprint.environments.gke import GKEEnvironment
+from sprint.environments.langsmith import LangSmithEnvironment
+from sprint.environments.modal import ModalEnvironment
+from sprint.environments.runloop import RunloopEnvironment
+from sprint.models.environment_type import EnvironmentType
 
 
 # --- Blaxel ---
@@ -88,7 +88,7 @@ def test_langsmith_preflight_missing_auth(monkeypatch):
     monkeypatch.delenv("LANGCHAIN_API_KEY", raising=False)
     monkeypatch.delenv("LANGSMITH_PROFILE", raising=False)
     monkeypatch.setattr(
-        "harbor.environments.langsmith.Client",
+        "sprint.environments.langsmith.Client",
         lambda: (_ for _ in ()).throw(RuntimeError("missing auth")),
     )
     with pytest.raises(SystemExit, match="LangSmith"):
@@ -103,7 +103,7 @@ def test_langsmith_preflight_ok_api_key(monkeypatch):
 def test_langsmith_preflight_ok_profile(monkeypatch):
     monkeypatch.delenv("LANGSMITH_API_KEY", raising=False)
     monkeypatch.setenv("LANGSMITH_PROFILE", "prod")
-    monkeypatch.setattr("harbor.environments.langsmith.Client", lambda: object())
+    monkeypatch.setattr("sprint.environments.langsmith.Client", lambda: object())
     LangSmithEnvironment.preflight()
 
 
@@ -248,7 +248,7 @@ def test_factory_custom_preflight_propagates_failures(monkeypatch, error):
 
     preflight = Mock(spec=_preflight, side_effect=error)
     monkeypatch.setattr(
-        "harbor.environments.factory.import_symbol",
+        "sprint.environments.factory.import_symbol",
         lambda _: SimpleNamespace(preflight=preflight),
     )
     if error is None:
@@ -262,25 +262,25 @@ def test_factory_custom_preflight_propagates_failures(monkeypatch, error):
 
 
 def test_factory_custom_environment_inherits_preflight(monkeypatch):
-    from harbor.environments.base import BaseEnvironment
+    from sprint.environments.base import BaseEnvironment
 
     class CustomEnvironment(BaseEnvironment):
         pass
 
     monkeypatch.setattr(
-        "harbor.environments.factory.import_symbol", lambda _: CustomEnvironment
+        "sprint.environments.factory.import_symbol", lambda _: CustomEnvironment
     )
     EnvironmentFactory.run_preflight(type=None, import_path="custom:Environment")
 
 
 def test_factory_custom_environment_inherits_resource_capabilities(monkeypatch):
-    from harbor.environments.base import BaseEnvironment
+    from sprint.environments.base import BaseEnvironment
 
     class CustomEnvironment(BaseEnvironment):
         pass
 
     monkeypatch.setattr(
-        "harbor.environments.factory.import_symbol", lambda _: CustomEnvironment
+        "sprint.environments.factory.import_symbol", lambda _: CustomEnvironment
     )
     assert (
         EnvironmentFactory.resource_capabilities(
@@ -291,7 +291,7 @@ def test_factory_custom_environment_inherits_resource_capabilities(monkeypatch):
 
 
 def test_factory_custom_resource_capabilities_dispatches(monkeypatch):
-    from harbor.environments.base import BaseEnvironment
+    from sprint.environments.base import BaseEnvironment
     from unittest.mock import Mock
 
     capabilities = BaseEnvironment.resource_capabilities()
@@ -300,7 +300,7 @@ def test_factory_custom_resource_capabilities_dispatches(monkeypatch):
         resource_capabilities = Mock(return_value=capabilities)
 
     monkeypatch.setattr(
-        "harbor.environments.factory.import_symbol", lambda _: CustomEnvironment
+        "sprint.environments.factory.import_symbol", lambda _: CustomEnvironment
     )
     assert (
         EnvironmentFactory.resource_capabilities(

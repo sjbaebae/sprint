@@ -2,7 +2,7 @@
 
 import pytest
 
-from harbor.hub.models import (
+from sprint.hub.models import (
     ComparisonGrid,
     JobOverview,
     JobShares,
@@ -178,7 +178,7 @@ def test_render_comparison_uses_numbered_columns_and_legend(monkeypatch):
 
     from rich.console import Console
 
-    from harbor.cli import hub
+    from sprint.cli import hub
 
     buf = io.StringIO()
     monkeypatch.setattr(hub, "console", Console(file=buf, width=80))
@@ -205,7 +205,7 @@ def test_render_table_ellipsizes_constrained_ids(monkeypatch):
 
     from rich.console import Console
 
-    from harbor.cli import hub
+    from sprint.cli import hub
 
     job_id = "55276ca0-772e-42ae-b269-a2afc0ac42ab"
     job = JobSummary.from_row(
@@ -430,7 +430,7 @@ def test_job_shares_empty():
 
 
 def test_key_dimensions_union():
-    from harbor.cli.hub import _key_dimensions
+    from sprint.cli.hub import _key_dimensions
 
     # Single-job native shape: dims == group_by.
     single = [{"key": {"task": "t1"}}, {"key": {"task": "t2"}}]
@@ -449,7 +449,7 @@ def test_key_dimensions_union():
 
 
 def test_pager_action_vim_keys():
-    from harbor.cli.hub import _pager_action
+    from sprint.cli.hub import _pager_action
 
     assert _pager_action("l") == "next"
     assert _pager_action("j") == "next"
@@ -464,7 +464,7 @@ def test_pager_action_vim_keys():
 
 
 def test_pager_enabled_falls_back_when_noninteractive(monkeypatch):
-    from harbor.cli import hub
+    from sprint.cli import hub
 
     # Force a "perfect" interactive terminal as the baseline.
     monkeypatch.setattr(hub.sys.stdin, "isatty", lambda: True)
@@ -494,7 +494,7 @@ def test_pager_enabled_falls_back_when_noninteractive(monkeypatch):
 def test_paged_navigation_and_clamping(monkeypatch):
     import asyncio
 
-    from harbor.cli import hub
+    from sprint.cli import hub
 
     def make_page(n: int) -> Page:
         return Page(items=[], total=3, page=n, page_size=1, total_pages=3, raw={})
@@ -529,7 +529,7 @@ def test_paged_navigation_and_clamping(monkeypatch):
 def test_resolve_columns_default_all_and_order():
     import pytest as _pytest
 
-    from harbor.cli.hub import _JOB_COLUMNS, _JOB_DEFAULT, _resolve_columns
+    from sprint.cli.hub import _JOB_COLUMNS, _JOB_DEFAULT, _resolve_columns
 
     # Default selection.
     assert [c.key for c in _resolve_columns(_JOB_COLUMNS, _JOB_DEFAULT, None)] == (
@@ -552,7 +552,7 @@ def test_resolve_columns_default_all_and_order():
 
 
 def test_trial_default_columns_dynamic():
-    from harbor.cli.hub import _trial_default_columns
+    from sprint.cli.hub import _trial_default_columns
 
     single = _trial_default_columns(combined=False, include_retries=False)
     assert "job" not in single and "retry" not in single
@@ -567,7 +567,7 @@ def test_trial_default_columns_dynamic():
 def test_stream_pages_loops_all_pages():
     import asyncio
 
-    from harbor.cli import hub
+    from sprint.cli import hub
 
     pages = {
         1: Page(items=["a", "b"], total=5, page=1, page_size=2, total_pages=3, raw={}),
@@ -603,7 +603,7 @@ def test_stream_pages_loops_all_pages():
 def test_emit_quiet_streams_ids(capsys):
     import asyncio
 
-    from harbor.cli import hub
+    from sprint.cli import hub
 
     async def fetch(n: int, page_size: int) -> Page:
         items = [{"id": "id1"}, {"id": ""}] if n == 1 else [{"id": "id3"}]
@@ -623,7 +623,7 @@ def test_emit_quiet_streams_ids(capsys):
 def test_emit_tsv_format(capsys):
     import asyncio
 
-    from harbor.cli import hub
+    from sprint.cli import hub
 
     cols = [
         hub._Column("a", "A", lambda d: d["a"]),
@@ -658,7 +658,7 @@ def test_emit_tsv_format(capsys):
 def test_paged_single_page_is_one_shot(monkeypatch):
     import asyncio
 
-    from harbor.cli import hub
+    from sprint.cli import hub
 
     def boom() -> str:  # must never be called for a 1-page result
         raise AssertionError("pager should not read keys for a single page")

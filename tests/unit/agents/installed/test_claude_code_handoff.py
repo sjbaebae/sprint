@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from harbor.agents.installed.claude_code import ClaudeCode
-from harbor.agents.installed.codex import Codex
+from sprint.agents.installed.claude_code import ClaudeCode
+from sprint.agents.installed.codex import Codex
 
 SESSION_ID = "d7d4e19e-608d-44ef-b166-cd050ef274ba"
 OTHER_SESSION_ID = "019fd355-957d-7322-963d-eb9df3bdc7b0"
@@ -26,7 +26,7 @@ def local_claude(tmp_path, monkeypatch):
     config_dir = tmp_path / "claude-config"
     monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(config_dir))
     monkeypatch.setattr(
-        "harbor.agents.installed.claude_code.shutil.which",
+        "sprint.agents.installed.claude_code.shutil.which",
         lambda _: "/usr/local/bin/claude",
     )
     return config_dir
@@ -56,7 +56,7 @@ def test_handoff_defaults_to_home_claude_dir(tmp_path, monkeypatch, local_claude
 
 def test_handoff_requires_claude_cli(tmp_path, monkeypatch):
     monkeypatch.setattr(
-        "harbor.agents.installed.claude_code.shutil.which", lambda _: None
+        "sprint.agents.installed.claude_code.shutil.which", lambda _: None
     )
 
     with pytest.raises(ValueError, match="not found on PATH"):

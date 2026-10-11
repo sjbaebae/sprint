@@ -9,15 +9,15 @@ from pathlib import Path
 from typing import Any, Iterable
 
 try:
-    from harbor.models.task.config import TaskConfig
-    from harbor.models.task.paths import TaskPaths
+    from sprint.models.task.config import TaskConfig
+    from sprint.models.task.paths import TaskPaths
 except (ImportError, ModuleNotFoundError):
     repo_src = Path(__file__).resolve().parents[4] / "src"
     repo_src_str = str(repo_src)
     if repo_src_str not in sys.path:
         sys.path.insert(0, repo_src_str)
-    from harbor.models.task.config import TaskConfig
-    from harbor.models.task.paths import TaskPaths
+    from sprint.models.task.config import TaskConfig
+    from sprint.models.task.paths import TaskPaths
 
 LOGGER = logging.getLogger(__name__)
 

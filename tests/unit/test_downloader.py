@@ -11,13 +11,13 @@ from uuid import uuid4
 import pytest
 from storage3.exceptions import StorageApiError
 
-from harbor.download.downloader import Downloader
-from harbor.models.agent.context import AgentContext
-from harbor.models.job.result import JobResult
-from harbor.models.trial.config import TaskConfig, TrialConfig
-from harbor.models.trial.result import AgentInfo, ModelInfo, TrialResult
-from harbor.models.verifier.result import VerifierResult
-from harbor.upload.db_client import TrialDownloadRow
+from sprint.download.downloader import Downloader
+from sprint.models.agent.context import AgentContext
+from sprint.models.job.result import JobResult
+from sprint.models.trial.config import TaskConfig, TrialConfig
+from sprint.models.trial.result import AgentInfo, ModelInfo, TrialResult
+from sprint.models.verifier.result import VerifierResult
+from sprint.upload.db_client import TrialDownloadRow
 
 
 # ---------------------------------------------------------------------------
@@ -130,8 +130,8 @@ def _make_invalid_trial_archive() -> bytes:
 def mock_downloader() -> Downloader:
     """A Downloader with AsyncMock db + storage attached."""
     with (
-        patch("harbor.download.downloader.UploadDB") as mock_db_cls,
-        patch("harbor.download.downloader.UploadStorage") as mock_storage_cls,
+        patch("sprint.download.downloader.UploadDB") as mock_db_cls,
+        patch("sprint.download.downloader.UploadStorage") as mock_storage_cls,
     ):
         db = AsyncMock()
         db.get_user_id.return_value = "user-123"

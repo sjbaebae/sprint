@@ -90,7 +90,7 @@ See [resource access](resource-access.md) for boundaries.
 From the fork root with existing Modal authentication:
 
 ```sh
-uv run --package research-sprint --extra modal --no-default-groups python examples/sprint/worker/preflight.py --backend modal --gpu L4
+uv run --package sprint --extra modal --no-default-groups python examples/sprint/worker/preflight.py --backend modal --gpu L4
 ```
 
 This oracle preflight checks an offline L4 worker, checkpoint reuse, collection,
@@ -107,7 +107,7 @@ Unsupported policies fail closed.
 With existing local Codex sign-in:
 
 ```sh
-uv run --package research-sprint --extra modal --no-default-groups python examples/sprint/codex/preflight.py
+uv run --package sprint --extra modal --no-default-groups python examples/sprint/codex/preflight.py
 ```
 
 This requests Astra, pins Codex 0.162.1 and injects existing authentication at runtime.
@@ -140,7 +140,7 @@ records may contain sensitive content and are ignored by Git.
 ## Development
 
 ```sh
-uv run --package research-sprint --with pytest --with pytest-asyncio --no-default-groups pytest tests/sprint -q
+uv run --package sprint --with pytest --with pytest-asyncio --no-default-groups pytest tests/sprint -q
 ```
 
 [Architecture](architecture.md) describes the boundaries. Runpod can host the

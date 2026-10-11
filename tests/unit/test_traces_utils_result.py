@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from harbor.utils import traces_utils
-from harbor.utils.optional_import import MissingExtraError
-from harbor.utils.traces_utils import collect_conversations_from_trial
+from sprint.utils import traces_utils
+from sprint.utils.optional_import import MissingExtraError
+from sprint.utils.traces_utils import collect_conversations_from_trial
 
 
 def _write_basic_trajectory(trial_dir: Path) -> None:

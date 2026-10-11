@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-import harbor.auth.client as auth_client
-from harbor.auth.errors import NOT_AUTHENTICATED_MESSAGE, NotAuthenticatedError
+import sprint.auth.client as auth_client
+from sprint.auth.errors import NOT_AUTHENTICATED_MESSAGE, NotAuthenticatedError
 
 
 def _jwt(sub: str = "user-123") -> str:

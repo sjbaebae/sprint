@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from harbor.environments.tar_transfer import (
+from sprint.environments.tar_transfer import (
     extract_dir_from_bytes,
     extract_dir_from_file,
     pack_dir_to_bytes,

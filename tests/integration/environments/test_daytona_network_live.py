@@ -12,9 +12,9 @@ import pytest
 
 pytest.importorskip("daytona")
 
-from harbor.environments.daytona import DaytonaClientManager, DaytonaEnvironment
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments.daytona import DaytonaClientManager, DaytonaEnvironment
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.paths import TrialPaths
 
 pytestmark = pytest.mark.integration
 

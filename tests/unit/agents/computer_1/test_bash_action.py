@@ -21,12 +21,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.computer_1.computer_1 import Computer1
-from harbor.agents.computer_1.providers.generic import (
+from sprint.agents.computer_1.computer_1 import Computer1
+from sprint.agents.computer_1.providers.generic import (
     GenericJsonProvider,
     parse_computer_1_response,
 )
-from harbor.agents.computer_1.runtime import ComputerAction, Computer1Session
+from sprint.agents.computer_1.runtime import ComputerAction, Computer1Session
 
 
 def _make_session(env_mock: AsyncMock, *, enable_bash: bool = True) -> Computer1Session:
@@ -243,9 +243,9 @@ def test_format_bash_observation_renders_streams(tmp_path):
 
 
 def test_recorder_captures_bash_command_in_trajectory(tmp_path):
-    from harbor.agents.computer_1.computer_1 import Computer1Recorder
-    from harbor.llms.base import LLMResponse
-    from harbor.models.trajectories import Metrics
+    from sprint.agents.computer_1.computer_1 import Computer1Recorder
+    from sprint.llms.base import LLMResponse
+    from sprint.models.trajectories import Metrics
 
     rec = Computer1Recorder(
         logs_dir=tmp_path,
@@ -278,9 +278,9 @@ def test_recorder_captures_bash_command_in_trajectory(tmp_path):
 
 def _record_action(tmp_path, action: ComputerAction) -> dict:
     """Record one step and return the ATIF arguments for its action call."""
-    from harbor.agents.computer_1.computer_1 import Computer1Recorder
-    from harbor.llms.base import LLMResponse
-    from harbor.models.trajectories import Metrics
+    from sprint.agents.computer_1.computer_1 import Computer1Recorder
+    from sprint.llms.base import LLMResponse
+    from sprint.models.trajectories import Metrics
 
     rec = Computer1Recorder(
         logs_dir=tmp_path,
@@ -347,7 +347,7 @@ def test_recorder_records_every_computer_action_field(tmp_path):
     the recorder carries it, instead of being dropped silently the way
     ``zoom_region`` was.
     """
-    from harbor.agents.computer_1.computer_1 import (
+    from sprint.agents.computer_1.computer_1 import (
         _ACTION_FIELDS_NOT_RECORDED,
         _action_arguments,
     )

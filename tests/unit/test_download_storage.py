@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from harbor.upload.storage import UploadStorage
+from sprint.upload.storage import UploadStorage
 
 
 @pytest.fixture
@@ -18,9 +18,9 @@ def patched_client(monkeypatch):
     reset_client = MagicMock()
 
     monkeypatch.setattr(
-        "harbor.upload.storage.create_authenticated_client", create_client
+        "sprint.upload.storage.create_authenticated_client", create_client
     )
-    monkeypatch.setattr("harbor.upload.storage.reset_client", reset_client)
+    monkeypatch.setattr("sprint.upload.storage.reset_client", reset_client)
     return bucket, create_client, reset_client
 
 
@@ -80,9 +80,9 @@ async def test_download_bytes_retries_on_transient_ssl_error(
     sleep = AsyncMock()
 
     monkeypatch.setattr(
-        "harbor.upload.storage.create_authenticated_client", create_client
+        "sprint.upload.storage.create_authenticated_client", create_client
     )
-    monkeypatch.setattr("harbor.upload.storage.reset_client", reset_client)
+    monkeypatch.setattr("sprint.upload.storage.reset_client", reset_client)
     monkeypatch.setattr(UploadStorage.download_bytes.retry, "sleep", sleep)
 
     out = await UploadStorage().download_bytes("trial/trial.tar.gz")
@@ -105,9 +105,9 @@ async def test_download_bytes_raises_after_max_retries(monkeypatch) -> None:
     sleep = AsyncMock()
 
     monkeypatch.setattr(
-        "harbor.upload.storage.create_authenticated_client", create_client
+        "sprint.upload.storage.create_authenticated_client", create_client
     )
-    monkeypatch.setattr("harbor.upload.storage.reset_client", reset_client)
+    monkeypatch.setattr("sprint.upload.storage.reset_client", reset_client)
     monkeypatch.setattr(UploadStorage.download_bytes.retry, "sleep", sleep)
 
     with pytest.raises(ssl.SSLError):

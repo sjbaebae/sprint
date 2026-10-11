@@ -3,8 +3,8 @@ from uuid import uuid4
 
 import pytest
 
-from harbor.cli.secrets import add_secret, delete_secret, list_secrets
-from harbor.hosted.secrets import HostedSecret, SecretReplacementRequired
+from sprint.cli.secrets import add_secret, delete_secret, list_secrets
+from sprint.hosted.secrets import HostedSecret, SecretReplacementRequired
 
 
 def test_secret_replacement_requires_confirmation_and_binds_reviewed_id(
@@ -26,8 +26,8 @@ def test_secret_replacement_requires_confirmation_and_binds_reviewed_id(
         side_effect=[SecretReplacementRequired(existing_id, "cdef"), stored]
     )
     monkeypatch.setenv("OPENAI_API_KEY", "new-secret-wxyz")
-    monkeypatch.setattr("harbor.hosted.secrets.set_hosted_secret", setter)
-    monkeypatch.setattr("harbor.cli.secrets.confirm", lambda _message: True)
+    monkeypatch.setattr("sprint.hosted.secrets.set_hosted_secret", setter)
+    monkeypatch.setattr("sprint.cli.secrets.confirm", lambda _message: True)
 
     add_secret(
         "OPENAI_API_KEY",
@@ -48,8 +48,8 @@ def test_secret_replacement_requires_confirmation_and_binds_reviewed_id(
 def test_secret_replacement_decline_leaves_existing_value(monkeypatch, capsys) -> None:
     setter = AsyncMock(side_effect=SecretReplacementRequired(str(uuid4()), "cdef"))
     monkeypatch.setenv("OPENAI_API_KEY", "new-secret-wxyz")
-    monkeypatch.setattr("harbor.hosted.secrets.set_hosted_secret", setter)
-    monkeypatch.setattr("harbor.cli.secrets.confirm", lambda _message: False)
+    monkeypatch.setattr("sprint.hosted.secrets.set_hosted_secret", setter)
+    monkeypatch.setattr("sprint.cli.secrets.confirm", lambda _message: False)
 
     add_secret(
         "OPENAI_API_KEY",
@@ -82,8 +82,8 @@ def test_add_secret_resolves_org_and_passes_its_id(monkeypatch, capsys) -> None:
     )
     setter = AsyncMock(return_value=stored)
     monkeypatch.setenv("DEV_SMOKE_SECRET", "dev-smoke-secret")
-    monkeypatch.setattr("harbor.upload.db_client.UploadDB.resolve_owner_org", resolver)
-    monkeypatch.setattr("harbor.hosted.secrets.set_hosted_secret", setter)
+    monkeypatch.setattr("sprint.upload.db_client.UploadDB.resolve_owner_org", resolver)
+    monkeypatch.setattr("sprint.hosted.secrets.set_hosted_secret", setter)
 
     add_secret(
         "DEV_SMOKE_SECRET",
@@ -120,8 +120,8 @@ def test_list_secrets_resolves_org_and_passes_its_id(monkeypatch, capsys) -> Non
         return_value={"id": org_id, "name": "dmy-bench", "kind": "team"}
     )
     lister = AsyncMock(return_value=[])
-    monkeypatch.setattr("harbor.upload.db_client.UploadDB.resolve_owner_org", resolver)
-    monkeypatch.setattr("harbor.hosted.secrets.list_hosted_secrets", lister)
+    monkeypatch.setattr("sprint.upload.db_client.UploadDB.resolve_owner_org", resolver)
+    monkeypatch.setattr("sprint.hosted.secrets.list_hosted_secrets", lister)
 
     list_secrets(org="dmy-bench", job_id=None, show_all=True)
 
@@ -143,8 +143,8 @@ def test_delete_secret_resolves_org_and_passes_its_id(monkeypatch, capsys) -> No
         return_value={"id": org_id, "name": "dmy-bench", "kind": "team"}
     )
     deleter = AsyncMock(return_value=1)
-    monkeypatch.setattr("harbor.upload.db_client.UploadDB.resolve_owner_org", resolver)
-    monkeypatch.setattr("harbor.hosted.secrets.delete_hosted_secret", deleter)
+    monkeypatch.setattr("sprint.upload.db_client.UploadDB.resolve_owner_org", resolver)
+    monkeypatch.setattr("sprint.hosted.secrets.delete_hosted_secret", deleter)
 
     delete_secret("DEV_SMOKE_SECRET", org="dmy-bench", job_id=None, purge=True)
 
@@ -172,7 +172,7 @@ def test_add_secret_label_reaches_the_provider_column(monkeypatch) -> None:
     metadata; the wire field keeps its name."""
     from typer.testing import CliRunner
 
-    from harbor.cli.main import app
+    from sprint.cli.main import app
 
     stored = HostedSecret(
         id=str(uuid4()),
@@ -187,7 +187,7 @@ def test_add_secret_label_reaches_the_provider_column(monkeypatch) -> None:
     )
     setter = AsyncMock(return_value=stored)
     monkeypatch.setenv("OPENAI_API_KEY", "new-secret-wxyz")
-    monkeypatch.setattr("harbor.hosted.secrets.set_hosted_secret", setter)
+    monkeypatch.setattr("sprint.hosted.secrets.set_hosted_secret", setter)
 
     result = CliRunner().invoke(
         app,
@@ -203,11 +203,11 @@ def test_add_secret_no_longer_accepts_provider(monkeypatch) -> None:
     instead of silently storing a label it did not mean to set."""
     from typer.testing import CliRunner
 
-    from harbor.cli.main import app
+    from sprint.cli.main import app
 
     setter = AsyncMock()
     monkeypatch.setenv("OPENAI_API_KEY", "new-secret-wxyz")
-    monkeypatch.setattr("harbor.hosted.secrets.set_hosted_secret", setter)
+    monkeypatch.setattr("sprint.hosted.secrets.set_hosted_secret", setter)
 
     result = CliRunner().invoke(
         app,

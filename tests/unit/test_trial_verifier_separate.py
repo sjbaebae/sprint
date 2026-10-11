@@ -11,19 +11,19 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from harbor.agents.capabilities import AgentCapabilities
-from harbor.environments.base import ExecResult
-from harbor.models.trial.config import TaskConfig as TrialTaskConfig
-from harbor.models.trial.config import (
+from sprint.agents.capabilities import AgentCapabilities
+from sprint.environments.base import ExecResult
+from sprint.models.trial.config import TaskConfig as TrialTaskConfig
+from sprint.models.trial.config import (
     AgentConfig,
     EnvironmentConfig,
     TrialConfig,
     VerifierConfig,
 )
-from harbor.models.trial.result import AgentInfo
-from harbor.models.task.config import TaskConfig, TaskOS
-from harbor.trial.errors import EnvironmentStartTimeoutError
-from harbor.trial.trial import Trial, _harbor_log_bind_mount, check_trial_config
+from sprint.models.trial.result import AgentInfo
+from sprint.models.task.config import TaskConfig, TaskOS
+from sprint.trial.errors import EnvironmentStartTimeoutError
+from sprint.trial.trial import Trial, _harbor_log_bind_mount, check_trial_config
 
 
 @pytest.mark.parametrize(
@@ -206,11 +206,11 @@ async def _run_trial(
     )
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             side_effect=fake_create,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=MagicMock(
                 name=lambda: "oracle",
                 version=lambda: "1.0",
@@ -220,7 +220,7 @@ async def _run_trial(
                 to_agent_info=lambda: AgentInfo(name="oracle", version="1.0"),
             ),
         ),
-        patch("harbor.trial.trial.AgentName") as agent_name,
+        patch("sprint.trial.trial.AgentName") as agent_name,
     ):
         agent_name.ORACLE.value = "oracle"
         trial = await Trial.create(config)
@@ -390,7 +390,7 @@ class TestSingleStepSeparateVerifierLifecycle:
     ):
         task_dir = _single_step_task_with_separate_verifier(tmp_path)
         monkeypatch.setattr(
-            "harbor.trial.single_step.SingleStepTrial",
+            "sprint.trial.single_step.SingleStepTrial",
             MagicMock(side_effect=RuntimeError("stop before runtime setup")),
         )
         with pytest.raises(RuntimeError, match="stop before runtime setup"):
@@ -711,7 +711,7 @@ async def test_separate_verifier_start_timeout(
     fake_create, _ = _make_factory_recorder(agent_env, [verifier_env])
 
     with patch(
-        "harbor.trial.trial.VerifierFactory.create_verifier_from_config"
+        "sprint.trial.trial.VerifierFactory.create_verifier_from_config"
     ) as create_verifier:
         trial = await _run_trial(task_dir, tmp_path / "trials", fake_create)
 
@@ -782,7 +782,7 @@ async def test_verifier_timeout_classification(
         verifier.verify = AsyncMock(side_effect=blocked_verify)
 
     with patch(
-        "harbor.trial.trial.VerifierFactory.create_verifier_from_config",
+        "sprint.trial.trial.VerifierFactory.create_verifier_from_config",
         return_value=verifier,
     ):
         trial = await _run_trial(task_dir, tmp_path / "trials", fake_create)

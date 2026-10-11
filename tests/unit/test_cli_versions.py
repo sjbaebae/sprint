@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from typer.testing import CliRunner
 
-from harbor.cli.versions import versions_app
-from harbor.models.package.dataset_task import DatasetVersionTaskRow
+from sprint.cli.versions import versions_app
+from sprint.models.package.dataset_task import DatasetVersionTaskRow
 
 runner = CliRunner()
 pytestmark = pytest.mark.unit
@@ -16,7 +16,7 @@ def _patch_db(monkeypatch, **methods) -> MagicMock:
     db = MagicMock()
     for name, value in methods.items():
         setattr(db, name, AsyncMock(return_value=value))
-    monkeypatch.setattr("harbor.db.client.RegistryDB", MagicMock(return_value=db))
+    monkeypatch.setattr("sprint.db.client.RegistryDB", MagicMock(return_value=db))
     return db
 
 

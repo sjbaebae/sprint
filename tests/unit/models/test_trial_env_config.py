@@ -1,7 +1,7 @@
 import warnings
 
-from harbor.models.job.config import JobConfig
-from harbor.models.trial.config import ResourceMode, TrialConfig
+from sprint.models.job.config import JobConfig
+from sprint.models.trial.config import ResourceMode, TrialConfig
 
 
 class TestEnvironmentEnvBackwardCompat:

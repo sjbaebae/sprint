@@ -19,7 +19,7 @@ import httpx
 import pytest
 from postgrest.exceptions import APIError
 
-from harbor.auth.retry import (
+from sprint.auth.retry import (
     is_transient_supabase_rpc_error,
     supabase_rpc_retry,
 )
@@ -86,8 +86,8 @@ async def test_jwt_expired_triggers_retry_with_reset_client(
     """
     reset = MagicMock()
     # `before_sleep=lambda _: reset_client()` imports at module-load time,
-    # so we have to patch the reference that `harbor.auth.retry` bound.
-    monkeypatch.setattr("harbor.auth.retry.reset_client", reset)
+    # so we have to patch the reference that `sprint.auth.retry` bound.
+    monkeypatch.setattr("sprint.auth.retry.reset_client", reset)
 
     jwt_expired = APIError({"message": "JWT expired", "code": "PGRST303"})
     fn = AsyncMock(side_effect=[jwt_expired, "ok-second-time"])
@@ -113,7 +113,7 @@ async def test_non_transient_error_does_not_retry(monkeypatch) -> None:
     """A unique-violation surfaces on the first attempt and doesn't
     hammer the server."""
     reset = MagicMock()
-    monkeypatch.setattr("harbor.auth.retry.reset_client", reset)
+    monkeypatch.setattr("sprint.auth.retry.reset_client", reset)
 
     unique_violation = APIError({"message": "duplicate key", "code": "23505"})
     fn = AsyncMock(side_effect=unique_violation)
@@ -139,7 +139,7 @@ async def test_persistent_jwt_expiry_gives_up_after_max_attempts(
     also expired), we don't loop forever — bail after ``RPC_MAX_ATTEMPTS``
     and let the caller surface the auth error to the user."""
     reset = MagicMock()
-    monkeypatch.setattr("harbor.auth.retry.reset_client", reset)
+    monkeypatch.setattr("sprint.auth.retry.reset_client", reset)
 
     jwt_expired = APIError({"message": "JWT expired", "code": "PGRST303"})
     fn = AsyncMock(side_effect=jwt_expired)
@@ -153,7 +153,7 @@ async def test_persistent_jwt_expiry_gives_up_after_max_attempts(
     with pytest.raises(APIError):
         await call_db()
 
-    # RPC_MAX_ATTEMPTS = 3 in harbor.auth.retry.
+    # RPC_MAX_ATTEMPTS = 3 in sprint.auth.retry.
     assert fn.await_count == 3
     # reset_client runs between attempts, so `max_attempts - 1 = 2` times.
     assert reset.call_count == 2

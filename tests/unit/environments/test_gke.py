@@ -16,8 +16,8 @@ from kubernetes.client.rest import ApiException
 from kubernetes.stream.ws_client import ERROR_CHANNEL, WSClient
 from pydantic import ValidationError
 
-from harbor.environments import gke as gke_module
-from harbor.environments.gke import (
+from sprint.environments import gke as gke_module
+from sprint.environments.gke import (
     GKE_GPU_TYPE_MAP,
     GKE_TPU_TYPE_MAP,
     GKEExecStreamClosedError,
@@ -26,8 +26,8 @@ from harbor.environments.gke import (
     _is_pod_not_found_error,
     _sanitize_kubernetes_resource_name,
 )
-from harbor.models.task.config import EnvironmentConfig, TpuSpec
-from harbor.models.trial.paths import TrialPaths
+from sprint.models.task.config import EnvironmentConfig, TpuSpec
+from sprint.models.trial.paths import TrialPaths
 
 
 async def _start_and_capture_pod(gke_env):
@@ -1402,7 +1402,7 @@ class TestGKEComposeFileFlags:
 
 
 def _exec_result(return_code: int = 0):
-    from harbor.environments.base import ExecResult
+    from sprint.environments.base import ExecResult
 
     return ExecResult(return_code=return_code, stdout="", stderr="")
 
@@ -1563,25 +1563,25 @@ class TestGKEServiceOperationsNonCompose:
     """Sidecar operations are unsupported on a single-container GKE env."""
 
     async def test_service_exec_sidecar_raises(self, gke_env):
-        from harbor.environments.base import ServiceOperationsUnsupportedError
+        from sprint.environments.base import ServiceOperationsUnsupportedError
 
         with pytest.raises(ServiceOperationsUnsupportedError):
             await gke_env.service_exec("echo hi", service="sidecar")
 
     async def test_service_download_file_sidecar_raises(self, gke_env, temp_dir):
-        from harbor.environments.base import ServiceOperationsUnsupportedError
+        from sprint.environments.base import ServiceOperationsUnsupportedError
 
         with pytest.raises(ServiceOperationsUnsupportedError):
             await gke_env.service_download_file("/x", temp_dir / "x", service="sidecar")
 
     async def test_service_download_dir_sidecar_raises(self, gke_env, temp_dir):
-        from harbor.environments.base import ServiceOperationsUnsupportedError
+        from sprint.environments.base import ServiceOperationsUnsupportedError
 
         with pytest.raises(ServiceOperationsUnsupportedError):
             await gke_env.service_download_dir("/x", temp_dir / "x", service="sidecar")
 
     async def test_stop_service_raises(self, gke_env):
-        from harbor.environments.base import ServiceOperationsUnsupportedError
+        from sprint.environments.base import ServiceOperationsUnsupportedError
 
         with pytest.raises(ServiceOperationsUnsupportedError):
             await gke_env.stop_service("sidecar")

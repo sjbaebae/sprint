@@ -3,9 +3,9 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from harbor.viewer import server
-from harbor.telemetry import LAUNCH_SOURCE_ENV
-from harbor.viewer.server import _normalize_local_paths, create_app
+from sprint.viewer import server
+from sprint.telemetry import LAUNCH_SOURCE_ENV
+from sprint.viewer.server import _normalize_local_paths, create_app
 
 
 class _FakeProcess:
@@ -199,7 +199,7 @@ def test_export_run_config_routes_task_path_to_tasks(
 ) -> None:
     import yaml
 
-    from harbor.models.task.task import Task
+    from sprint.models.task.task import Task
 
     monkeypatch.setattr(Task, "is_valid_dir", staticmethod(lambda *a, **k: True))
 
@@ -301,7 +301,7 @@ def test_normalize_local_paths_keeps_non_task_directory_as_dataset() -> None:
 def test_normalize_local_paths_routes_task_directory_to_tasks(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from harbor.models.task.task import Task
+    from sprint.models.task.task import Task
 
     monkeypatch.setattr(Task, "is_valid_dir", staticmethod(lambda *a, **k: True))
 

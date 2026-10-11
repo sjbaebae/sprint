@@ -6,12 +6,12 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.agents.installed.swe_agent import (
+from sprint.agents.installed.swe_agent import (
     SweAgent,
     _build_swe_agent_clone_command,
     convert_swe_agent_to_atif,
 )
-from harbor.models.task.config import MCPServerConfig
+from sprint.models.task.config import MCPServerConfig
 
 
 @pytest.mark.asyncio

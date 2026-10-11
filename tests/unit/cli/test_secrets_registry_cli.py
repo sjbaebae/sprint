@@ -5,12 +5,12 @@ from uuid import uuid4
 
 import pytest
 
-from harbor.cli.secrets import (
+from sprint.cli.secrets import (
     add_registry_credential_cmd,
     delete_registry_credential_cmd,
     list_registry_credentials_cmd,
 )
-from harbor.hosted.registry_credentials import (
+from sprint.hosted.registry_credentials import (
     RegistryCredential,
     RegistryCredentialReplacementRequired,
 )
@@ -51,7 +51,7 @@ class TestAddRegistryCredential:
     def test_adds_from_file(self, tmp_path: Path, monkeypatch, capsys) -> None:
         added = AsyncMock(return_value=_credential())
         monkeypatch.setattr(
-            "harbor.hosted.registry_credentials.add_registry_credential", added
+            "sprint.hosted.registry_credentials.add_registry_credential", added
         )
 
         add_registry_credential_cmd(
@@ -73,7 +73,7 @@ class TestAddRegistryCredential:
     ) -> None:
         added = AsyncMock(return_value=_credential())
         monkeypatch.setattr(
-            "harbor.hosted.registry_credentials.add_registry_credential", added
+            "sprint.hosted.registry_credentials.add_registry_credential", added
         )
 
         add_registry_credential_cmd(
@@ -124,9 +124,9 @@ class TestAddRegistryCredential:
             ]
         )
         monkeypatch.setattr(
-            "harbor.hosted.registry_credentials.add_registry_credential", added
+            "sprint.hosted.registry_credentials.add_registry_credential", added
         )
-        monkeypatch.setattr("harbor.cli.secrets.confirm", lambda _message: True)
+        monkeypatch.setattr("sprint.cli.secrets.confirm", lambda _message: True)
 
         add_registry_credential_cmd(
             "us-east1-docker.pkg.dev",
@@ -148,7 +148,7 @@ class TestListRegistryCredentials:
     def test_renders_rows(self, monkeypatch, capsys) -> None:
         credential = _credential()
         monkeypatch.setattr(
-            "harbor.hosted.registry_credentials.list_registry_credentials",
+            "sprint.hosted.registry_credentials.list_registry_credentials",
             AsyncMock(return_value=[credential]),
         )
 
@@ -169,7 +169,7 @@ class TestListRegistryCredentials:
 
     def test_empty_message(self, monkeypatch, capsys) -> None:
         monkeypatch.setattr(
-            "harbor.hosted.registry_credentials.list_registry_credentials",
+            "sprint.hosted.registry_credentials.list_registry_credentials",
             AsyncMock(return_value=[]),
         )
 
@@ -184,10 +184,10 @@ class TestDeleteRegistryCredential:
         deleted = AsyncMock(return_value=1)
         listed = AsyncMock()
         monkeypatch.setattr(
-            "harbor.hosted.registry_credentials.delete_registry_credential", deleted
+            "sprint.hosted.registry_credentials.delete_registry_credential", deleted
         )
         monkeypatch.setattr(
-            "harbor.hosted.registry_credentials.list_registry_credentials", listed
+            "sprint.hosted.registry_credentials.list_registry_credentials", listed
         )
 
         delete_registry_credential_cmd(credential_id)
@@ -200,10 +200,10 @@ class TestDeleteRegistryCredential:
         credential = _credential()
         deleted = AsyncMock(return_value=1)
         monkeypatch.setattr(
-            "harbor.hosted.registry_credentials.delete_registry_credential", deleted
+            "sprint.hosted.registry_credentials.delete_registry_credential", deleted
         )
         monkeypatch.setattr(
-            "harbor.hosted.registry_credentials.list_registry_credentials",
+            "sprint.hosted.registry_credentials.list_registry_credentials",
             AsyncMock(return_value=[credential, _credential(name="other")]),
         )
 
@@ -214,7 +214,7 @@ class TestDeleteRegistryCredential:
 
     def test_unknown_display_name_errors(self, monkeypatch, capsys) -> None:
         monkeypatch.setattr(
-            "harbor.hosted.registry_credentials.list_registry_credentials",
+            "sprint.hosted.registry_credentials.list_registry_credentials",
             AsyncMock(return_value=[]),
         )
 
@@ -227,7 +227,7 @@ class TestDeleteRegistryCredential:
         first = _credential()
         second = _credential(host="europe-west1-docker.pkg.dev")
         monkeypatch.setattr(
-            "harbor.hosted.registry_credentials.list_registry_credentials",
+            "sprint.hosted.registry_credentials.list_registry_credentials",
             AsyncMock(return_value=[first, second]),
         )
 
@@ -245,10 +245,10 @@ class TestDeleteRegistryCredential:
         deleted = AsyncMock(return_value=1)
         listed = AsyncMock(return_value=[revoked])
         monkeypatch.setattr(
-            "harbor.hosted.registry_credentials.delete_registry_credential", deleted
+            "sprint.hosted.registry_credentials.delete_registry_credential", deleted
         )
         monkeypatch.setattr(
-            "harbor.hosted.registry_credentials.list_registry_credentials", listed
+            "sprint.hosted.registry_credentials.list_registry_credentials", listed
         )
 
         delete_registry_credential_cmd("test puller", purge=True)

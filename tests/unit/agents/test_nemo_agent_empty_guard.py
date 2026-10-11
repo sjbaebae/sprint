@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from harbor.agents.installed.nemo_agent import NemoAgent
+from sprint.agents.installed.nemo_agent import NemoAgent
 
 
 @pytest.fixture

@@ -1,9 +1,9 @@
-"""Tests for harbor.models.task.paths — TaskPaths with script discovery."""
+"""Tests for sprint.models.task.paths — TaskPaths with script discovery."""
 
 from pathlib import Path
 
-from harbor.models.task.config import TaskOS
-from harbor.models.task.paths import TaskPaths
+from sprint.models.task.config import TaskOS
+from sprint.models.task.paths import TaskPaths
 
 
 def _create_task_dir(tmp_path: Path, test_ext: str = ".sh", solve_ext: str = ".sh"):

@@ -1,7 +1,7 @@
 import click
 from typer.main import get_command
 
-from harbor.cli.main import _command_telemetry_from_argv, app
+from sprint.cli.main import _command_telemetry_from_argv, app
 
 
 def _telemetry_from_argv(args: list[str]) -> tuple[str, list[str]]:

@@ -13,7 +13,7 @@ from typing import ClassVar, Dict, List, Optional
 # 2. If not installed, fall back to adding src/ to sys.path (for development)
 # 3. Provide clear error message if both approaches fail
 try:
-    from harbor.models.task.paths import TaskPaths
+    from sprint.models.task.paths import TaskPaths
 except (ImportError, ModuleNotFoundError):
     # Harbor not installed as package - add src to path as fallback
     # This allows the adapter to work when run from the Harbor repository
@@ -25,7 +25,7 @@ except (ImportError, ModuleNotFoundError):
         if src_path_str not in sys.path:
             sys.path.insert(0, src_path_str)
         try:
-            from harbor.models.task.paths import TaskPaths
+            from sprint.models.task.paths import TaskPaths
         except (ImportError, ModuleNotFoundError, AttributeError) as e:
             # Catch specific import-related errors
             raise ImportError(

@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.agents.installed.copilot_cli import CopilotCli
+from sprint.agents.installed.copilot_cli import CopilotCli
 
 
 def _mock_environment() -> AsyncMock:

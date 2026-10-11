@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from harbor.constants import TASK_CACHE_DIR
-from harbor.models.trial.config import TaskConfig
+from sprint.constants import TASK_CACHE_DIR
+from sprint.models.trial.config import TaskConfig
 
 
 class TestGetLocalPath:

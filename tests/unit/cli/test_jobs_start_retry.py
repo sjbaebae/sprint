@@ -1,4 +1,4 @@
-from harbor.cli.config_validation import ValidationReport
+from sprint.cli.config_validation import ValidationReport
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -8,11 +8,11 @@ from uuid import uuid4
 import pytest
 from typer.testing import CliRunner
 
-from harbor.cli.main import app
-from harbor.hosted.config import HostedJobConfig
-from harbor.hosted.status import HostedJobTrialStatus
-from harbor.hosted.submit import HostedQuotaExceededError, HostedSubmitResult
-from harbor.models.job.config import JobConfig
+from sprint.cli.main import app
+from sprint.hosted.config import HostedJobConfig
+from sprint.hosted.status import HostedJobTrialStatus
+from sprint.hosted.submit import HostedQuotaExceededError, HostedSubmitResult
+from sprint.models.job.config import JobConfig
 
 
 runner = CliRunner()
@@ -36,22 +36,22 @@ def _capture_job_config(monkeypatch, tmp_path: Path) -> list[JobConfig]:
         captured.append(config)
         return _FakeJob(config, tmp_path)
 
-    monkeypatch.setattr("harbor.job.Job.create", create)
+    monkeypatch.setattr("sprint.job.Job.create", create)
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight",
+        "sprint.environments.factory.EnvironmentFactory.run_preflight",
         lambda **_: None,
     )
     monkeypatch.setattr(
-        "harbor.agents.factory.AgentFactory.run_preflight",
+        "sprint.agents.factory.AgentFactory.run_preflight",
         lambda *_args, **_kwargs: None,
     )
     monkeypatch.setattr(
-        "harbor.cli.jobs.show_registry_hint_if_first_run", lambda _: None
+        "sprint.cli.jobs.show_registry_hint_if_first_run", lambda _: None
     )
     monkeypatch.setattr(
-        "harbor.cli.jobs._confirm_host_env_access", lambda *_, **__: None
+        "sprint.cli.jobs._confirm_host_env_access", lambda *_, **__: None
     )
-    monkeypatch.setattr("harbor.cli.jobs.print_job_results_tables", lambda _: None)
+    monkeypatch.setattr("sprint.cli.jobs.print_job_results_tables", lambda _: None)
 
     return captured
 
@@ -376,7 +376,7 @@ def test_run_print_config_outputs_resolved_job_config_without_creating_job(
     async def create(_config: JobConfig):
         raise AssertionError("Job.create should not be called")
 
-    monkeypatch.setattr("harbor.job.Job.create", create)
+    monkeypatch.setattr("sprint.job.Job.create", create)
 
     result = runner.invoke(
         app,
@@ -413,7 +413,7 @@ def test_hosted_print_config_shows_effective_retry_policy(monkeypatch) -> None:
     async def create(_config: JobConfig):
         raise AssertionError("Job.create should not be called")
 
-    monkeypatch.setattr("harbor.job.Job.create", create)
+    monkeypatch.setattr("sprint.job.Job.create", create)
 
     result = runner.invoke(
         app,
@@ -752,11 +752,11 @@ def test_jobs_start_launch_submits_and_skips_local_preflight(monkeypatch) -> Non
             n_trials=4,
         )
     )
-    monkeypatch.setattr("harbor.hosted.submit.submit_hosted_job", submit)
+    monkeypatch.setattr("sprint.hosted.submit.submit_hosted_job", submit)
     gather = AsyncMock(return_value=None)
-    monkeypatch.setattr("harbor.cli.hosted_jobs._gather_preflight_warnings", gather)
+    monkeypatch.setattr("sprint.cli.hosted_jobs._gather_preflight_warnings", gather)
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight",
+        "sprint.environments.factory.EnvironmentFactory.run_preflight",
         lambda **_: (_ for _ in ()).throw(AssertionError("preflight should not run")),
     )
 
@@ -797,7 +797,7 @@ def test_jobs_start_launch_submits_and_skips_local_preflight(monkeypatch) -> Non
 
 def _launch_with_warnings(monkeypatch, *extra_args: str):
     """Invoke a non-TTY launch whose preflight reports a warning."""
-    from harbor.hosted.preflight import PreflightWarnings
+    from sprint.hosted.preflight import PreflightWarnings
 
     submit = AsyncMock(
         return_value=HostedSubmitResult(
@@ -807,9 +807,9 @@ def _launch_with_warnings(monkeypatch, *extra_args: str):
             n_trials=1,
         )
     )
-    monkeypatch.setattr("harbor.hosted.submit.submit_hosted_job", submit)
+    monkeypatch.setattr("sprint.hosted.submit.submit_hosted_job", submit)
     monkeypatch.setattr(
-        "harbor.cli.hosted_jobs._gather_preflight_warnings",
+        "sprint.cli.hosted_jobs._gather_preflight_warnings",
         AsyncMock(
             return_value=PreflightWarnings(
                 agent_lines=["  - oracle: needs EXAMPLE_API_KEY"], task_lines=[]
@@ -865,7 +865,7 @@ def _launch_capturing_submit(monkeypatch, *extra_args: str):
             n_trials=1,
         )
     )
-    monkeypatch.setattr("harbor.hosted.submit.submit_hosted_job", submit)
+    monkeypatch.setattr("sprint.hosted.submit.submit_hosted_job", submit)
 
     result = runner.invoke(
         app,
@@ -924,7 +924,7 @@ def test_jobs_start_secret_beats_env_file_on_collision(
 
 def test_jobs_start_dry_run_validates_without_queuing(monkeypatch) -> None:
     validate = AsyncMock(return_value=ValidationReport())
-    monkeypatch.setattr("harbor.cli.config_validation.validate_job_config", validate)
+    monkeypatch.setattr("sprint.cli.config_validation.validate_job_config", validate)
     submit = AsyncMock(
         return_value=HostedSubmitResult(
             job_id=None,
@@ -934,7 +934,7 @@ def test_jobs_start_dry_run_validates_without_queuing(monkeypatch) -> None:
             owner_org="acme",
         )
     )
-    monkeypatch.setattr("harbor.hosted.submit.submit_hosted_job", submit)
+    monkeypatch.setattr("sprint.hosted.submit.submit_hosted_job", submit)
 
     result = runner.invoke(
         app,
@@ -967,10 +967,10 @@ def test_jobs_start_dry_run_validates_without_queuing(monkeypatch) -> None:
 def test_jobs_start_dry_run_reports_warnings_without_aborting(monkeypatch) -> None:
     """A non-TTY launch with warnings aborts unless --yes; a dry run is the
     caller asking to see those warnings, so it must run to completion."""
-    from harbor.hosted.preflight import PreflightWarnings
+    from sprint.hosted.preflight import PreflightWarnings
 
     monkeypatch.setattr(
-        "harbor.cli.config_validation.validate_job_config",
+        "sprint.cli.config_validation.validate_job_config",
         AsyncMock(return_value=ValidationReport()),
     )
 
@@ -979,13 +979,13 @@ def test_jobs_start_dry_run_reports_warnings_without_aborting(monkeypatch) -> No
             agent_lines=["  - codex: needs OPENAI_API_KEY"], task_lines=[]
         )
 
-    monkeypatch.setattr("harbor.cli.hosted_jobs._gather_preflight_warnings", gather)
+    monkeypatch.setattr("sprint.cli.hosted_jobs._gather_preflight_warnings", gather)
     submit = AsyncMock(
         return_value=HostedSubmitResult(
             job_id=None, job_name="hosted-test", viewer_url=None, n_trials=1
         )
     )
-    monkeypatch.setattr("harbor.hosted.submit.submit_hosted_job", submit)
+    monkeypatch.setattr("sprint.hosted.submit.submit_hosted_job", submit)
 
     result = runner.invoke(
         app,
@@ -1010,7 +1010,7 @@ def test_jobs_start_dry_run_reports_warnings_without_aborting(monkeypatch) -> No
 
 
 def test_jobs_start_dry_run_requires_sources(monkeypatch) -> None:
-    monkeypatch.setattr("harbor.cli.jobs._run_preflight", lambda _: None)
+    monkeypatch.setattr("sprint.cli.jobs._run_preflight", lambda _: None)
     result = runner.invoke(app, ["jobs", "start", "--dry-run"])
 
     assert result.exit_code == 1
@@ -1046,7 +1046,7 @@ def test_jobs_start_launch_prints_quota_errors(monkeypatch) -> None:
             "hosted quota exceeded: active hosted trial limit would be exceeded (198 + 4 > 200)"
         )
     )
-    monkeypatch.setattr("harbor.hosted.submit.submit_hosted_job", submit)
+    monkeypatch.setattr("sprint.hosted.submit.submit_hosted_job", submit)
 
     result = runner.invoke(
         app,
@@ -1081,7 +1081,7 @@ def test_jobs_status_prints_counts(monkeypatch) -> None:
             total=3,
         )
     )
-    monkeypatch.setattr("harbor.hosted.status.get_job_trial_status", get_status)
+    monkeypatch.setattr("sprint.hosted.status.get_job_trial_status", get_status)
 
     result = runner.invoke(app, ["hub", "job", "status", str(job_id)])
 
@@ -1105,7 +1105,7 @@ def test_jobs_cancel_calls_hosted_cancel_with_reason(monkeypatch) -> None:
         total=3,
     )
     cancel = AsyncMock(return_value=SimpleNamespace(job_id=job_id, status=status))
-    monkeypatch.setattr("harbor.hosted.cancel.cancel_hosted_job", cancel)
+    monkeypatch.setattr("sprint.hosted.cancel.cancel_hosted_job", cancel)
 
     result = runner.invoke(
         app,
@@ -1122,7 +1122,7 @@ def test_jobs_cancel_calls_hosted_cancel_with_reason(monkeypatch) -> None:
 def test_jobs_cancel_prints_errors(monkeypatch) -> None:
     job_id = uuid4()
     cancel = AsyncMock(side_effect=RuntimeError("not allowed"))
-    monkeypatch.setattr("harbor.hosted.cancel.cancel_hosted_job", cancel)
+    monkeypatch.setattr("sprint.hosted.cancel.cancel_hosted_job", cancel)
 
     result = runner.invoke(app, ["hub", "job", "cancel", str(job_id)])
 
@@ -1260,7 +1260,7 @@ def test_jobs_start_use_static_ip(
 
 def test_jobs_start_use_static_ip_requires_launch(monkeypatch) -> None:
     execute = AsyncMock()
-    monkeypatch.setattr("harbor.cli.jobs._execute_job", execute)
+    monkeypatch.setattr("sprint.cli.jobs._execute_job", execute)
 
     result = runner.invoke(app, ["jobs", "start", "--use-static-ip"])
 
@@ -1439,7 +1439,7 @@ def _launch_config_capturing_submit(
             n_trials=2,
         )
     )
-    monkeypatch.setattr("harbor.hosted.submit.submit_hosted_job", submit)
+    monkeypatch.setattr("sprint.hosted.submit.submit_hosted_job", submit)
 
     result = runner.invoke(
         app,
@@ -1646,16 +1646,16 @@ def test_run_launch_sharing(monkeypatch, scenario):
     submit = AsyncMock(side_effect=submit_job)
     share = AsyncMock(side_effect=share_job)
     monkeypatch.setattr(
-        "harbor.cli.job_sharing.confirm_non_member_org_shares", confirmation
+        "sprint.cli.job_sharing.confirm_non_member_org_shares", confirmation
     )
-    monkeypatch.setattr("harbor.hosted.submit.submit_hosted_job", submit)
-    monkeypatch.setattr("harbor.upload.db_client.UploadDB.add_job_shares", share)
+    monkeypatch.setattr("sprint.hosted.submit.submit_hosted_job", submit)
+    monkeypatch.setattr("sprint.upload.db_client.UploadDB.add_job_shares", share)
     monkeypatch.setattr(
-        "harbor.cli.hosted_jobs._gather_preflight_warnings",
+        "sprint.cli.hosted_jobs._gather_preflight_warnings",
         AsyncMock(return_value=None),
     )
     monkeypatch.setattr(
-        "harbor.cli.config_validation.validate_job_config",
+        "sprint.cli.config_validation.validate_job_config",
         AsyncMock(return_value=ValidationReport()),
     )
     args = [
@@ -1710,7 +1710,7 @@ def test_run_launch_sharing(monkeypatch, scenario):
 
 def test_run_share_still_requires_upload_or_launch(monkeypatch):
     submit = AsyncMock()
-    monkeypatch.setattr("harbor.hosted.submit.submit_hosted_job", submit)
+    monkeypatch.setattr("sprint.hosted.submit.submit_hosted_job", submit)
     result = runner.invoke(app, ["run", "--share", "team-a"])
     assert result.exit_code == 1
     submit.assert_not_awaited()

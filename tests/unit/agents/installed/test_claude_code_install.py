@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.claude_code import ClaudeCode
+from sprint.agents.installed.claude_code import ClaudeCode
 
 
 class TestClaudeCodeInstall:

@@ -4,12 +4,12 @@ from uuid import uuid4
 
 import pytest
 
-from harbor.environments.base import BaseEnvironment, ExecResult, OutputStream
-from harbor.environments.capabilities import EnvironmentCapabilities
-from harbor.models.task.config import EnvironmentConfig
-from harbor.models.trial.paths import TrialPaths
-from harbor.trial.hooks import LogEntry
-from harbor.trial.single_step import SingleStepTrial
+from sprint.environments.base import BaseEnvironment, ExecResult, OutputStream
+from sprint.environments.capabilities import EnvironmentCapabilities
+from sprint.models.task.config import EnvironmentConfig
+from sprint.models.trial.paths import TrialPaths
+from sprint.trial.hooks import LogEntry
+from sprint.trial.single_step import SingleStepTrial
 
 
 class _StreamingEnvironment(BaseEnvironment):

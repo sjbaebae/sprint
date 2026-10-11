@@ -2,7 +2,7 @@
 
 import pytest
 
-from harbor.models.task.config import MCPServerConfig, TaskConfig
+from sprint.models.task.config import MCPServerConfig, TaskConfig
 
 
 class TestMCPServerConfig:

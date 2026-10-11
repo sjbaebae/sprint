@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.aider import Aider
-from harbor.agents.installed.claude_code import ClaudeCode
-from harbor.agents.installed.goose import Goose
+from sprint.agents.installed.aider import Aider
+from sprint.agents.installed.claude_code import ClaudeCode
+from sprint.agents.installed.goose import Goose
 
 pytestmark = pytest.mark.unit
 

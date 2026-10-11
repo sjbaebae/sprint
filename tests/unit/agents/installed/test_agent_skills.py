@@ -5,13 +5,13 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.agents.installed.cline.cline import ClineCli
-from harbor.agents.installed.codex import Codex
-from harbor.agents.installed.gemini_cli import GeminiCli
-from harbor.agents.installed.goose import Goose
-from harbor.agents.installed.hermes import Hermes
-from harbor.agents.installed.opencode import OpenCode
-from harbor.agents.installed.qwen_code import QwenCode
+from sprint.agents.installed.cline.cline import ClineCli
+from sprint.agents.installed.codex import Codex
+from sprint.agents.installed.gemini_cli import GeminiCli
+from sprint.agents.installed.goose import Goose
+from sprint.agents.installed.hermes import Hermes
+from sprint.agents.installed.opencode import OpenCode
+from sprint.agents.installed.qwen_code import QwenCode
 
 
 # ---------------------------------------------------------------------------
@@ -281,7 +281,7 @@ def _make_mock_environment(skills: dict[str, str] | None = None, is_dir: bool = 
     """
     from unittest.mock import AsyncMock
 
-    from harbor.environments.base import ExecResult
+    from sprint.environments.base import ExecResult
 
     env = AsyncMock()
     env.is_dir = AsyncMock(return_value=is_dir)
@@ -309,7 +309,7 @@ class TestTerminus2Skills:
     """Test _build_skills_section() for Terminus2."""
 
     def _make_agent(self, temp_dir, skills_dir=None):
-        from harbor.agents.terminus_2.terminus_2 import Terminus2
+        from sprint.agents.terminus_2.terminus_2 import Terminus2
 
         return Terminus2(
             logs_dir=temp_dir,
@@ -377,20 +377,20 @@ class TestTerminus2ParseSkillFrontmatter:
     """Test _parse_skill_frontmatter() directly."""
 
     def test_valid_frontmatter(self):
-        from harbor.agents.terminus_2.terminus_2 import Terminus2
+        from sprint.agents.terminus_2.terminus_2 import Terminus2
 
         content = "---\nname: my-skill\ndescription: Does things.\n---\nBody.\n"
         result = Terminus2._parse_skill_frontmatter(content)
         assert result == {"name": "my-skill", "description": "Does things."}
 
     def test_missing_name(self):
-        from harbor.agents.terminus_2.terminus_2 import Terminus2
+        from sprint.agents.terminus_2.terminus_2 import Terminus2
 
         content = "---\ndescription: No name field.\n---\nBody.\n"
         assert Terminus2._parse_skill_frontmatter(content) is None
 
     def test_no_frontmatter_delimiter(self):
-        from harbor.agents.terminus_2.terminus_2 import Terminus2
+        from sprint.agents.terminus_2.terminus_2 import Terminus2
 
         assert (
             Terminus2._parse_skill_frontmatter("Just markdown, no frontmatter.") is None
@@ -398,7 +398,7 @@ class TestTerminus2ParseSkillFrontmatter:
 
     def test_frontmatter_with_dashes_in_yaml_value(self):
         """Ensure --- inside a YAML value does not break frontmatter parsing."""
-        from harbor.agents.terminus_2.terminus_2 import Terminus2
+        from sprint.agents.terminus_2.terminus_2 import Terminus2
 
         content = '---\nname: my-skill\ndescription: "Use --- to separate sections"\n---\nBody.\n'
         result = Terminus2._parse_skill_frontmatter(content)
@@ -411,7 +411,7 @@ class TestTerminus2SkillsXmlEscaping:
     """Test that XML special characters are properly escaped in skills output."""
 
     def _make_agent(self, temp_dir, skills_dir=None):
-        from harbor.agents.terminus_2.terminus_2 import Terminus2
+        from sprint.agents.terminus_2.terminus_2 import Terminus2
 
         return Terminus2(
             logs_dir=temp_dir,

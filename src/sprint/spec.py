@@ -200,13 +200,13 @@ class Experiment:
 
     def compile(self, directory: Path):
         """Write an inspectable standard Harbor task; does not launch resources."""
-        from .backends.harbor import compile_task
+        from .backends.runtime import compile_task
 
         return compile_task(self, directory)
 
     async def run(self, *, directory: Path, backend="docker", trials=1, parallel=1):
         """Run fresh trials through the selected infrastructure backend."""
-        from .backends.harbor import run
+        from .backends.runtime import run
 
         return await run(
             self, directory=directory, backend=backend, trials=trials, parallel=parallel

@@ -5,10 +5,10 @@ import shlex
 from pathlib import Path
 from typing import Any
 
-from harbor.agents.base import BaseAgent
-from harbor.agents.capabilities import AgentCapabilities
-from harbor.environments.base import BaseEnvironment
-from harbor.models.agent.context import AgentContext
+from sprint.agents.base import BaseAgent
+from sprint.agents.capabilities import AgentCapabilities
+from sprint.environments.base import BaseEnvironment
+from sprint.models.agent.context import AgentContext
 from osworld.constants import OSWORLD_TASK_JSON
 from osworld.custom_agent.core import OSWorldRunnerConfig
 from osworld.custom_agent.runner import (

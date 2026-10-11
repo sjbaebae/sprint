@@ -16,8 +16,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.computer_1.computer_1 import Computer1
-from harbor.llms.chat import Chat
+from sprint.agents.computer_1.computer_1 import Computer1
+from sprint.llms.chat import Chat
 
 
 def _make_agent(tmp_path: Path) -> Computer1:

@@ -5,8 +5,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from harbor.agents.capabilities import AgentCapabilities
-from harbor.trial.single_step import SingleStepTrial
+from sprint.agents.capabilities import AgentCapabilities
+from sprint.trial.single_step import SingleStepTrial
 
 
 def _make_trial(load_trajectory, *, native=False, atif=False):

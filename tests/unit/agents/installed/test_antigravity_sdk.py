@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.agents.installed.antigravity_sdk import AntigravitySDK
-from harbor.models.agent.context import AgentContext
+from sprint.agents.installed.antigravity_sdk import AntigravitySDK
+from sprint.models.agent.context import AgentContext
 
 
 class TestAntigravitySDKBaseUrlForwarding:

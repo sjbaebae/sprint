@@ -1,6 +1,6 @@
 import pytest
 
-from harbor.utils.import_path import import_class, import_symbol
+from sprint.utils.import_path import import_class, import_symbol
 
 
 class ExampleClass:

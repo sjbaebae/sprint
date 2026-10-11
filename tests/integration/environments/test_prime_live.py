@@ -7,10 +7,10 @@ import pytest
 
 pytest.importorskip("prime_sandboxes")
 
-from harbor.environments.factory import EnvironmentFactory
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments.factory import EnvironmentFactory
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.paths import TrialPaths
 
 pytestmark = [
     pytest.mark.integration,

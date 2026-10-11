@@ -6,15 +6,15 @@ from pathlib import Path
 
 import pytest
 
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.trial.config import (
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.trial.config import (
     AgentConfig,
     EnvironmentConfig,
     SourceTrialConfig,
     TaskConfig,
     TrialConfig,
 )
-from harbor.trial.trial import Trial
+from sprint.trial.trial import Trial
 
 pytestmark = [pytest.mark.runtime, pytest.mark.integration, pytest.mark.asyncio]
 

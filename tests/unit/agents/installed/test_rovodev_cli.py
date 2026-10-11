@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from harbor.agents.installed.rovodev_cli import RovodevCli
-from harbor.models.agent.context import AgentContext
-from harbor.models.agent.name import AgentName
+from sprint.agents.installed.rovodev_cli import RovodevCli
+from sprint.models.agent.context import AgentContext
+from sprint.models.agent.name import AgentName
 
 
 class TestRovodevCliBasics:

@@ -8,13 +8,13 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-import harbor.environments.blaxel as blaxel_module
-from harbor.environments.base import ExecResult, ServiceOperationsUnsupportedError
-from harbor.environments.blaxel import BlaxelEnvironment, _sanitize_blaxel_name
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.config import ServiceVolumeConfig
-from harbor.models.trial.paths import EnvironmentPaths, TrialPaths
-from harbor.utils.optional_import import MissingExtraError
+import sprint.environments.blaxel as blaxel_module
+from sprint.environments.base import ExecResult, ServiceOperationsUnsupportedError
+from sprint.environments.blaxel import BlaxelEnvironment, _sanitize_blaxel_name
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.config import ServiceVolumeConfig
+from sprint.models.trial.paths import EnvironmentPaths, TrialPaths
+from sprint.utils.optional_import import MissingExtraError
 
 
 class FakeDockerfileParser:

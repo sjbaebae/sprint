@@ -4,12 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from harbor.environments.podman import PodmanEnvironment
-from harbor.models.agent.name import AgentName
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.trial.config import AgentConfig, EnvironmentConfig, TaskConfig
-from harbor.models.trial.config import TrialConfig
-from harbor.trial.trial import Trial
+from sprint.environments.podman import PodmanEnvironment
+from sprint.models.agent.name import AgentName
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.trial.config import AgentConfig, EnvironmentConfig, TaskConfig
+from sprint.models.trial.config import TrialConfig
+from sprint.trial.trial import Trial
 
 pytestmark = [
     pytest.mark.asyncio,

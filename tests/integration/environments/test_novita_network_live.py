@@ -17,9 +17,9 @@ import pytest
 
 pytest.importorskip("novita_sandbox")
 
-from harbor.environments.novita import NovitaEnvironment
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments.novita import NovitaEnvironment
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.paths import TrialPaths
 
 pytestmark = pytest.mark.integration
 

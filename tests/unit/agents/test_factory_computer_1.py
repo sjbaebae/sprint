@@ -5,13 +5,13 @@ from __future__ import annotations
 import pytest
 from anthropic import AnthropicBedrock
 
-from harbor.agents.computer_1 import Computer1
-from harbor.agents.computer_1.providers.anthropic import (
+from sprint.agents.computer_1 import Computer1
+from sprint.agents.computer_1.providers.anthropic import (
     AnthropicProvider,
     BedrockProvider,
     cua_protocol_for_model,
 )
-from harbor.agents.computer_1.providers.base import (
+from sprint.agents.computer_1.providers.base import (
     _PROVIDER_REGISTRY,
     ChatCompletionsProvider,
     SelfDrivingProvider,
@@ -21,12 +21,12 @@ from harbor.agents.computer_1.providers.base import (
     load_provider,
     resolve_provider_name,
 )
-from harbor.agents.computer_1.providers.gemini import GeminiProvider
-from harbor.agents.computer_1.providers.generic import GenericJsonProvider
-from harbor.agents.computer_1.providers.openai import OpenAIComputerUseProvider
-from harbor.agents.factory import AgentFactory
-from harbor.models.agent.name import AgentName
-from harbor.models.trial.config import AgentConfig as TrialAgentConfig
+from sprint.agents.computer_1.providers.gemini import GeminiProvider
+from sprint.agents.computer_1.providers.generic import GenericJsonProvider
+from sprint.agents.computer_1.providers.openai import OpenAIComputerUseProvider
+from sprint.agents.factory import AgentFactory
+from sprint.models.agent.name import AgentName
+from sprint.models.trial.config import AgentConfig as TrialAgentConfig
 
 
 def test_single_computer_1_name() -> None:
@@ -38,7 +38,7 @@ def test_single_computer_1_name() -> None:
 
 def test_computer_1_resolves_via_factory() -> None:
     assert AgentFactory._AGENT_MAP[AgentName.COMPUTER_1] == (
-        "harbor.agents.computer_1:Computer1"
+        "sprint.agents.computer_1:Computer1"
     )
     assert AgentFactory.get_agent_class(AgentName.COMPUTER_1) is Computer1
     assert Computer1.name() == AgentName.COMPUTER_1.value

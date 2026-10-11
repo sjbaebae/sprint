@@ -2,7 +2,7 @@
 
 import subprocess
 
-from harbor.environments.docker.runtime import (
+from sprint.environments.docker.runtime import (
     DOCKER_RUNTIME,
     resolve_podman_runtime,
 )

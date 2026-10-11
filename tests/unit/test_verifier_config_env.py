@@ -1,6 +1,6 @@
 import pytest
 
-from harbor.models.trial.config import VerifierConfig
+from sprint.models.trial.config import VerifierConfig
 
 
 class TestVerifierConfigEnv:

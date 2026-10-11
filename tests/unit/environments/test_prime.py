@@ -6,9 +6,9 @@ import pytest
 
 pytest.importorskip("prime_sandboxes")
 
-from harbor.environments import prime
-from harbor.models.task.config import EnvironmentConfig
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments import prime
+from sprint.models.task.config import EnvironmentConfig
+from sprint.models.trial.paths import TrialPaths
 
 
 @pytest.fixture

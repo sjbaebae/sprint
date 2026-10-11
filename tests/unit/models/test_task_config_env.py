@@ -1,4 +1,4 @@
-from harbor.models.task.config import TaskConfig
+from sprint.models.task.config import TaskConfig
 
 
 class TestEnvironmentEnvToml:

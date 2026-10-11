@@ -4,12 +4,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.factory import AgentFactory
-from harbor.agents.installed.base import BaseInstalledAgent
-from harbor.agents.installed.fx import Fx
-from harbor.agents.installed.fx_dev import FxDev
-from harbor.models.agent.name import AgentName
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.factory import AgentFactory
+from sprint.agents.installed.base import BaseInstalledAgent
+from sprint.agents.installed.fx import Fx
+from sprint.agents.installed.fx_dev import FxDev
+from sprint.models.agent.name import AgentName
+from sprint.models.task.config import MCPServerConfig
 
 
 def test_fx_agent_name_is_registered():
@@ -43,7 +43,7 @@ def test_factory_resolves_fx_dev_installed_agent():
         agent_class = None
 
     assert agent_class is not None
-    assert agent_class.__module__ == "harbor.agents.installed.fx_dev"
+    assert agent_class.__module__ == "sprint.agents.installed.fx_dev"
 
 
 @pytest.mark.asyncio

@@ -9,12 +9,12 @@ from pathlib import Path
 
 import pytest
 
-from harbor.agents.installed import kimi_code
-from harbor.agents.installed import kimi_code_trajectory as kct
-from harbor.agents.installed.kimi_code import KimiCode
-from harbor.models.agent.context import AgentContext
-from harbor.models.trajectories import Trajectory
-from harbor.utils.trajectory_validator import TrajectoryValidator
+from sprint.agents.installed import kimi_code
+from sprint.agents.installed import kimi_code_trajectory as kct
+from sprint.agents.installed.kimi_code import KimiCode
+from sprint.models.agent.context import AgentContext
+from sprint.models.trajectories import Trajectory
+from sprint.utils.trajectory_validator import TrajectoryValidator
 
 SESSION_ID = "session_8192ee32-068a-47f4-a145-829f33b1b234"
 WORKSPACE_ID = "wd_app_f53b52ad6d21"

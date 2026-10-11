@@ -1,8 +1,8 @@
 """install_only should disable verification from config/API construction,
 not only when set via the CLI."""
 
-from harbor.models.job.config import JobConfig
-from harbor.models.trial.config import TaskConfig, TrialConfig
+from sprint.models.job.config import JobConfig
+from sprint.models.trial.config import TaskConfig, TrialConfig
 
 
 def test_job_config_install_only_disables_verification() -> None:

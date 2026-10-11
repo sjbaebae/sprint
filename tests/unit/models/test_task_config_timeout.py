@@ -1,6 +1,6 @@
 """Tests for optional agent timeout in TaskConfig."""
 
-from harbor.models.task.config import AgentConfig, TaskConfig
+from sprint.models.task.config import AgentConfig, TaskConfig
 
 
 class TestAgentTimeoutOptional:

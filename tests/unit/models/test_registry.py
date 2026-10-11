@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from harbor.models.registry import DatasetSpec, Registry, RegistryTaskId
+from sprint.models.registry import DatasetSpec, Registry, RegistryTaskId
 
 # Path to the registry.json file at the root of the repository
 REGISTRY_PATH = Path(__file__).parents[3] / "registry.json"

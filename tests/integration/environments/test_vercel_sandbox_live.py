@@ -29,10 +29,10 @@ import pytest
 
 pytest.importorskip("vercel.sandbox")
 
-from harbor.environments.vercel import VercelSandboxEnvironment
-from harbor.models.task.config import EnvironmentConfig, NetworkMode
-from harbor.models.task.config import NetworkPolicy as TaskNetworkPolicy
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments.vercel import VercelSandboxEnvironment
+from sprint.models.task.config import EnvironmentConfig, NetworkMode
+from sprint.models.task.config import NetworkPolicy as TaskNetworkPolicy
+from sprint.models.trial.paths import TrialPaths
 
 pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
 

@@ -9,10 +9,10 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from harbor.cli.main import app
-from harbor.models.job.config import JobConfig
-from harbor.models.task.config import TaskConfig
-from harbor.models.trial.config import TrialConfig
+from sprint.cli.main import app
+from sprint.models.job.config import JobConfig
+from sprint.models.task.config import TaskConfig
+from sprint.models.trial.config import TrialConfig
 
 pytestmark = pytest.mark.unit
 runner = CliRunner()
@@ -89,8 +89,8 @@ def test_job_init_rejects_removed_validate_option(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("launch", [False, True])
 def test_job_schema_does_not_build_or_write_config(tmp_path, monkeypatch, launch):
-    from harbor.cli import jobs
-    from harbor.hosted.config import HostedJobConfig
+    from sprint.cli import jobs
+    from sprint.hosted.config import HostedJobConfig
 
     def unexpected_forward(*args):
         pytest.fail("Schema output must not build or launch a job")
@@ -148,7 +148,7 @@ def test_job_init_preserves_hosted_cli_overrides(tmp_path):
 def test_config_output_alias_is_hidden():
     import typer
     from typer.core import TyperGroup, TyperOption
-    from harbor.cli.jobs import jobs_app
+    from sprint.cli.jobs import jobs_app
 
     group = typer.main.get_command(jobs_app)
     assert isinstance(group, TyperGroup)
@@ -159,7 +159,7 @@ def test_config_output_alias_is_hidden():
 
 
 def test_forward_uses_typer_group_contract(monkeypatch):
-    from harbor.cli import config_init
+    from sprint.cli import config_init
 
     class FakeStart:
         def main(self, args, *, standalone_mode):
@@ -321,7 +321,7 @@ def test_output_extension_dictates_format(tmp_path):
 
 def test_job_init_does_not_enable_dry_run(tmp_path, monkeypatch):
     from functools import wraps
-    from harbor.cli import jobs
+    from sprint.cli import jobs
 
     original = jobs.build_job_config
     calls = []

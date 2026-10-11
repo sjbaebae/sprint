@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from harbor.viewer.task_scanner import TaskDefinitionScanner
+from sprint.viewer.task_scanner import TaskDefinitionScanner
 
 MULTI_STEP_TOML = """\
 [task]

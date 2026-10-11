@@ -4,20 +4,20 @@ import math
 
 import pytest
 
-from harbor.agents.computer_1.providers.anthropic import (
+from sprint.agents.computer_1.providers.anthropic import (
     cua_protocol_for_model,
     translate_anthropic_action,
 )
-from harbor.agents.computer_1.providers.base import (
+from sprint.agents.computer_1.providers.base import (
     _is_computer_use_gpt,
     is_computer_use_model,
 )
-from harbor.agents.computer_1.providers.gemini import (
+from sprint.agents.computer_1.providers.gemini import (
     gemini_function_call_to_computer_action,
 )
-from harbor.agents.computer_1.providers.generic import GenericJsonProvider
-from harbor.agents.computer_1.providers.openai import translate_openai_action
-from harbor.agents.computer_1.runtime import (
+from sprint.agents.computer_1.providers.generic import GenericJsonProvider
+from sprint.agents.computer_1.providers.openai import translate_openai_action
+from sprint.agents.computer_1.runtime import (
     ComputerAction,
     DisplayGeometry,
     anthropic_scale_coordinates,

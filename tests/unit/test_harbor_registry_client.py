@@ -4,8 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from harbor.models.registry import RegistryTaskId
-from harbor.registry.client.harbor.harbor import HarborRegistryClient, _dedupe_tasks
+from sprint.models.registry import RegistryTaskId
+from sprint.registry.client.harbor.harbor import HarborRegistryClient, _dedupe_tasks
 
 
 class _FakeRpcQuery:
@@ -54,7 +54,7 @@ async def test_get_dataset_spec_dedupes_duplicate_rpc_tasks(monkeypatch, caplog)
         return fake_supabase
 
     monkeypatch.setattr(
-        "harbor.registry.client.harbor.harbor._get_supabase_client",
+        "sprint.registry.client.harbor.harbor._get_supabase_client",
         _fake_get_supabase_client,
     )
 

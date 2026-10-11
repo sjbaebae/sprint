@@ -2,12 +2,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.copilot_cli import CopilotCli
-from harbor.agents.installed.hermes import Hermes
-from harbor.agents.installed.kimi_cli import KimiCli
-from harbor.agents.installed.rovodev_cli import RovodevCli
-from harbor.environments.base import ExecResult
-from harbor.models.agent.context import AgentContext
+from sprint.agents.installed.copilot_cli import CopilotCli
+from sprint.agents.installed.hermes import Hermes
+from sprint.agents.installed.kimi_cli import KimiCli
+from sprint.agents.installed.rovodev_cli import RovodevCli
+from sprint.environments.base import ExecResult
+from sprint.models.agent.context import AgentContext
 
 
 @pytest.mark.parametrize("host_key", [None, "host-key"])

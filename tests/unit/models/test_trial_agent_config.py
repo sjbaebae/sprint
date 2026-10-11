@@ -1,4 +1,4 @@
-from harbor.models.trial.config import AgentConfig, TrialConfig
+from sprint.models.trial.config import AgentConfig, TrialConfig
 
 
 def test_resume_trajectory_defaults_to_false():

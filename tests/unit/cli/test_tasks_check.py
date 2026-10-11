@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from harbor.cli.main import app
+from sprint.cli.main import app
 
 runner = CliRunner()
 

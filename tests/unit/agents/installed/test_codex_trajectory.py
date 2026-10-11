@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from harbor.agents.installed.codex import Codex
+from sprint.agents.installed.codex import Codex
 
 
 class TestCodexTrajectoryConversion:

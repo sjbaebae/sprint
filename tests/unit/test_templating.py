@@ -5,12 +5,12 @@ import jinja2.utils
 import pytest
 from jinja2 import Environment, StrictUndefined, TemplateError
 
-from harbor.trial.simulated_user import (
+from sprint.trial.simulated_user import (
     DEFAULT_USER_PERSONA,
     DEFAULT_USER_PROMPT_TEMPLATE,
     render_user_prompt,
 )
-from harbor.utils.templating import render_prompt_template
+from sprint.utils.templating import render_prompt_template
 
 pytestmark = pytest.mark.unit
 

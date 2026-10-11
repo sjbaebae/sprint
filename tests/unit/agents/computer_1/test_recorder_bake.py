@@ -13,10 +13,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from harbor.agents.computer_1.computer_1 import Computer1Recorder
-from harbor.agents.computer_1.runtime import ComputerAction
-from harbor.llms.base import LLMResponse
-from harbor.models.trajectories import Metrics
+from sprint.agents.computer_1.computer_1 import Computer1Recorder
+from sprint.agents.computer_1.runtime import ComputerAction
+from sprint.llms.base import LLMResponse
+from sprint.models.trajectories import Metrics
 
 
 def _make_recorder(tmp_path: Path) -> Computer1Recorder:

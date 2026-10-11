@@ -8,9 +8,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.agents.installed.junie import Junie
-from harbor.models.agent.context import AgentContext
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.junie import Junie
+from sprint.models.agent.context import AgentContext
+from sprint.models.task.config import MCPServerConfig
 
 
 def _mcp_payload(command: str) -> dict:

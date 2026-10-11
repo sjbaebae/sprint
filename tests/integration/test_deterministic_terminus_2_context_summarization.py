@@ -14,15 +14,15 @@ from pathlib import Path
 import pytest
 from aiohttp import web
 
-from harbor.models.agent.name import AgentName
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.trial.config import (
+from sprint.models.agent.name import AgentName
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.trial.config import (
     AgentConfig,
     EnvironmentConfig,
     TaskConfig,
     TrialConfig,
 )
-from harbor.trial.trial import Trial
+from sprint.trial.trial import Trial
 from tests.integration.test_utils import (
     export_and_compare_traces,
     file_uri_to_path,
@@ -422,7 +422,7 @@ async def test_terminus_2_context_summarization(
     #   * After unwinding to 3 messages: 3 × 500 = 1500 tokens used, 5500 free ≥ 4000 → unwinding stops
     # - Proactive summarization is disabled (threshold=0), so only reactive summarization occurs
     # - This gives enough headroom to complete the task after summarization
-    import harbor.agents.terminus_2.terminus_2
+    import sprint.agents.terminus_2.terminus_2
 
     def fake_count_total_tokens(self, chat):
         """Return inflated token count to force unwinding."""
@@ -430,7 +430,7 @@ async def test_terminus_2_context_summarization(
         return len(chat.messages) * 500
 
     monkeypatch.setattr(
-        harbor.agents.terminus_2.terminus_2.Terminus2,
+        sprint.agents.terminus_2.terminus_2.Terminus2,
         "_count_total_tokens",
         fake_count_total_tokens,
     )
@@ -665,14 +665,14 @@ async def test_terminus_2_context_summarization_traces(
     monkeypatch.setattr("litellm.utils.get_model_info", fake_get_model_info)
 
     # Patch _count_total_tokens to return inflated counts
-    import harbor.agents.terminus_2.terminus_2
+    import sprint.agents.terminus_2.terminus_2
 
     def fake_count_total_tokens(self, chat):
         """Return inflated token count to force unwinding."""
         return len(chat.messages) * 500
 
     monkeypatch.setattr(
-        harbor.agents.terminus_2.terminus_2.Terminus2,
+        sprint.agents.terminus_2.terminus_2.Terminus2,
         "_count_total_tokens",
         fake_count_total_tokens,
     )
@@ -782,14 +782,14 @@ async def test_terminus_2_context_summarization_linear_history(
     monkeypatch.setattr("litellm.utils.get_model_info", fake_get_model_info)
 
     # Patch _count_total_tokens to return inflated counts
-    import harbor.agents.terminus_2.terminus_2
+    import sprint.agents.terminus_2.terminus_2
 
     def fake_count_total_tokens(self, chat):
         """Return inflated token count to force unwinding."""
         return len(chat.messages) * 500
 
     monkeypatch.setattr(
-        harbor.agents.terminus_2.terminus_2.Terminus2,
+        sprint.agents.terminus_2.terminus_2.Terminus2,
         "_count_total_tokens",
         fake_count_total_tokens,
     )

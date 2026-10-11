@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.models.trial.config import ArtifactConfig
-from harbor.models.trial.paths import EnvironmentPaths
-from harbor.trial.artifact_handler import ArtifactHandler
+from sprint.models.trial.config import ArtifactConfig
+from sprint.models.trial.paths import EnvironmentPaths
+from sprint.trial.artifact_handler import ArtifactHandler
 
 ENV_ARTIFACTS_DIR = EnvironmentPaths().artifacts_dir
 WINDOWS_ARTIFACTS_DIR = EnvironmentPaths.for_windows().artifacts_dir

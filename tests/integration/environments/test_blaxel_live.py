@@ -16,9 +16,9 @@ pytest.importorskip("blaxel")
 
 from blaxel.core import get_credentials
 
-from harbor.environments.blaxel import BlaxelEnvironment
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments.blaxel import BlaxelEnvironment
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.paths import TrialPaths
 
 pytestmark = pytest.mark.integration
 

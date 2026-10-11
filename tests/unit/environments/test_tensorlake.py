@@ -23,20 +23,20 @@ from tensorlake.sandbox.exceptions import (
 )
 from tensorlake.sandbox.models import NetworkConfig, ProcessStatus, SandboxStatus
 
-from harbor.environments.base import ExecResult, ServiceOperationsUnsupportedError
-from harbor.environments.ssh import SSHAccess, SSHAccessError, StreamHandle
-from harbor.environments.tar_transfer import extract_dir_from_file
-import harbor.environments.tensorlake as tl_mod
-from harbor.environments.tensorlake import (
+from sprint.environments.base import ExecResult, ServiceOperationsUnsupportedError
+from sprint.environments.ssh import SSHAccess, SSHAccessError, StreamHandle
+from sprint.environments.tar_transfer import extract_dir_from_file
+import sprint.environments.tensorlake as tl_mod
+from sprint.environments.tensorlake import (
     _MIN_DISK_MB_NO_SNAPSHOT,
     _UPLOAD_CHUNK_SIZE,
     TensorLakeEnvironment,
     _is_retryable_sandbox_error,
     _read_tensorlake_config,
 )
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.config import ResourceMode
-from harbor.models.trial.paths import TrialPaths
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.config import ResourceMode
+from sprint.models.trial.paths import TrialPaths
 
 
 def _make_env(
@@ -174,7 +174,7 @@ def _patch_sandbox_create(monkeypatch) -> dict:
         return SimpleNamespace(sandbox_id="sb-net")
 
     monkeypatch.setattr(
-        "harbor.environments.tensorlake.AsyncSandbox.create", fake_create
+        "sprint.environments.tensorlake.AsyncSandbox.create", fake_create
     )
     return captured
 
@@ -789,7 +789,7 @@ class TestRunCommandAsync:
         async def _trigger_cancel(_delay):
             raise asyncio.CancelledError
 
-        import harbor.environments.tensorlake as tl_mod
+        import sprint.environments.tensorlake as tl_mod
 
         monkeypatch.setattr(tl_mod.asyncio, "sleep", _trigger_cancel)
 
@@ -946,7 +946,7 @@ class TestCreateSandboxCancellation:
     async def test_cancellation_attaches_orphan_reaper_when_create_still_pending(
         self, ubuntu_env, monkeypatch
     ):
-        import harbor.environments.tensorlake as tl_mod
+        import sprint.environments.tensorlake as tl_mod
 
         pending_future: asyncio.Future = asyncio.get_running_loop().create_future()
 
@@ -984,7 +984,7 @@ class TestCreateSandboxCancellation:
 class TestCreateSandboxKwargs:
     @pytest.fixture
     def captured_kwargs(self, monkeypatch):
-        import harbor.environments.tensorlake as tl_mod
+        import sprint.environments.tensorlake as tl_mod
 
         captured: dict = {}
 
@@ -1083,7 +1083,7 @@ class TestStartSnapshotPath:
     def started_env(self, ubuntu_env, monkeypatch, fake_home):
         import tensorlake.image.sandbox_builder as builder_mod
 
-        import harbor.environments.tensorlake as tl_mod
+        import sprint.environments.tensorlake as tl_mod
 
         async def _stub_create(**_kwargs):
             sandbox = MagicMock()
@@ -1169,7 +1169,7 @@ class TestStartSnapshotPath:
 class TestStartMinimalBootPath:
     @pytest.fixture
     def minimal_env(self, temp_dir, monkeypatch):
-        import harbor.environments.tensorlake as tl_mod
+        import sprint.environments.tensorlake as tl_mod
 
         env = _make_env(temp_dir)  # no Dockerfile, no docker_image
 
@@ -1322,7 +1322,7 @@ class TestEnsureOciImageBuilt:
         # trial loudly rather than silently running the wrong environment.
         import tensorlake.image.sandbox_builder as builder_mod
 
-        import harbor.environments.tensorlake as tensorlake_mod
+        import sprint.environments.tensorlake as tensorlake_mod
 
         def _raise(**_kwargs):
             raise builder_mod.SandboxImageBuildError("boom")
@@ -1348,7 +1348,7 @@ class TestEnsureOciImageBuilt:
         # instead of failing the trial.
         import tensorlake.image.sandbox_builder as builder_mod
 
-        import harbor.environments.tensorlake as tensorlake_mod
+        import sprint.environments.tensorlake as tensorlake_mod
 
         def _raise(**_kwargs):
             raise builder_mod.SandboxImageBuildError("image already registered")
@@ -1371,7 +1371,7 @@ class TestEnsureOciImageBuilt:
         # failed RUN step must stay a hard error.
         import tensorlake.image.sandbox_builder as builder_mod
 
-        import harbor.environments.tensorlake as tensorlake_mod
+        import sprint.environments.tensorlake as tensorlake_mod
 
         def _raise(**_kwargs):
             raise builder_mod.SandboxImageBuildError(
@@ -1404,7 +1404,7 @@ class TestEnsureOciImageBuilt:
         # break every later run on this machine.
         import tensorlake.image.sandbox_builder as builder_mod
 
-        import harbor.environments.tensorlake as tensorlake_mod
+        import sprint.environments.tensorlake as tensorlake_mod
 
         def _raise(**_kwargs):
             raise builder_mod.SandboxImageBuildError(
@@ -1482,7 +1482,7 @@ class TestEnsureImportedImageRegistered:
         """
         import tensorlake.image.sandbox_builder as builder_mod
 
-        import harbor.environments.tensorlake as tensorlake_mod
+        import sprint.environments.tensorlake as tensorlake_mod
 
         state = SimpleNamespace(found=False, finds=[], imports=[])
 
@@ -1554,7 +1554,7 @@ class TestEnsureImportedImageRegistered:
     async def test_import_failure_falls_back(self, temp_dir, monkeypatch, fake_home):
         import tensorlake.image.sandbox_builder as builder_mod
 
-        import harbor.environments.tensorlake as tensorlake_mod
+        import sprint.environments.tensorlake as tensorlake_mod
 
         monkeypatch.setattr(tensorlake_mod, "_find_registered_image", lambda name: None)
 
@@ -1578,7 +1578,7 @@ class TestEnsureImportedImageRegistered:
         # instead of silently booting the minimal base.
         import tensorlake.image.sandbox_builder as builder_mod
 
-        import harbor.environments.tensorlake as tensorlake_mod
+        import sprint.environments.tensorlake as tensorlake_mod
 
         monkeypatch.setattr(tensorlake_mod, "_find_registered_image", lambda name: None)
 
@@ -1600,7 +1600,7 @@ class TestEnsureImportedImageRegistered:
         # Dockerfile/legacy path.
         import tensorlake.image.sandbox_builder as builder_mod
 
-        import harbor.environments.tensorlake as tensorlake_mod
+        import sprint.environments.tensorlake as tensorlake_mod
 
         def _raise_find(name):
             raise builder_mod.SandboxImageError("transient")
@@ -1631,7 +1631,7 @@ class TestEnsureImportedImageRegistered:
         # recheck must find the image and boot from it.
         import tensorlake.image.sandbox_builder as builder_mod
 
-        import harbor.environments.tensorlake as tensorlake_mod
+        import sprint.environments.tensorlake as tensorlake_mod
 
         finds: list[str] = []
 
@@ -1663,7 +1663,7 @@ class TestEnsureImportedImageRegistered:
         # name; the conflict wording is the only evidence, and it is enough.
         import tensorlake.image.sandbox_builder as builder_mod
 
-        import harbor.environments.tensorlake as tensorlake_mod
+        import sprint.environments.tensorlake as tensorlake_mod
 
         def _raise_find(name):
             raise builder_mod.SandboxImageError("transient")
@@ -1688,7 +1688,7 @@ class TestEnsureImportedImageRegistered:
         # A concurrent-registration conflict must not reach that error.
         import tensorlake.image.sandbox_builder as builder_mod
 
-        import harbor.environments.tensorlake as tensorlake_mod
+        import sprint.environments.tensorlake as tensorlake_mod
 
         finds: list[str] = []
 
@@ -1720,7 +1720,7 @@ class TestFindRegisteredImage:
     def test_delegates_to_sdk_lookup(self, monkeypatch):
         import tensorlake.image.sandbox_builder as builder_mod
 
-        from harbor.environments.tensorlake import _find_registered_image
+        from sprint.environments.tensorlake import _find_registered_image
 
         calls: list[str] = []
 
@@ -1738,7 +1738,7 @@ class TestFindRegisteredImage:
     def test_clean_miss_returns_none(self, monkeypatch):
         import tensorlake.image.sandbox_builder as builder_mod
 
-        from harbor.environments.tensorlake import _find_registered_image
+        from sprint.environments.tensorlake import _find_registered_image
 
         monkeypatch.setattr(
             builder_mod, "find_sandbox_image_by_name", lambda name: None
@@ -1751,7 +1751,7 @@ class TestFindRegisteredImage:
         # before any network traffic.
         import tensorlake.image.sandbox_builder as builder_mod
 
-        from harbor.environments.tensorlake import _find_registered_image
+        from sprint.environments.tensorlake import _find_registered_image
 
         monkeypatch.setattr(
             builder_mod, "find_sandbox_image_by_name", _REAL_FIND_SANDBOX_IMAGE
@@ -1767,7 +1767,7 @@ class TestFindRegisteredImage:
         # must not fall back to TENSORLAKE_PAT.
         import tensorlake.image.sandbox_builder as builder_mod
 
-        from harbor.environments.tensorlake import _find_registered_image
+        from sprint.environments.tensorlake import _find_registered_image
 
         monkeypatch.setattr(
             builder_mod, "find_sandbox_image_by_name", _REAL_FIND_SANDBOX_IMAGE
@@ -1782,7 +1782,7 @@ class TestFindRegisteredImage:
 class TestCreateSandboxOciImage:
     @pytest.fixture
     def captured_kwargs(self, monkeypatch):
-        import harbor.environments.tensorlake as tl_mod
+        import sprint.environments.tensorlake as tl_mod
 
         captured: dict = {}
 
@@ -1806,7 +1806,7 @@ class TestCreateSandboxOciImage:
 class TestStartOciImagePath:
     @pytest.fixture
     def started_env(self, ubuntu_env, monkeypatch, fake_home):
-        import harbor.environments.tensorlake as tl_mod
+        import sprint.environments.tensorlake as tl_mod
         import tensorlake.image.sandbox_builder as builder_mod
 
         async def _stub_create(**_kwargs):
@@ -1884,7 +1884,7 @@ class TestStartOciImagePath:
         # user wants a fresh build — the imported-image fast path must be
         # bypassed (a mutable tag like `latest` would otherwise pin the run to
         # a stale already-registered rootfs) and fall through to an OCI build.
-        import harbor.environments.tensorlake as tensorlake_mod
+        import sprint.environments.tensorlake as tensorlake_mod
 
         started_env.task_env_config.docker_image = "org/app:latest"
         finds: list[str] = []
@@ -2365,7 +2365,7 @@ class TestComposeMode:
     ):
         import tensorlake.image.sandbox_builder as builder_mod
 
-        import harbor.environments.tensorlake as tensorlake_mod
+        import sprint.environments.tensorlake as tensorlake_mod
 
         env, name, marker = dind_env_with_marker
         monkeypatch.setattr(
@@ -2386,7 +2386,7 @@ class TestComposeMode:
         # instead of repeatedly booting a nonexistent image.
         import tensorlake.image.sandbox_builder as builder_mod
 
-        import harbor.environments.tensorlake as tensorlake_mod
+        import sprint.environments.tensorlake as tensorlake_mod
 
         env, name, marker = dind_env_with_marker
         monkeypatch.setattr(tensorlake_mod, "_find_registered_image", lambda n: None)
@@ -2409,7 +2409,7 @@ class TestComposeMode:
         # rebuild rather than boot an unverified name.
         import tensorlake.image.sandbox_builder as builder_mod
 
-        import harbor.environments.tensorlake as tensorlake_mod
+        import sprint.environments.tensorlake as tensorlake_mod
 
         env, name, marker = dind_env_with_marker
 
@@ -2488,7 +2488,7 @@ class TestComposeMode:
         env._dind._wait_for_docker_daemon.assert_awaited_once()
 
     async def test_compose_boot_always_floors_disk(self, temp_dir, monkeypatch):
-        import harbor.environments.tensorlake as tl_mod
+        import sprint.environments.tensorlake as tl_mod
 
         captured: dict = {}
 
@@ -2563,7 +2563,7 @@ class TestStream:
         """Stub the SDK so start() runs the direct-mode path offline."""
         import tensorlake.image.sandbox_builder as builder_mod
 
-        import harbor.environments.tensorlake as tl_mod
+        import sprint.environments.tensorlake as tl_mod
 
         async def _stub_create(**_kwargs):
             sandbox = MagicMock()
@@ -2655,7 +2655,7 @@ def offline_ssh(monkeypatch):
 
     monkeypatch.setattr(tl_mod.AsyncSandboxClient, "for_cloud", refuse)
     monkeypatch.setattr(
-        "harbor.environments.tensorlake._read_tensorlake_config", lambda: {}
+        "sprint.environments.tensorlake._read_tensorlake_config", lambda: {}
     )
 
 

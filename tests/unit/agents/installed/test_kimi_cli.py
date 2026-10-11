@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.kimi_cli import (
+from sprint.agents.installed.kimi_cli import (
     KimiCli,
     _KIMI_API_KEY_PLACEHOLDER,
     _PendingToolCall,
@@ -284,7 +284,7 @@ class TestPopulateContextPostRun:
         output_file = tmp_path / "kimi-cli.txt"
         output_file.write_text("\n".join(WIRE_SIMPLE))
 
-        from harbor.models.agent.context import AgentContext
+        from sprint.models.agent.context import AgentContext
 
         context = AgentContext()
         kimi_agent.populate_context_post_run(context)
@@ -299,7 +299,7 @@ class TestPopulateContextPostRun:
         assert trajectory_data["agent"]["name"] == "kimi-cli"
 
     def test_no_output_file(self, kimi_agent: KimiCli):
-        from harbor.models.agent.context import AgentContext
+        from sprint.models.agent.context import AgentContext
 
         context = AgentContext()
         kimi_agent.populate_context_post_run(context)
@@ -327,7 +327,7 @@ class TestMaxContextSize:
             return {"max_input_tokens": 200000, "max_tokens": 200000}
 
         monkeypatch.setattr(
-            "harbor.agents.installed.kimi_cli.get_model_info", fake_get_model_info
+            "sprint.agents.installed.kimi_cli.get_model_info", fake_get_model_info
         )
         agent = KimiCli(
             logs_dir=tmp_path,
@@ -346,7 +346,7 @@ class TestMaxContextSize:
             raise Exception("model not found")
 
         monkeypatch.setattr(
-            "harbor.agents.installed.kimi_cli.get_model_info", fake_get_model_info
+            "sprint.agents.installed.kimi_cli.get_model_info", fake_get_model_info
         )
         agent = KimiCli(
             logs_dir=tmp_path,

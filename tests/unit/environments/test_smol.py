@@ -17,10 +17,10 @@ pytest.importorskip("smol")
 
 from smol.types import ExecResult as SmolExecResult
 
-from harbor.environments.ssh import SSHAccessError, StreamHandle
-import harbor.environments.smol as adapter
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments.ssh import SSHAccessError, StreamHandle
+import sprint.environments.smol as adapter
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.paths import TrialPaths
 
 
 class FakeMachine:
@@ -509,7 +509,7 @@ async def test_golden_is_owned_until_its_delete_is_confirmed(
 async def test_stream_workspace_follows_where_agent_commands_run() -> None:
     from types import SimpleNamespace
 
-    from harbor.environments.base import ExecResult
+    from sprint.environments.base import ExecResult
 
     def env(workdir, result):
         return SimpleNamespace(

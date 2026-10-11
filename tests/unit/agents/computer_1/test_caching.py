@@ -19,16 +19,16 @@ from typing import Any
 
 import pytest
 
-from harbor.agents.computer_1 import computer_1 as computer_1_module
-from harbor.agents.computer_1.computer_1 import Computer1Chat, Computer1Recorder
-from harbor.agents.computer_1.providers.anthropic import (
+from sprint.agents.computer_1 import computer_1 as computer_1_module
+from sprint.agents.computer_1.computer_1 import Computer1Chat, Computer1Recorder
+from sprint.agents.computer_1.providers.anthropic import (
     AnthropicProvider,
     BedrockProvider,
 )
-from harbor.agents.computer_1.providers.base import usage_from_any
-from harbor.llms.base import LLMResponse
-from harbor.models.metric import UsageInfo
-from harbor.models.trajectories import Metrics
+from sprint.agents.computer_1.providers.base import usage_from_any
+from sprint.llms.base import LLMResponse
+from sprint.models.metric import UsageInfo
+from sprint.models.trajectories import Metrics
 
 
 # ---------------------------------------------------------------------------
@@ -293,7 +293,7 @@ class _FakeAnthropicClient:
 
 async def test_screenshot_turn_usage_is_not_hidden_or_double_counted() -> None:
     # Screenshot requests are ordinary turns, each with its own usage record.
-    from harbor.agents.computer_1.providers.base import ToolExecutionResult
+    from sprint.agents.computer_1.providers.base import ToolExecutionResult
 
     skip_resp = {
         "id": "m1",
@@ -385,7 +385,7 @@ class _RecordingResponses:
 
 
 def _openai_provider() -> Any:
-    from harbor.agents.computer_1.providers.openai import OpenAIComputerUseProvider
+    from sprint.agents.computer_1.providers.openai import OpenAIComputerUseProvider
 
     provider = OpenAIComputerUseProvider(
         model_name="openai/gpt-6-astra",
@@ -504,7 +504,7 @@ def _agent_with_recorded_llm(
 def test_litellm_client_is_keyed_to_the_trial(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    from harbor.agents.computer_1.providers.base import prompt_cache_key
+    from sprint.agents.computer_1.providers.base import prompt_cache_key
 
     agent, kwargs = _agent_with_recorded_llm(monkeypatch, tmp_path)
 

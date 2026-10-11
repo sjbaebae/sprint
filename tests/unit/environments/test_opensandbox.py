@@ -10,14 +10,14 @@ from pathlib import Path
 
 import pytest
 
-from harbor.environments.factory import EnvironmentFactory
-from harbor.environments.opensandbox import OpenSandboxEnvironment
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import EnvironmentConfig, NetworkMode
-from harbor.models.trial.config import EnvironmentConfig as TrialEnvironmentConfig
-from harbor.models.trial.config import ResourceMode
-from harbor.models.trial.paths import TrialPaths
-from harbor.utils.optional_import import MissingExtraError
+from sprint.environments.factory import EnvironmentFactory
+from sprint.environments.opensandbox import OpenSandboxEnvironment
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import EnvironmentConfig, NetworkMode
+from sprint.models.trial.config import EnvironmentConfig as TrialEnvironmentConfig
+from sprint.models.trial.config import ResourceMode
+from sprint.models.trial.paths import TrialPaths
+from sprint.utils.optional_import import MissingExtraError
 
 # These tests exercise the environment against the *real* OpenSandbox SDK data
 # models (NetworkPolicy / RunCommandOpts / WriteEntry / SearchEntry / EntryInfo /
@@ -296,7 +296,7 @@ class TestOpenSandboxEnvironment:
     def test_constructor_raises_missing_extra_when_sdk_unavailable(
         self, temp_dir, monkeypatch
     ):
-        monkeypatch.setattr("harbor.environments.opensandbox._HAS_OPENSANDBOX", False)
+        monkeypatch.setattr("sprint.environments.opensandbox._HAS_OPENSANDBOX", False)
 
         with pytest.raises(MissingExtraError, match="harbor\\[opensandbox\\]"):
             _make_env(temp_dir)
@@ -948,7 +948,7 @@ class TestOpenSandboxEnvironment:
         )
 
         assert env._build_resource()["gpu"] == "2"
-        assert env._build_extensions()["harbor.gpu_types"] == "a100,h20"
+        assert env._build_extensions()["sprint.gpu_types"] == "a100,h20"
 
     async def test_start_forwards_gpu_resource_and_types(self, temp_dir, monkeypatch):
         _install_fake_opensandbox(monkeypatch)
@@ -971,7 +971,7 @@ class TestOpenSandboxEnvironment:
             "memory": "8192Mi",
             "gpu": "2",
         }
-        assert create_kwargs["extensions"]["harbor.gpu_types"] == "a100"
+        assert create_kwargs["extensions"]["sprint.gpu_types"] == "a100"
 
     def test_resolve_image_spec_returns_plain_image_without_auth(self, temp_dir):
         env = _make_env(temp_dir)

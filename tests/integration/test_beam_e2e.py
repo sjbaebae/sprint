@@ -6,14 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from harbor.environments.beam import BeamEnvironment
-from harbor.models.task.config import (
+from sprint.environments.beam import BeamEnvironment
+from sprint.models.task.config import (
     EnvironmentConfig,
     HealthcheckConfig,
     NetworkMode,
     NetworkPolicy,
 )
-from harbor.models.trial.paths import TrialPaths
+from sprint.models.trial.paths import TrialPaths
 
 
 pytestmark = pytest.mark.integration

@@ -6,8 +6,8 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
-from harbor.cli.main import app
-from harbor.models.environment_type import EnvironmentType
+from sprint.cli.main import app
+from sprint.models.environment_type import EnvironmentType
 
 runner = CliRunner()
 
@@ -33,7 +33,7 @@ def _start_env(monkeypatch, tmp_path: Path, *args: str):
         raise typer.Exit(0)
 
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight",
+        "sprint.environments.factory.EnvironmentFactory.run_preflight",
         _fake_run_preflight,
     )
     task_dir = _make_task_dir(tmp_path)
@@ -115,11 +115,11 @@ def test_start_env_creates_environment_from_import_path(tmp_path: Path, monkeypa
         raise typer.Exit(0)
 
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight",
+        "sprint.environments.factory.EnvironmentFactory.run_preflight",
         lambda **_: None,
     )
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.create_environment_from_import_path",
+        "sprint.environments.factory.EnvironmentFactory.create_environment_from_import_path",
         _fake_create_environment_from_import_path,
     )
     task_dir = _make_task_dir(tmp_path)
@@ -138,17 +138,17 @@ def test_start_env_agent_wins_over_deprecated_import_path(tmp_path: Path, monkey
         raise typer.Exit(0)
 
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight",
+        "sprint.environments.factory.EnvironmentFactory.run_preflight",
         lambda **_: None,
     )
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.create_environment",
+        "sprint.environments.factory.EnvironmentFactory.create_environment",
         lambda *_args, **_kwargs: SimpleNamespace(
             capabilities=SimpleNamespace(mounted=False)
         ),
     )
     monkeypatch.setattr(
-        "harbor.agents.factory.AgentFactory.create_agent_from_config",
+        "sprint.agents.factory.AgentFactory.create_agent_from_config",
         _fake_create_agent_from_config,
     )
     task_dir = _make_task_dir(tmp_path)

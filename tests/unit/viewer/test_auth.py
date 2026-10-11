@@ -3,15 +3,15 @@ from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
-from harbor.auth.flows import AuthStatus
-from harbor.viewer.server import create_app
+from sprint.auth.flows import AuthStatus
+from sprint.viewer.server import create_app
 
 
 def test_auth_status_when_not_authenticated(tmp_path: Path) -> None:
     client = TestClient(create_app(tmp_path))
 
     with patch(
-        "harbor.auth.flows.auth_status",
+        "sprint.auth.flows.auth_status",
         return_value=AuthStatus(mode="none"),
     ):
         response = client.get("/api/auth/status")
@@ -25,10 +25,10 @@ def test_auth_status_when_authenticated(tmp_path: Path) -> None:
 
     with (
         patch(
-            "harbor.auth.flows.auth_status",
+            "sprint.auth.flows.auth_status",
             return_value=AuthStatus(mode="file", user_name="alice"),
         ),
-        patch("harbor.auth.flows.verify_credential", AsyncMock(return_value=True)),
+        patch("sprint.auth.flows.verify_credential", AsyncMock(return_value=True)),
     ):
         response = client.get("/api/auth/status")
 
@@ -39,17 +39,17 @@ def test_auth_status_when_authenticated(tmp_path: Path) -> None:
 def test_auth_status_reports_local_state_when_verification_unavailable(
     tmp_path: Path,
 ) -> None:
-    from harbor.auth.errors import AuthenticationError
+    from sprint.auth.errors import AuthenticationError
 
     client = TestClient(create_app(tmp_path))
 
     with (
         patch(
-            "harbor.auth.flows.auth_status",
+            "sprint.auth.flows.auth_status",
             return_value=AuthStatus(mode="file", user_name="alice"),
         ),
         patch(
-            "harbor.auth.flows.verify_credential",
+            "sprint.auth.flows.verify_credential",
             AsyncMock(side_effect=AuthenticationError("HTTP 503")),
         ),
     ):
@@ -65,10 +65,10 @@ def test_auth_status_when_key_revoked_server_side(tmp_path: Path) -> None:
 
     with (
         patch(
-            "harbor.auth.flows.auth_status",
+            "sprint.auth.flows.auth_status",
             return_value=AuthStatus(mode="file", user_name="alice"),
         ),
-        patch("harbor.auth.flows.verify_credential", AsyncMock(return_value=False)),
+        patch("sprint.auth.flows.verify_credential", AsyncMock(return_value=False)),
     ):
         response = client.get("/api/auth/status")
 
@@ -80,7 +80,7 @@ def test_auth_login_url_builds_callback_with_return_to(tmp_path: Path) -> None:
     client = TestClient(create_app(tmp_path))
 
     with patch(
-        "harbor.auth.flows.begin_login", return_value="https://example.com/oauth"
+        "sprint.auth.flows.begin_login", return_value="https://example.com/oauth"
     ) as begin:
         response = client.get(
             "/api/auth/login-url",
@@ -98,7 +98,7 @@ def test_auth_login_url_rejects_unsafe_return_to(tmp_path: Path) -> None:
     client = TestClient(create_app(tmp_path))
 
     with patch(
-        "harbor.auth.flows.begin_login", return_value="https://example.com/oauth"
+        "sprint.auth.flows.begin_login", return_value="https://example.com/oauth"
     ) as begin:
         response = client.get(
             "/api/auth/login-url",
@@ -114,7 +114,7 @@ def test_auth_callback_redirects_after_success(tmp_path: Path) -> None:
     client = TestClient(create_app(tmp_path))
 
     finish = AsyncMock(return_value="alice")
-    with patch("harbor.auth.flows.finish_login", finish):
+    with patch("sprint.auth.flows.finish_login", finish):
         response = client.get(
             "/auth/callback",
             params={
@@ -132,10 +132,10 @@ def test_auth_callback_redirects_after_success(tmp_path: Path) -> None:
 def test_auth_callback_without_pending_verifier_fails(tmp_path: Path) -> None:
     client = TestClient(create_app(tmp_path))
 
-    from harbor.auth.errors import AuthenticationError
+    from sprint.auth.errors import AuthenticationError
 
     with patch(
-        "harbor.auth.flows.finish_login",
+        "sprint.auth.flows.finish_login",
         AsyncMock(side_effect=AuthenticationError("No pending login found.")),
     ):
         response = client.get(
@@ -152,7 +152,7 @@ def test_auth_logout(tmp_path: Path) -> None:
     client = TestClient(create_app(tmp_path))
 
     logout = AsyncMock()
-    with patch("harbor.auth.flows.logout", logout):
+    with patch("sprint.auth.flows.logout", logout):
         response = client.post("/api/auth/logout")
 
     assert response.status_code == 200
@@ -161,14 +161,14 @@ def test_auth_logout(tmp_path: Path) -> None:
 
 
 def test_auth_organizations_lists_member_names(tmp_path: Path) -> None:
-    from harbor.auth.orgs import Organization
+    from sprint.auth.orgs import Organization
 
     client = TestClient(create_app(tmp_path))
     organizations = [
         Organization(name="research", display_name="Research", role="member")
     ]
     with patch(
-        "harbor.auth.orgs.list_organizations", AsyncMock(return_value=organizations)
+        "sprint.auth.orgs.list_organizations", AsyncMock(return_value=organizations)
     ):
         response = client.get("/api/auth/organizations")
     assert response.status_code == 200
@@ -176,11 +176,11 @@ def test_auth_organizations_lists_member_names(tmp_path: Path) -> None:
 
 
 def test_auth_organizations_requires_login(tmp_path: Path) -> None:
-    from harbor.auth.errors import NotAuthenticatedError
+    from sprint.auth.errors import NotAuthenticatedError
 
     client = TestClient(create_app(tmp_path))
     with patch(
-        "harbor.auth.orgs.list_organizations",
+        "sprint.auth.orgs.list_organizations",
         AsyncMock(side_effect=NotAuthenticatedError()),
     ):
         response = client.get("/api/auth/organizations")
@@ -188,11 +188,11 @@ def test_auth_organizations_requires_login(tmp_path: Path) -> None:
 
 
 def test_auth_organizations_reports_auth_service_failure(tmp_path: Path) -> None:
-    from harbor.auth.errors import AuthenticationError
+    from sprint.auth.errors import AuthenticationError
 
     client = TestClient(create_app(tmp_path))
     with patch(
-        "harbor.auth.orgs.list_organizations",
+        "sprint.auth.orgs.list_organizations",
         AsyncMock(side_effect=AuthenticationError("Unavailable")),
     ):
         response = client.get("/api/auth/organizations")

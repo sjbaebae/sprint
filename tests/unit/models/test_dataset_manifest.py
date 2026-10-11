@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from harbor.models.dataset.manifest import DatasetManifest
+from sprint.models.dataset.manifest import DatasetManifest
 
 
 def test_dataset_package_version_accepts_non_semver_strings():

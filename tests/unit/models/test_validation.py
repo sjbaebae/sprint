@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from harbor.models.job.config import DatasetConfig
-from harbor.models.task.task import Task
+from sprint.models.job.config import DatasetConfig
+from sprint.models.task.task import Task
 
 
 def _scaffold(task_dir: Path, toml: str = "") -> None:

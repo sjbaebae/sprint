@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.goose import Goose
+from sprint.agents.installed.goose import Goose
 
 
 class TestGooseRuntimeControls:

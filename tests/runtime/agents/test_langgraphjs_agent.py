@@ -5,13 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from harbor.agents.installed.langgraph import LangGraph
-from harbor.constants import MAIN_SERVICE_NAME
-from harbor.environments.base import BaseEnvironment
-from harbor.environments.docker.docker import DockerEnvironment
-from harbor.models.agent.context import AgentContext
-from harbor.models.task.config import EnvironmentConfig
-from harbor.models.trial.paths import EnvironmentPaths, TrialPaths
+from sprint.agents.installed.langgraph import LangGraph
+from sprint.constants import MAIN_SERVICE_NAME
+from sprint.environments.base import BaseEnvironment
+from sprint.environments.docker.docker import DockerEnvironment
+from sprint.models.agent.context import AgentContext
+from sprint.models.task.config import EnvironmentConfig
+from sprint.models.trial.paths import EnvironmentPaths, TrialPaths
 
 
 pytestmark = [

@@ -15,27 +15,27 @@ from unittest.mock import AsyncMock, MagicMock, Mock
 import pytest
 from pydantic import ValidationError
 
-import harbor.environments.beam as beam_mod
-from harbor.environments.base import ExecResult, ServiceOperationsUnsupportedError
-from harbor.environments.beam import (
+import sprint.environments.beam as beam_mod
+from sprint.environments.base import ExecResult, ServiceOperationsUnsupportedError
+from sprint.environments.beam import (
     BeamEnvironment,
     _has_valid_beam_config,
     _read_compose_services,
     _write_beam_compose_override,
 )
-from harbor.environments.factory import _ENVIRONMENT_REGISTRY
-from harbor.environments.ssh import SSHAccessError, StreamHandle
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import (
+from sprint.environments.factory import _ENVIRONMENT_REGISTRY
+from sprint.environments.ssh import SSHAccessError, StreamHandle
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import (
     EnvironmentConfig,
     NetworkMode,
     NetworkPolicy,
     TaskOS,
     TpuSpec,
 )
-from harbor.models.trial.config import ResourceMode, ServiceVolumeConfig
-from harbor.models.trial.paths import TrialPaths
-from harbor.utils.optional_import import MissingExtraError
+from sprint.models.trial.config import ResourceMode, ServiceVolumeConfig
+from sprint.models.trial.paths import TrialPaths
+from sprint.utils.optional_import import MissingExtraError
 
 
 def _trial_paths(root: Path) -> TrialPaths:
@@ -262,7 +262,7 @@ class FakeSandboxTemplate:
 
 def test_factory_registers_beam_environment():
     entry = _ENVIRONMENT_REGISTRY[EnvironmentType.BEAM]
-    assert entry.module == "harbor.environments.beam"
+    assert entry.module == "sprint.environments.beam"
     assert entry.class_name == "BeamEnvironment"
     assert entry.pip_extra == "beam"
 

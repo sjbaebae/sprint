@@ -1,6 +1,6 @@
 import pytest
 
-from harbor.db.types import PublicDatasetVersion, PublicTaskVersion
+from sprint.db.types import PublicDatasetVersion, PublicTaskVersion
 
 pytestmark = pytest.mark.unit
 

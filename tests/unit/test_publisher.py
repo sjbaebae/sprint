@@ -7,9 +7,9 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from harbor.models.task.config import TaskConfig
-from harbor.publisher.packager import Packager
-from harbor.publisher.publisher import (
+from sprint.models.task.config import TaskConfig
+from sprint.publisher.packager import Packager
+from sprint.publisher.publisher import (
     BatchPublishResult,
     FilePublishResult,
     Publisher,
@@ -44,8 +44,8 @@ def task_dir(tmp_path: Path) -> Path:
 @pytest.fixture
 def publisher() -> Publisher:
     with (
-        patch("harbor.publisher.publisher.SupabaseStorage") as mock_storage_cls,
-        patch("harbor.publisher.publisher.RegistryDB") as mock_registry_cls,
+        patch("sprint.publisher.publisher.SupabaseStorage") as mock_storage_cls,
+        patch("sprint.publisher.publisher.RegistryDB") as mock_registry_cls,
     ):
         mock_storage_cls.return_value = AsyncMock()
         mock_registry = AsyncMock()
@@ -738,7 +738,7 @@ async def test_temporary_publish_retry_reuses_reservation_and_stays_private(
     publisher.registry_db.publish_task_version.return_value = RPC_TASK_RESULT
     with (
         patch.object(Publisher.publish_task.retry, "wait", wait_none()),
-        patch("harbor.publisher.publisher.reset_client"),
+        patch("sprint.publisher.publisher.reset_client"),
     ):
         await publisher.publish_task(
             task_dir,

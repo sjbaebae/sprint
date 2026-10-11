@@ -1,6 +1,6 @@
 """Tests for optional-import helpers and lazy factory loading."""
 
-from harbor.utils.optional_import import MissingExtraError
+from sprint.utils.optional_import import MissingExtraError
 
 
 # ── MissingExtraError ─────────────────────────────────────────────────
@@ -51,11 +51,11 @@ class TestEnvironmentFactoryImport:
         are not installed.  (In CI the dev group installs them, so this test
         mainly guards against regressions that re-add eager imports.)
         """
-        from harbor.environments.factory import EnvironmentFactory  # noqa: F401
+        from sprint.environments.factory import EnvironmentFactory  # noqa: F401
 
     def test_registry_has_all_types(self):
-        from harbor.environments.factory import _ENVIRONMENT_REGISTRY
-        from harbor.models.environment_type import EnvironmentType
+        from sprint.environments.factory import _ENVIRONMENT_REGISTRY
+        from sprint.models.environment_type import EnvironmentType
 
         for env_type in EnvironmentType:
             assert env_type in _ENVIRONMENT_REGISTRY, (

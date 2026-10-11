@@ -2,13 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from harbor.job import Job
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.job.config import JobConfig
-from harbor.models.trial.config import (
+from sprint.job import Job
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.job.config import JobConfig
+from sprint.models.trial.config import (
     EnvironmentConfig as RuntimeEnvironmentConfig,
 )
-from harbor.models.trial.config import ResourceMode, TaskConfig
+from sprint.models.trial.config import ResourceMode, TaskConfig
 
 
 def _write_task(tmp_path: Path) -> Path:

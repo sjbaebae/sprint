@@ -3,7 +3,7 @@
 Sprint is the root framework. Use `uv` and Python 3.12+.
 
 - `src/sprint/`: public authoring API, resource broker, validation and review records.
-- `src/harbor/`: retained execution runtime and provider/agent adapters.
+- `src/sprint/`: execution runtime and provider/agent adapters within the same package.
 - `examples/sprint/`: runnable environments and preflights.
 - `tests/sprint/`: Sprint unit tests.
 - `sprint-docs/`: current documentation.

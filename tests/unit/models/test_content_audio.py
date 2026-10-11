@@ -7,7 +7,7 @@ path, so agents can consume speech input and, in time, produce speech output.
 import pytest
 from pydantic import ValidationError
 
-from harbor.models.trajectories import AudioSource, ContentPart, ImageSource, Trajectory
+from sprint.models.trajectories import AudioSource, ContentPart, ImageSource, Trajectory
 
 
 def _trajectory(parts: list[dict]) -> dict:

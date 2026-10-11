@@ -4,12 +4,12 @@ from typing import Literal
 
 import pytest
 
-from harbor.environments.docker.docker import DockerEnvironment
-from harbor.models.agent.name import AgentName
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.trial.config import AgentConfig, EnvironmentConfig, TaskConfig
-from harbor.models.trial.config import TrialConfig
-from harbor.trial.trial import Trial
+from sprint.environments.docker.docker import DockerEnvironment
+from sprint.models.agent.name import AgentName
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.trial.config import AgentConfig, EnvironmentConfig, TaskConfig
+from sprint.models.trial.config import TrialConfig
+from sprint.trial.trial import Trial
 
 AllowHostTarget = Literal["agent"]
 

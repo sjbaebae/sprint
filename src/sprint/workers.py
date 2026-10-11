@@ -76,16 +76,16 @@ class WorkerSession:
         """Provision once; apply the network policy at container creation."""
         if self.environment is not None:
             return
-        from harbor.environments.factory import EnvironmentFactory
-        from harbor.models.task.config import (
+        from sprint.environments.factory import EnvironmentFactory
+        from sprint.models.task.config import (
             EnvironmentConfig,
             NetworkPolicy,
             NetworkMode,
         )
-        from harbor.models.environment_type import EnvironmentType
-        from harbor.models.trial.config import EnvironmentConfig as BackendConfig
-        from harbor.models.trial.paths import TrialPaths
-        from .backends.harbor import build_worker
+        from sprint.models.environment_type import EnvironmentType
+        from sprint.models.trial.config import EnvironmentConfig as BackendConfig
+        from sprint.models.trial.paths import TrialPaths
+        from .backends.runtime import build_worker
 
         build = self.context or build_worker(
             self.worker, self.directory / "environment"

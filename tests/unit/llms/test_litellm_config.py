@@ -1,6 +1,6 @@
 import litellm
 
-from harbor.llms.litellm_config import configure_litellm_debug
+from sprint.llms.litellm_config import configure_litellm_debug
 
 
 def test_configure_litellm_debug_suppresses_by_default():

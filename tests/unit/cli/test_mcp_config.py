@@ -6,12 +6,12 @@ from uuid import uuid4
 
 from typer.testing import CliRunner
 
-from harbor.cli.main import app
-from harbor.models.job.config import JobConfig
-from harbor.models.task.config import MCPServerConfig
-from harbor.models.task.paths import TaskPaths
-from harbor.models.trial.config import AgentConfig
-from harbor.trial.single_step import SingleStepTrial
+from sprint.cli.main import app
+from sprint.models.job.config import JobConfig
+from sprint.models.task.config import MCPServerConfig
+from sprint.models.task.paths import TaskPaths
+from sprint.models.trial.config import AgentConfig
+from sprint.trial.single_step import SingleStepTrial
 
 runner = CliRunner()
 
@@ -40,17 +40,17 @@ def test_job_start_mcp_config_populates_agents(tmp_path, monkeypatch):
             run=run,
         )
 
-    monkeypatch.setattr("harbor.job.Job.create", create)
+    monkeypatch.setattr("sprint.job.Job.create", create)
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight", lambda **_: None
+        "sprint.environments.factory.EnvironmentFactory.run_preflight", lambda **_: None
     )
     monkeypatch.setattr(
-        "harbor.cli.jobs.show_registry_hint_if_first_run", lambda _: None
+        "sprint.cli.jobs.show_registry_hint_if_first_run", lambda _: None
     )
     monkeypatch.setattr(
-        "harbor.cli.jobs._confirm_host_env_access", lambda *_, **__: None
+        "sprint.cli.jobs._confirm_host_env_access", lambda *_, **__: None
     )
-    monkeypatch.setattr("harbor.cli.jobs.print_job_results_tables", lambda _: None)
+    monkeypatch.setattr("sprint.cli.jobs.print_job_results_tables", lambda _: None)
 
     result = runner.invoke(
         app, ["jobs", "start", "--mcp-config", str(_mcp_json(tmp_path)), "--yes"]
@@ -81,7 +81,7 @@ def test_trial_start_mcp_config_populates_agent(tmp_path, monkeypatch):
 
         return SimpleNamespace(run=run)
 
-    monkeypatch.setattr("harbor.trial.trial.Trial.create", create)
+    monkeypatch.setattr("sprint.trial.trial.Trial.create", create)
 
     result = runner.invoke(
         app,
@@ -134,7 +134,7 @@ def test_trial_init_agent_merges_mcp_servers_by_name(tmp_path):
     trial._effective_skills_dir = None
 
     with patch(
-        "harbor.trial.trial.AgentFactory.create_agent_from_config",
+        "sprint.trial.trial.AgentFactory.create_agent_from_config",
         return_value=SimpleNamespace(),
     ) as create_agent:
         trial._init_agent()

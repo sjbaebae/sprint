@@ -2,8 +2,8 @@ import pytest
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from harbor.cli.jobs import _confirm_host_env_access
-from harbor.models.trial.config import TaskConfig
+from sprint.cli.jobs import _confirm_host_env_access
+from sprint.models.trial.config import TaskConfig
 
 
 def _make_task(tmp_path: Path, name: str = "my-task", toml: str = "") -> Path:

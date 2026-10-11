@@ -9,9 +9,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.agents.factory import AgentFactory
-from harbor.agents.installed.langgraph import LangGraph
-from harbor.agents.installed.langgraph_runner import (
+from sprint.agents.factory import AgentFactory
+from sprint.agents.installed.langgraph import LangGraph
+from sprint.agents.installed.langgraph_runner import (
     _graph_runtime,
     _invoke_config,
     _resolve_graph_module,
@@ -19,9 +19,9 @@ from harbor.agents.installed.langgraph_runner import (
     _select_graph,
     _to_jsonable,
 )
-from harbor.models.agent.context import AgentContext
-from harbor.models.agent.name import AgentName
-from harbor.models.task.config import MCPServerConfig
+from sprint.models.agent.context import AgentContext
+from sprint.models.agent.name import AgentName
+from sprint.models.task.config import MCPServerConfig
 
 
 class _FakeGraph:

@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from harbor.models.task.config import (
+from sprint.models.task.config import (
     EnvironmentConfig,
     TaskConfig,
     VerifierConfig,

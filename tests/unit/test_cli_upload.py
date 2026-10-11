@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from harbor.cli.upload import _humanize_bytes, upload_command
+from sprint.cli.upload import _humanize_bytes, upload_command
 
 
 class TestHumanizeBytes:
@@ -72,7 +72,7 @@ def _make_valid_job_dir(tmp_path: Path) -> Path:
 
 
 def _patched_uploader(monkeypatch, *, upload_result: MagicMock) -> MagicMock:
-    """Monkeypatch `Uploader` inside `harbor.cli.upload` to a mock returning `upload_result`.
+    """Monkeypatch `Uploader` inside `sprint.cli.upload` to a mock returning `upload_result`.
 
     Returns the mock Uploader *instance* so tests can assert on `.upload_job`.
     """
@@ -82,7 +82,7 @@ def _patched_uploader(monkeypatch, *, upload_result: MagicMock) -> MagicMock:
     instance.upload_job = AsyncMock(return_value=upload_result)
 
     uploader_cls = MagicMock(return_value=instance)
-    monkeypatch.setattr("harbor.upload.uploader.Uploader", uploader_cls)
+    monkeypatch.setattr("sprint.upload.uploader.Uploader", uploader_cls)
     return instance
 
 
@@ -228,7 +228,7 @@ class TestUploadCommandVisibility:
 
     def test_prints_share_url(self, tmp_path: Path, monkeypatch, capsys) -> None:
         """The summary should include the full viewer URL for the uploaded job."""
-        from harbor.constants import HARBOR_VIEWER_JOBS_URL
+        from sprint.constants import HARBOR_VIEWER_JOBS_URL
 
         result = MagicMock()
         result.visibility = "public"

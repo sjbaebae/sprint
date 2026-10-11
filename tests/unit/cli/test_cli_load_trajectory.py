@@ -4,7 +4,7 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from harbor.cli.main import app
+from sprint.cli.main import app
 
 pytestmark = pytest.mark.unit
 runner = CliRunner()

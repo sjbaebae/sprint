@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.devin import Devin
-from harbor.environments.base import BaseEnvironment
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.devin import Devin
+from sprint.environments.base import BaseEnvironment
+from sprint.models.task.config import MCPServerConfig
 
 
 @pytest.mark.parametrize(

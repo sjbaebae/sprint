@@ -2,18 +2,18 @@ from collections.abc import Callable, Mapping
 
 import pytest
 
-from harbor.agents.model_connection import (
+from sprint.agents.model_connection import (
     ModelConnectionSpec,
     resolve_model_connection,
 )
-from harbor.agents.installed.aider import Aider
-from harbor.agents.installed.claude_code import ClaudeCode
-from harbor.agents.installed.goose import Goose
-from harbor.agents.installed.mimo import MiMo
-from harbor.agents.installed.mini_swe_agent import MiniSweAgent
-from harbor.agents.installed.openhands import OpenHands
-from harbor.agents.installed.opencode import OpenCode
-from harbor.agents.installed.trae_agent import TraeAgent
+from sprint.agents.installed.aider import Aider
+from sprint.agents.installed.claude_code import ClaudeCode
+from sprint.agents.installed.goose import Goose
+from sprint.agents.installed.mimo import MiMo
+from sprint.agents.installed.mini_swe_agent import MiniSweAgent
+from sprint.agents.installed.openhands import OpenHands
+from sprint.agents.installed.opencode import OpenCode
+from sprint.agents.installed.trae_agent import TraeAgent
 
 
 def _env(*sources: Mapping[str, str]) -> Callable[..., tuple[str, str] | None]:

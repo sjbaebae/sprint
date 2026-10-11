@@ -3,14 +3,14 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
-from harbor.hosted.preflight import (
+from sprint.hosted.preflight import (
     PreflightWarnings,
     format_preflight_warnings,
     registry_credential_warnings,
     run_hosted_preflight,
 )
-from harbor.hosted.config import HostedAgentConfig, HostedJobConfig
-from harbor.models.trial.config import TaskConfig
+from sprint.hosted.config import HostedAgentConfig, HostedJobConfig
+from sprint.models.trial.config import TaskConfig
 
 
 def _config(*agents: HostedAgentConfig) -> HostedJobConfig:
@@ -50,11 +50,11 @@ async def test_run_hosted_preflight_posts_config_and_declared_vars(
     local_name,
 ) -> None:
     monkeypatch.setattr(
-        "harbor.auth.tokens.get_access_token",
+        "sprint.auth.tokens.get_access_token",
         AsyncMock(return_value="access-token"),
     )
     monkeypatch.setattr(
-        "harbor.hosted.secrets.hosted_secrets_url",
+        "sprint.hosted.secrets.hosted_secrets_url",
         lambda: "https://example.invalid/functions/v1/secrets",
     )
     monkeypatch.setattr(httpx, "AsyncClient", FakePreflightHttpClient)
@@ -66,7 +66,7 @@ async def test_run_hosted_preflight_posts_config_and_declared_vars(
     )
     config = _config(HostedAgentConfig(name="oracle"))
     if local_name is not None:
-        from harbor.models.task.config import TaskConfig as TaskDefinition
+        from sprint.models.task.config import TaskConfig as TaskDefinition
 
         definition = TaskDefinition.model_validate(
             {
@@ -256,7 +256,7 @@ def test_preflight_warnings_truthy_on_registry_lines_alone() -> None:
 
 
 def _registry_credential(host: str, name: str, credential_id: str):
-    from harbor.hosted.registry_credentials import RegistryCredential
+    from sprint.hosted.registry_credentials import RegistryCredential
 
     return RegistryCredential(
         id=credential_id,
@@ -278,7 +278,7 @@ async def test_registry_credential_warnings_matches_by_name_or_id(
         "us-east1-docker.pkg.dev", "test puller", "11111111-1111-4111-8111-111111111111"
     )
     monkeypatch.setattr(
-        "harbor.hosted.registry_credentials.list_registry_credentials",
+        "sprint.hosted.registry_credentials.list_registry_credentials",
         AsyncMock(return_value=[credential]),
     )
 
@@ -301,7 +301,7 @@ async def test_registry_credential_warnings_flags_unmatched_selections(
         "us-east1-docker.pkg.dev", "test puller", "11111111-1111-4111-8111-111111111111"
     )
     monkeypatch.setattr(
-        "harbor.hosted.registry_credentials.list_registry_credentials",
+        "sprint.hosted.registry_credentials.list_registry_credentials",
         AsyncMock(return_value=[credential]),
     )
 

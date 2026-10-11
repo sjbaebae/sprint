@@ -23,24 +23,24 @@ from daytona.common.errors import (
     DaytonaNotFoundError,
 )
 
-from harbor.environments.base import ExecResult, ServiceOperationsUnsupportedError
-from harbor.cli.utils import run_async
-from harbor.environments.daytona import (
+from sprint.environments.base import ExecResult, ServiceOperationsUnsupportedError
+from sprint.cli.utils import run_async
+from sprint.environments.daytona import (
     DaytonaClientManager,
     DaytonaEnvironment,
     _DaytonaDinD,
     _DaytonaDirect,
 )
-from harbor.environments.daytona.environment import SANDBOX_ID_PATH
-from harbor.environments.daytona.snapshots import DaytonaSnapshotService
-from harbor.models.task.config import (
+from sprint.environments.daytona.environment import SANDBOX_ID_PATH
+from sprint.environments.daytona.snapshots import DaytonaSnapshotService
+from sprint.models.task.config import (
     EnvironmentConfig,
     NetworkMode,
     NetworkPolicy,
     TaskOS,
 )
-from harbor.models.trial.config import ResourceMode, ServiceVolumeConfig
-from harbor.models.trial.paths import EnvironmentPaths, TrialPaths
+from sprint.models.trial.config import ResourceMode, ServiceVolumeConfig
+from sprint.models.trial.paths import EnvironmentPaths, TrialPaths
 
 _UNSET = object()
 
@@ -677,9 +677,9 @@ class TestSandboxLabels:
         env = _make_env(temp_dir)
 
         assert env._sandbox_labels() == {
-            "harbor.managed": "true",
-            "harbor.environment_name": env.environment_name,
-            "harbor.session_id": env.session_id,
+            "sprint.managed": "true",
+            "sprint.environment_name": env.environment_name,
+            "sprint.session_id": env.session_id,
         }
 
     async def test_default_assigns_labels_field(self, temp_dir):
@@ -695,9 +695,9 @@ class TestSandboxLabels:
 
         assert fake.created_params == [params]
         assert params.labels == {
-            "harbor.managed": "true",
-            "harbor.environment_name": env.environment_name,
-            "harbor.session_id": env.session_id,
+            "sprint.managed": "true",
+            "sprint.environment_name": env.environment_name,
+            "sprint.session_id": env.session_id,
         }
 
     def test_gate_off_user_labels_apply_without_auto_labels(self, temp_dir):
@@ -709,9 +709,9 @@ class TestSandboxLabels:
         env = _make_env(temp_dir, auto_labels=True)
 
         assert env._sandbox_labels() == {
-            "harbor.managed": "true",
-            "harbor.environment_name": env.environment_name,
-            "harbor.session_id": env.session_id,
+            "sprint.managed": "true",
+            "sprint.environment_name": env.environment_name,
+            "sprint.session_id": env.session_id,
         }
 
     @pytest.mark.parametrize("param_path", ["image", "snapshot", "dind_snapshot"])
@@ -740,24 +740,24 @@ class TestSandboxLabels:
 
         assert fake.created_params == [params]
         assert params.labels == {
-            "harbor.managed": "true",
-            "harbor.environment_name": env.environment_name,
-            "harbor.session_id": env.session_id,
+            "sprint.managed": "true",
+            "sprint.environment_name": env.environment_name,
+            "sprint.session_id": env.session_id,
         }
 
     def test_user_labels_survive_auto_label_merge(self, temp_dir):
         env = _make_env(
             temp_dir,
             auto_labels=True,
-            labels={"harbor.myrun": "sweep-3", "team": "daytona"},
+            labels={"sprint.myrun": "sweep-3", "team": "daytona"},
         )
 
         assert env._sandbox_labels() == {
-            "harbor.myrun": "sweep-3",
+            "sprint.myrun": "sweep-3",
             "team": "daytona",
-            "harbor.managed": "true",
-            "harbor.environment_name": env.environment_name,
-            "harbor.session_id": env.session_id,
+            "sprint.managed": "true",
+            "sprint.environment_name": env.environment_name,
+            "sprint.session_id": env.session_id,
         }
 
     @pytest.mark.parametrize("auto_labels", [False, True])
@@ -768,7 +768,7 @@ class TestSandboxLabels:
             _make_env(
                 temp_dir,
                 auto_labels=auto_labels,
-                labels={"harbor.session_id": "spoof"},
+                labels={"sprint.session_id": "spoof"},
             )
 
 
@@ -1746,7 +1746,7 @@ def test_client_closes_before_command_loop_shutdown(monkeypatch, error):
             self.closed = True
 
     monkeypatch.setattr(
-        "harbor.environments.daytona.environment.AsyncDaytona", LoopBoundClient
+        "sprint.environments.daytona.environment.AsyncDaytona", LoopBoundClient
     )
     mgr = DaytonaClientManager()
 

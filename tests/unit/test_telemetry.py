@@ -7,24 +7,24 @@ from uuid import uuid4
 
 import pytest
 
-import harbor.telemetry as telemetry
-from harbor.models.agent.context import AgentContext
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.bridge import BridgeConfig, BridgeKind
-from harbor.models.job.config import DatasetConfig, JobConfig
-from harbor.models.job.result import AgentDatasetStats, JobResult, JobStats
-from harbor.models.task.id import LocalTaskId
-from harbor.models.trial.config import (
+import sprint.telemetry as telemetry
+from sprint.models.agent.context import AgentContext
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.bridge import BridgeConfig, BridgeKind
+from sprint.models.job.config import DatasetConfig, JobConfig
+from sprint.models.job.result import AgentDatasetStats, JobResult, JobStats
+from sprint.models.task.id import LocalTaskId
+from sprint.models.trial.config import (
     AgentConfig,
     EnvironmentConfig,
     TaskConfig,
     TrialConfig,
     UserAgentConfig,
 )
-from harbor.models.trial.result import AgentInfo, TrialResult
-from harbor.models.verifier.result import VerifierResult
-from harbor.tasks.client import TaskDownloadResult
-from harbor.telemetry import (
+from sprint.models.trial.result import AgentInfo, TrialResult
+from sprint.models.verifier.result import VerifierResult
+from sprint.tasks.client import TaskDownloadResult
+from sprint.telemetry import (
     EVENT_COMMAND_FINISHED,
     EVENT_JOB_FINISHED,
     LAUNCH_SOURCE_ENV,
@@ -158,7 +158,7 @@ def _job_config() -> JobConfig:
 
 def test_job_finished_event_is_stable_allowlisted_projection(monkeypatch) -> None:
     monkeypatch.setenv(LAUNCH_SOURCE_ENV, "viewer")
-    monkeypatch.setattr("harbor.telemetry._install_source", lambda: "editable")
+    monkeypatch.setattr("sprint.telemetry._install_source", lambda: "editable")
 
     event = build_job_finished_event(FakeJob(), _job_result())
     properties = event.posthog_properties()
@@ -242,7 +242,7 @@ def test_job_finished_event_is_stable_allowlisted_projection(monkeypatch) -> Non
         "trial_duration_max_seconds",
         "reward_mean",
     }
-    assert properties["schema"] == "harbor.job_finished.v1"
+    assert properties["schema"] == "sprint.job_finished.v1"
     assert properties["$process_person_profile"] is False
     assert properties["$geoip_disable"] is True
     assert properties["install_source"] == "editable"
@@ -344,8 +344,8 @@ def test_job_finished_event_marks_interruptions(monkeypatch) -> None:
 def test_job_finished_records_harbor_refs_without_external_source_details(
     monkeypatch,
 ) -> None:
-    monkeypatch.setattr("harbor.telemetry._install_source", lambda: "package")
-    monkeypatch.setattr("harbor.telemetry._repo_is_public", lambda *_: False)
+    monkeypatch.setattr("sprint.telemetry._install_source", lambda: "package")
+    monkeypatch.setattr("sprint.telemetry._repo_is_public", lambda *_: False)
     job = FakeJob()
     job.config.datasets = [
         DatasetConfig(path=Path("private/local-dataset")),
@@ -384,7 +384,7 @@ def test_job_finished_records_public_repos_across_hosts_with_registry_host(
     monkeypatch,
 ) -> None:
     monkeypatch.setattr(
-        "harbor.telemetry._repo_is_public",
+        "sprint.telemetry._repo_is_public",
         lambda git_url: "secret" not in git_url,
     )
     job = FakeJob()
@@ -396,7 +396,7 @@ def test_job_finished_records_public_repos_across_hosts_with_registry_host(
     ]
     job.config.tasks = [
         TaskConfig(
-            path=Path("t"), git_url="git@github.com:harbor-framework/harbor.git"
+            path=Path("t"), git_url="git@github.com:harbor-framework/sprint.git"
         ),
     ]
 
@@ -436,8 +436,8 @@ def test_capture_job_finished_sends_to_posthog_by_default(monkeypatch) -> None:
 
     monkeypatch.delenv("HARBOR_TELEMETRY", raising=False)
     monkeypatch.setenv(LAUNCH_SOURCE_ENV, "cli")
-    monkeypatch.setattr("harbor.telemetry._get_install_id", lambda: "install-id")
-    monkeypatch.setattr("harbor.telemetry._install_source", lambda: "package")
+    monkeypatch.setattr("sprint.telemetry._get_install_id", lambda: "install-id")
+    monkeypatch.setattr("sprint.telemetry._install_source", lambda: "package")
     monkeypatch.setattr(telemetry, "_spawn_sender", payloads.append)
 
     capture_job_finished(FakeJob(), _job_result())
@@ -466,7 +466,7 @@ def test_command_finished_event_is_stable_allowlisted_projection(
     monkeypatch,
 ) -> None:
     monkeypatch.setenv(LAUNCH_SOURCE_ENV, "cli")
-    monkeypatch.setattr("harbor.telemetry._install_source", lambda: "package")
+    monkeypatch.setattr("sprint.telemetry._install_source", lambda: "package")
     record_command_job_id("job-123")
     record_command_job_id("job-456")
 
@@ -498,7 +498,7 @@ def test_command_finished_event_is_stable_allowlisted_projection(
         "exit_code",
         "exception_type",
     }
-    assert properties["schema"] == "harbor.command_finished.v1"
+    assert properties["schema"] == "sprint.command_finished.v1"
     assert properties["$process_person_profile"] is False
     assert properties["$geoip_disable"] is True
     assert properties["job_ids"] == ["job-123", "job-456"]
@@ -551,8 +551,8 @@ def test_capture_command_finished_sends_to_posthog_by_default(monkeypatch) -> No
 
     monkeypatch.delenv("HARBOR_TELEMETRY", raising=False)
     monkeypatch.setenv(LAUNCH_SOURCE_ENV, "cli")
-    monkeypatch.setattr("harbor.telemetry._get_install_id", lambda: "install-id")
-    monkeypatch.setattr("harbor.telemetry._install_source", lambda: "package")
+    monkeypatch.setattr("sprint.telemetry._get_install_id", lambda: "install-id")
+    monkeypatch.setattr("sprint.telemetry._install_source", lambda: "package")
     record_command_job_id("job-123")
     monkeypatch.setattr(telemetry, "_spawn_sender", payloads.append)
 

@@ -3,14 +3,14 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from harbor.models.compile import (
+from sprint.models.compile import (
     CompileAutoVerifierConfig,
     CompileConfig,
     CompileEnvironment,
     CompileInstruction,
     CompileVerifier,
 )
-from harbor.models.task.config import ArtifactConfig
+from sprint.models.task.config import ArtifactConfig
 
 
 def test_compile_config_defaults_are_lightweight():

@@ -12,19 +12,19 @@ from unittest.mock import PropertyMock, patch
 
 import pytest
 
-from harbor.agents.installed.claude_code import ClaudeCode
-from harbor.agents.installed.codex import Codex
-from harbor.environments.factory import EnvironmentFactory
-from harbor.environments.ssh import StreamHandle
-from harbor.models.agent.context import AgentContext
-from harbor.models.trajectories import (
+from sprint.agents.installed.claude_code import ClaudeCode
+from sprint.agents.installed.codex import Codex
+from sprint.environments.factory import EnvironmentFactory
+from sprint.environments.ssh import StreamHandle
+from sprint.models.agent.context import AgentContext
+from sprint.models.trajectories import (
     Agent,
     ContentPart,
     ImageSource,
     Step,
     Trajectory,
 )
-from harbor.trial.sync_trajectory import (
+from sprint.trial.sync_trajectory import (
     _copy_referenced_media,
     _download_trajectory,
     _write_trajectory,

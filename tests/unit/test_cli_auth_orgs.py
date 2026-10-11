@@ -8,9 +8,9 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from typer import Exit
 
-from harbor.auth.errors import NotAuthenticatedError
-from harbor.auth.orgs import Organization
-from harbor.cli.auth import list_orgs
+from sprint.auth.errors import NotAuthenticatedError
+from sprint.auth.orgs import Organization
+from sprint.cli.auth import list_orgs
 
 ROW = Organization(
     name="harbor",
@@ -24,7 +24,7 @@ class TestOrgsList:
     def test_not_authenticated_exits_nonzero(self, capsys) -> None:
         with (
             patch(
-                "harbor.auth.orgs.list_organizations",
+                "sprint.auth.orgs.list_organizations",
                 AsyncMock(side_effect=NotAuthenticatedError()),
             ),
             pytest.raises(Exit),
@@ -35,7 +35,7 @@ class TestOrgsList:
 
     def test_quiet_prints_names(self, capsys) -> None:
         with patch(
-            "harbor.auth.orgs.list_organizations",
+            "sprint.auth.orgs.list_organizations",
             AsyncMock(return_value=[ROW, ROW.model_copy(update={"name": "alex"})]),
         ):
             list_orgs(quiet=True)
@@ -44,7 +44,7 @@ class TestOrgsList:
 
     def test_quiet_empty(self, capsys) -> None:
         with patch(
-            "harbor.auth.orgs.list_organizations",
+            "sprint.auth.orgs.list_organizations",
             AsyncMock(return_value=[]),
         ):
             list_orgs(quiet=True)
@@ -53,7 +53,7 @@ class TestOrgsList:
 
     def test_json_prints_all_rows(self, capsys) -> None:
         with patch(
-            "harbor.auth.orgs.list_organizations",
+            "sprint.auth.orgs.list_organizations",
             AsyncMock(return_value=[ROW, ROW.model_copy(update={"name": "alex"})]),
         ):
             list_orgs(as_json=True)
@@ -72,7 +72,7 @@ class TestOrgsList:
             ),
         ]
         with patch(
-            "harbor.auth.orgs.list_organizations",
+            "sprint.auth.orgs.list_organizations",
             AsyncMock(return_value=rows),
         ):
             list_orgs(search="alex", quiet=True)
@@ -82,7 +82,7 @@ class TestOrgsList:
     def test_piped_tsv_output(self, capsys, monkeypatch) -> None:
         monkeypatch.setattr("sys.stdout.isatty", lambda: False)
         with patch(
-            "harbor.auth.orgs.list_organizations",
+            "sprint.auth.orgs.list_organizations",
             AsyncMock(return_value=[ROW]),
         ):
             list_orgs()
@@ -94,7 +94,7 @@ class TestOrgsList:
     def test_no_headers(self, capsys, monkeypatch) -> None:
         monkeypatch.setattr("sys.stdout.isatty", lambda: False)
         with patch(
-            "harbor.auth.orgs.list_organizations",
+            "sprint.auth.orgs.list_organizations",
             AsyncMock(return_value=[ROW]),
         ):
             list_orgs(no_headers=True)
@@ -105,7 +105,7 @@ class TestOrgsList:
     def test_empty_message(self, capsys, monkeypatch) -> None:
         monkeypatch.setattr("sys.stdout.isatty", lambda: False)
         with patch(
-            "harbor.auth.orgs.list_organizations",
+            "sprint.auth.orgs.list_organizations",
             AsyncMock(return_value=[]),
         ):
             list_orgs()

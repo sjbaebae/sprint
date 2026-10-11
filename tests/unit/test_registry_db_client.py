@@ -5,16 +5,16 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from harbor.db.client import RegistryDB, TaskVersionNotFoundError
-from harbor.models.package.access import PackageType
-from harbor.models.package.dataset_task import DatasetVersionTaskRow
+from sprint.db.client import RegistryDB, TaskVersionNotFoundError
+from sprint.models.package.access import PackageType
+from sprint.models.package.dataset_task import DatasetVersionTaskRow
 
 
 @pytest.fixture
 def mock_client(monkeypatch):
     client = MagicMock()
     create_client = AsyncMock(return_value=client)
-    monkeypatch.setattr("harbor.db.client.create_authenticated_client", create_client)
+    monkeypatch.setattr("sprint.db.client.create_authenticated_client", create_client)
     return client
 
 
@@ -529,7 +529,7 @@ class TestGetDatasetVersionTasks:
 
     @pytest.mark.asyncio
     async def test_paginates_past_default_limit(self, mock_client, monkeypatch) -> None:
-        monkeypatch.setattr("harbor.db.client._SUPABASE_PAGE_SIZE", 2)
+        monkeypatch.setattr("sprint.db.client._SUPABASE_PAGE_SIZE", 2)
         ranged = _mock_paginated_table(mock_client)
         rows = [
             {
@@ -623,7 +623,7 @@ class TestGetDatasetVersionFiles:
 
     @pytest.mark.asyncio
     async def test_paginates_past_default_limit(self, mock_client, monkeypatch) -> None:
-        monkeypatch.setattr("harbor.db.client._SUPABASE_PAGE_SIZE", 2)
+        monkeypatch.setattr("sprint.db.client._SUPABASE_PAGE_SIZE", 2)
         ranged = _mock_paginated_table(mock_client)
         rows = [
             {"path": f"f{i}.py", "storage_path": f"s{i}", "content_hash": f"h{i}"}

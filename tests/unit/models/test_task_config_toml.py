@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 from pydantic import Field, ValidationError
 
-from harbor.models.task.config import TaskConfig
+from sprint.models.task.config import TaskConfig
 
 
 def test_task_package_version_accepts_non_semver_strings():

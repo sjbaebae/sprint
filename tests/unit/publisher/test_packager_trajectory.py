@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from harbor.publisher.packager import Packager
+from sprint.publisher.packager import Packager
 
 pytestmark = pytest.mark.unit
 

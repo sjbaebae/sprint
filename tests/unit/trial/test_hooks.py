@@ -5,16 +5,16 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from harbor.models.job.lock import VerifierLock, TaskLock, TrialLock
-from harbor.models.trial.config import (
+from sprint.models.job.lock import VerifierLock, TaskLock, TrialLock
+from sprint.models.trial.config import (
     AgentConfig,
     EnvironmentConfig,
     TaskConfig,
     TrialConfig,
 )
-from harbor.models.trial.result import AgentInfo, TrialResult
-from harbor.trial.hooks import TrialEvent, TrialHookEvent
-from harbor.trial.single_step import SingleStepTrial
+from sprint.models.trial.result import AgentInfo, TrialResult
+from sprint.trial.hooks import TrialEvent, TrialHookEvent
+from sprint.trial.single_step import SingleStepTrial
 
 
 def _make_trial_lock(task_name: str = "task") -> TrialLock:

@@ -4,8 +4,8 @@ import os
 import re
 from pathlib import Path
 
-from harbor.utils.traces_utils import export_traces
-from harbor.utils.trajectory_utils import format_trajectory_json
+from sprint.utils.traces_utils import export_traces
+from sprint.utils.trajectory_utils import format_trajectory_json
 
 
 def file_uri_to_path(uri: str) -> Path:

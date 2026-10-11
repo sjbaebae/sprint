@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from harbor.models.job.config import DatasetConfig
-from harbor.models.registry import DatasetSpec, RegistryTaskId
-from harbor.registry.client.git_repo import (
+from sprint.models.job.config import DatasetConfig
+from sprint.models.registry import DatasetSpec, RegistryTaskId
+from sprint.registry.client.git_repo import (
     GitRepoRegistryClient,
     ResolvedRepo,
     resolve_repo_source,

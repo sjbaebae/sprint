@@ -4,8 +4,8 @@ from uuid import uuid4
 import pytest
 from typer.testing import CliRunner
 
-from harbor.cli.hub import hub_app
-from harbor.hub.models import Page
+from sprint.cli.hub import hub_app
+from sprint.hub.models import Page
 
 runner = CliRunner()
 
@@ -28,7 +28,7 @@ def test_job_trials_retry_selection(
             raw={"items": [], "total": 0},
         )
     )
-    monkeypatch.setattr("harbor.hub.client.HubClient", MagicMock(return_value=client))
+    monkeypatch.setattr("sprint.hub.client.HubClient", MagicMock(return_value=client))
 
     result = runner.invoke(
         hub_app, ["job", "trials", str(uuid4()), "--json", *extra_args]

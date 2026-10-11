@@ -446,7 +446,7 @@ def test_default_mean_aggregates_reward_keys_into_programbench_metrics() -> None
     # mean("resolved") is the proportion resolved and mean("almost_resolved")
     # the proportion >= 0.95 across tasks. harbor is not an adapter dependency,
     # so skip when it isn't importable (e.g. the standalone adapter venv).
-    mean_module = pytest.importorskip("harbor.metrics.mean")
+    mean_module = pytest.importorskip("sprint.metrics.mean")
     Mean = mean_module.Mean
 
     aggregated = Mean().compute(

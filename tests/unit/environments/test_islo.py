@@ -6,16 +6,16 @@ from unittest.mock import AsyncMock, call, patch
 import pytest
 from tenacity import wait_none
 
-from harbor.environments.base import ServiceOperationsUnsupportedError
-from harbor.environments.islo import (
+from sprint.environments.base import ServiceOperationsUnsupportedError
+from sprint.environments.islo import (
     GatewayConfig,
     IsloEnvironment,
     _ephemeral_gateway_profile_name,
     _sanitize_session_id,
 )
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.config import ResourceMode, ServiceVolumeConfig
-from harbor.models.trial.paths import EnvironmentPaths, TrialPaths
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.config import ResourceMode, ServiceVolumeConfig
+from sprint.models.trial.paths import EnvironmentPaths, TrialPaths
 
 _SERVER_NAME = "bright-otter-runs"
 
@@ -121,7 +121,7 @@ def test_client_passes_api_and_compute_urls(temp_dir, monkeypatch):
     monkeypatch.setenv("ISLO_COMPUTE_URL", "https://compute.example.test")
     env = _make_env(temp_dir, monkeypatch)
 
-    with patch("harbor.environments.islo.AsyncIslo") as mock_islo:
+    with patch("sprint.environments.islo.AsyncIslo") as mock_islo:
         assert env._client() is mock_islo.return_value
 
     mock_islo.assert_called_once_with(
@@ -136,7 +136,7 @@ def test_client_uses_sdk_compute_default_when_unset(temp_dir, monkeypatch):
     monkeypatch.delenv("ISLO_COMPUTE_URL", raising=False)
     env = _make_env(temp_dir, monkeypatch)
 
-    with patch("harbor.environments.islo.AsyncIslo") as mock_islo:
+    with patch("sprint.environments.islo.AsyncIslo") as mock_islo:
         env._client()
 
     assert mock_islo.call_args.kwargs["compute_url"] is None
@@ -331,7 +331,7 @@ async def test_start_with_dockerfile_builds_and_runs_docker(temp_dir, monkeypatc
 @pytest.mark.asyncio
 async def test_wait_for_docker_ready_polls_until_daemon_responds(temp_dir, monkeypatch):
     """_wait_for_docker_ready polls 'docker info' until it succeeds."""
-    monkeypatch.setattr("harbor.environments.islo.asyncio.sleep", AsyncMock())
+    monkeypatch.setattr("sprint.environments.islo.asyncio.sleep", AsyncMock())
 
     env = _make_env(temp_dir, monkeypatch)
     env._sandbox_name = _SERVER_NAME
@@ -354,9 +354,9 @@ async def test_wait_for_docker_ready_polls_until_daemon_responds(temp_dir, monke
 @pytest.mark.asyncio
 async def test_wait_for_docker_ready_raises_on_timeout(temp_dir, monkeypatch):
     """_wait_for_docker_ready raises TimeoutError if daemon never starts."""
-    monkeypatch.setattr("harbor.environments.islo._DOCKER_READY_TIMEOUT_SEC", 4)
-    monkeypatch.setattr("harbor.environments.islo._DOCKER_READY_POLL_INTERVAL", 2)
-    monkeypatch.setattr("harbor.environments.islo.asyncio.sleep", AsyncMock())
+    monkeypatch.setattr("sprint.environments.islo._DOCKER_READY_TIMEOUT_SEC", 4)
+    monkeypatch.setattr("sprint.environments.islo._DOCKER_READY_POLL_INTERVAL", 2)
+    monkeypatch.setattr("sprint.environments.islo.asyncio.sleep", AsyncMock())
 
     env = _make_env(temp_dir, monkeypatch)
     env._sandbox_name = _SERVER_NAME
@@ -757,7 +757,7 @@ async def test_upload_file_delegates_to_sdk(temp_dir, monkeypatch):
     source.write_text("hello world")
 
     with patch(
-        "harbor.environments.islo.async_upload_file", new_callable=AsyncMock
+        "sprint.environments.islo.async_upload_file", new_callable=AsyncMock
     ) as mock_upload:
         await env.upload_file(source, "/app/hello.txt")
 
@@ -779,7 +779,7 @@ async def test_upload_dir_delegates_to_sdk(temp_dir, monkeypatch):
     (src_dir / "a.txt").write_text("a")
 
     with patch(
-        "harbor.environments.islo.async_upload_dir", new_callable=AsyncMock
+        "sprint.environments.islo.async_upload_dir", new_callable=AsyncMock
     ) as mock_upload:
         await env.upload_dir(src_dir, "/app/src")
 
@@ -795,7 +795,7 @@ async def test_download_file_delegates_to_sdk(temp_dir, monkeypatch):
     env._sandbox_name = _SERVER_NAME
 
     with patch(
-        "harbor.environments.islo.async_download_file", new_callable=AsyncMock
+        "sprint.environments.islo.async_download_file", new_callable=AsyncMock
     ) as mock_dl:
         await env.download_file("/app/out.txt", temp_dir / "out.txt")
 
@@ -812,7 +812,7 @@ async def test_download_dir_delegates_to_sdk(temp_dir, monkeypatch):
     env._sandbox_name = _SERVER_NAME
 
     with patch(
-        "harbor.environments.islo.async_download_dir", new_callable=AsyncMock
+        "sprint.environments.islo.async_download_dir", new_callable=AsyncMock
     ) as mock_dl:
         await env.download_dir("/app/results", temp_dir / "results")
 
@@ -854,7 +854,7 @@ async def test_upload_file_two_hops_when_docker_container_set(temp_dir, monkeypa
     )
 
     with patch(
-        "harbor.environments.islo.async_upload_file", new_callable=AsyncMock
+        "sprint.environments.islo.async_upload_file", new_callable=AsyncMock
     ) as mock_upload:
         await env.upload_file(source, "/installed-agent/run_agent.py")
 
@@ -886,7 +886,7 @@ async def test_upload_file_skips_two_hop_for_volume_mounted_path(temp_dir, monke
     env._sandbox_exec = AsyncMock()
 
     with patch(
-        "harbor.environments.islo.async_upload_file", new_callable=AsyncMock
+        "sprint.environments.islo.async_upload_file", new_callable=AsyncMock
     ) as mock_upload:
         await env.upload_file(source, "/logs/agent/out.txt")
 
@@ -912,7 +912,7 @@ async def test_upload_dir_two_hops_when_docker_container_set(temp_dir, monkeypat
     )
 
     with patch(
-        "harbor.environments.islo.async_upload_dir", new_callable=AsyncMock
+        "sprint.environments.islo.async_upload_dir", new_callable=AsyncMock
     ) as mock_upload:
         await env.upload_dir(src_dir, "/installed-agent")
 
@@ -939,7 +939,7 @@ async def test_download_file_two_hops_when_docker_container_set(temp_dir, monkey
     )
 
     with patch(
-        "harbor.environments.islo.async_download_file", new_callable=AsyncMock
+        "sprint.environments.islo.async_download_file", new_callable=AsyncMock
     ) as mock_dl:
         await env.download_file("/installed-agent/log.txt", temp_dir / "log.txt")
 
@@ -968,7 +968,7 @@ async def test_download_dir_two_hops_when_docker_container_set(temp_dir, monkeyp
     )
 
     with patch(
-        "harbor.environments.islo.async_download_dir", new_callable=AsyncMock
+        "sprint.environments.islo.async_download_dir", new_callable=AsyncMock
     ) as mock_dl:
         await env.download_dir("/installed-agent", temp_dir / "out")
 
@@ -1002,7 +1002,7 @@ async def test_upload_file_two_hop_cleans_temp_on_failure(temp_dir, monkeypatch)
 
     env._sandbox_exec = AsyncMock(side_effect=_fake_exec)
 
-    with patch("harbor.environments.islo.async_upload_file", new_callable=AsyncMock):
+    with patch("sprint.environments.islo.async_upload_file", new_callable=AsyncMock):
         with pytest.raises(RuntimeError, match="docker cp failed"):
             await env.upload_file(source, "/installed-agent/x.txt")
 
@@ -1058,7 +1058,7 @@ async def test_gateway_profile_name_passed_to_create_sandbox(temp_dir, monkeypat
 @pytest.mark.asyncio
 async def test_ephemeral_gateway_profile_name_slugs_dots(temp_dir, monkeypatch):
     """Islo rejects `.` in profile names; trial session_ids must be slugged."""
-    from harbor.environments.islo import GatewayConfig, GatewayRuleConfig
+    from sprint.environments.islo import GatewayConfig, GatewayRuleConfig
 
     gateway = GatewayConfig(
         rules=[GatewayRuleConfig(host_pattern="example.com")],
@@ -1086,7 +1086,7 @@ async def test_ephemeral_gateway_profile_name_slugs_dots(temp_dir, monkeypatch):
 @pytest.mark.asyncio
 async def test_inline_gateway_rules_create_ephemeral_profile(temp_dir, monkeypatch):
     """Inline gateway config creates a profile + rules before creating the sandbox."""
-    from harbor.environments.islo import GatewayConfig, GatewayRuleConfig
+    from sprint.environments.islo import GatewayConfig, GatewayRuleConfig
 
     gateway = GatewayConfig(
         default_action="deny",
@@ -1117,7 +1117,7 @@ async def test_inline_gateway_rules_create_ephemeral_profile(temp_dir, monkeypat
 
 @pytest.mark.asyncio
 async def test_gateway_rule_creation_requires_returned_rule_id(temp_dir, monkeypatch):
-    from harbor.environments.islo import GatewayConfig, GatewayRuleConfig
+    from sprint.environments.islo import GatewayConfig, GatewayRuleConfig
 
     gateway = GatewayConfig(rules=[GatewayRuleConfig(host_pattern="example.com")])
     env = _make_env(temp_dir, monkeypatch, gateway=gateway)
@@ -1132,7 +1132,7 @@ async def test_gateway_rule_creation_requires_returned_rule_id(temp_dir, monkeyp
 @pytest.mark.asyncio
 async def test_ephemeral_gateway_profile_deleted_on_stop(temp_dir, monkeypatch):
     """stop() deletes the ephemeral profile after sandbox deletion."""
-    from harbor.environments.islo import GatewayConfig, GatewayRuleConfig
+    from sprint.environments.islo import GatewayConfig, GatewayRuleConfig
 
     gateway = GatewayConfig(rules=[GatewayRuleConfig(host_pattern="example.com")])
     env = _make_env(temp_dir, monkeypatch, gateway=gateway)
@@ -1154,7 +1154,7 @@ async def test_ephemeral_gateway_profile_deleted_even_when_sandbox_deletion_fail
     temp_dir, monkeypatch
 ):
     """_cleanup_gateway() runs in finally so profile is deleted even if sandbox deletion fails."""
-    from harbor.environments.islo import GatewayConfig, GatewayRuleConfig
+    from sprint.environments.islo import GatewayConfig, GatewayRuleConfig
 
     gateway = GatewayConfig(rules=[GatewayRuleConfig(host_pattern="example.com")])
     env = _make_env(temp_dir, monkeypatch, gateway=gateway)
@@ -1172,7 +1172,7 @@ async def test_ephemeral_gateway_profile_deleted_even_when_sandbox_deletion_fail
 @pytest.mark.asyncio
 async def test_gateway_config_no_rules_still_creates_profile(temp_dir, monkeypatch):
     """GatewayConfig with default_action=deny and no rules still creates an ephemeral profile."""
-    from harbor.environments.islo import GatewayConfig
+    from sprint.environments.islo import GatewayConfig
 
     env = _make_env(temp_dir, monkeypatch, gateway=GatewayConfig(default_action="deny"))
     _stub_islo(env)
@@ -1193,7 +1193,7 @@ async def test_ephemeral_gateway_profile_deleted_when_start_fails(
     temp_dir, monkeypatch
 ):
     """Profile is cleaned up via stop() even when start() fails before _create_sandbox succeeds."""
-    from harbor.environments.islo import GatewayConfig, GatewayRuleConfig
+    from sprint.environments.islo import GatewayConfig, GatewayRuleConfig
 
     gateway = GatewayConfig(rules=[GatewayRuleConfig(host_pattern="example.com")])
     env = _make_env(temp_dir, monkeypatch, gateway=gateway)
@@ -1302,7 +1302,7 @@ async def test_public_policy_creates_dynamic_gateway_profile(temp_dir, monkeypat
 
 @pytest.mark.asyncio
 async def test_set_network_policy_updates_ephemeral_gateway(temp_dir, monkeypatch):
-    monkeypatch.setattr("harbor.environments.islo.asyncio.sleep", AsyncMock())
+    monkeypatch.setattr("sprint.environments.islo.asyncio.sleep", AsyncMock())
     env = _make_env(temp_dir, monkeypatch)
     _stub_islo(env)
     gp = env._islo.gateway_profiles
@@ -1349,7 +1349,7 @@ def test_no_network_policy_rejects_unverified_gateway_profile(temp_dir, monkeypa
 
 def test_gateway_profile_and_gateway_are_mutually_exclusive(temp_dir, monkeypatch):
     """Specifying both gateway_profile and gateway raises ValueError."""
-    from harbor.environments.islo import GatewayConfig, GatewayRuleConfig
+    from sprint.environments.islo import GatewayConfig, GatewayRuleConfig
 
     with pytest.raises(ValueError, match="gateway_profile OR gateway"):
         _make_env(
@@ -1466,7 +1466,7 @@ class TestComposeDetection:
     async def test_public_compose_can_switch_to_no_network_and_back(
         self, temp_dir, monkeypatch
     ):
-        monkeypatch.setattr("harbor.environments.islo.asyncio.sleep", AsyncMock())
+        monkeypatch.setattr("sprint.environments.islo.asyncio.sleep", AsyncMock())
         env = _make_compose_env(temp_dir, monkeypatch)
         _stub_islo(env)
         env._start_compose = AsyncMock()
@@ -2378,7 +2378,7 @@ class TestComposeFileFlagsHasNoProviderOverlay:
 
 class TestResolveComposeVolumes:
     def test_self_binds_trial_bind_mounts(self, temp_dir, monkeypatch):
-        from harbor.models.trial.config import ServiceVolumeConfig
+        from sprint.models.trial.config import ServiceVolumeConfig
 
         mounts: list[ServiceVolumeConfig] = [
             {
@@ -2403,7 +2403,7 @@ class TestResolveComposeVolumes:
     def test_self_binds_every_mount(self, temp_dir, monkeypatch):
         """Every bind mount in `mounts` (base or user-additive) gets
         self-bound — the trial now passes the combined list."""
-        from harbor.models.trial.config import ServiceVolumeConfig
+        from sprint.models.trial.config import ServiceVolumeConfig
 
         combined: list[ServiceVolumeConfig] = [
             {
@@ -2429,7 +2429,7 @@ class TestStageComposeMountsFile:
         from pathlib import Path
         from typing import cast
 
-        from harbor.models.trial.config import ServiceVolumeConfig
+        from sprint.models.trial.config import ServiceVolumeConfig
 
         mounts: list[ServiceVolumeConfig] = [
             {
@@ -2486,7 +2486,7 @@ class TestComposeWaitForMainContainer:
 
         with (
             patch.object(env, "_compose_exec", new=fake_compose_exec),
-            patch("harbor.environments.islo.asyncio.sleep", new=fast_sleep),
+            patch("sprint.environments.islo.asyncio.sleep", new=fast_sleep),
         ):
             with pytest.raises(RuntimeError, match="Main container not running"):
                 await env._wait_for_main_container(timeout_sec=4)

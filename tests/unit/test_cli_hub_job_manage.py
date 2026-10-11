@@ -5,8 +5,8 @@ from uuid import uuid4
 import pytest
 from typer.testing import CliRunner
 
-from harbor.cli.hub import hub_app
-from harbor.hub.client import HubClient
+from sprint.cli.hub import hub_app
+from sprint.hub.client import HubClient
 
 runner = CliRunner()
 
@@ -24,7 +24,7 @@ def _patched_hub_client(monkeypatch) -> MagicMock:
             "removed_job_credentials": 0,
         }
     )
-    monkeypatch.setattr("harbor.hub.client.HubClient", MagicMock(return_value=hub))
+    monkeypatch.setattr("sprint.hub.client.HubClient", MagicMock(return_value=hub))
     return hub
 
 

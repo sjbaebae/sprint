@@ -7,12 +7,12 @@ from unittest.mock import AsyncMock
 import pytest
 import yaml
 
-from harbor.agents.factory import AgentFactory
-from harbor.agents.installed.base import BaseInstalledAgent
-from harbor.agents.installed.mcode import MCode
-from harbor.models.agent.context import AgentContext
-from harbor.models.agent.name import AgentName
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.factory import AgentFactory
+from sprint.agents.installed.base import BaseInstalledAgent
+from sprint.agents.installed.mcode import MCode
+from sprint.models.agent.context import AgentContext
+from sprint.models.agent.name import AgentName
+from sprint.models.task.config import MCPServerConfig
 
 
 def _environment() -> AsyncMock:

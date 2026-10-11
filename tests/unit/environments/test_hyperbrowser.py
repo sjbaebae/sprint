@@ -15,19 +15,19 @@ import pytest
 from hyperbrowser.exceptions import HyperbrowserError
 from hyperbrowser.client.managers.async_manager.sandbox import SandboxManager
 
-from harbor.environments.base import ExecResult
-from harbor.environments.factory import EnvironmentFactory
-from harbor.environments.hyperbrowser import HyperbrowserEnvironment
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import (
+from sprint.environments.base import ExecResult
+from sprint.environments.factory import EnvironmentFactory
+from sprint.environments.hyperbrowser import HyperbrowserEnvironment
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import (
     EnvironmentConfig,
     NetworkMode,
     NetworkPolicy,
     TaskOS,
 )
-from harbor.models.trial.config import ResourceMode
-from harbor.models.trial.paths import TrialPaths
-from harbor.utils.optional_import import MissingExtraError
+from sprint.models.trial.config import ResourceMode
+from sprint.models.trial.paths import TrialPaths
+from sprint.utils.optional_import import MissingExtraError
 
 
 _ORIGINAL_RESOLVE_DOCKER_IMAGE_DIGEST = (
@@ -294,7 +294,7 @@ class _FakeDockerProcess:
 
 @pytest.fixture(autouse=True)
 def fake_hyperbrowser_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
-    import harbor.environments.hyperbrowser.environment as hb
+    import sprint.environments.hyperbrowser.environment as hb
 
     _FakeClient.last_instance = None
     monkeypatch.setattr(hb, "_HAS_HYPERBROWSER", True)
@@ -385,7 +385,7 @@ async def test_client_uses_extended_sdk_request_timeout(tmp_path: Path) -> None:
 
 
 def test_preflight_rejects_missing_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
-    import harbor.environments.hyperbrowser.environment as hb
+    import sprint.environments.hyperbrowser.environment as hb
 
     monkeypatch.setattr(hb, "_HAS_HYPERBROWSER", False)
     monkeypatch.setenv("HYPERBROWSER_API_KEY", "test-key")
@@ -666,7 +666,7 @@ def test_managed_dockerfile_image_name_includes_platform(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import harbor.environments.hyperbrowser.environment as hb
+    import sprint.environments.hyperbrowser.environment as hb
 
     env = _make_env(tmp_path)
     first_name = env._managed_image_name()
@@ -1119,7 +1119,7 @@ async def test_remote_build_conflict_waits_for_winning_build(tmp_path: Path) -> 
 
 
 async def test_capacity_error_is_propagated_without_waiting(tmp_path: Path) -> None:
-    import harbor.environments.hyperbrowser.environment as hb
+    import sprint.environments.hyperbrowser.environment as hb
 
     env = _make_env(tmp_path)
     client = await env._get_client()
@@ -1270,7 +1270,7 @@ async def test_concurrent_force_builds_of_same_content_join_one_build(
 
 
 async def test_later_force_build_starts_a_fresh_build(tmp_path: Path) -> None:
-    import harbor.environments.hyperbrowser.environment as hb
+    import sprint.environments.hyperbrowser.environment as hb
 
     first_root = tmp_path / "first"
     second_root = tmp_path / "second"
@@ -1555,7 +1555,7 @@ async def test_process_exec_reports_harbor_deadline_as_timeout(
     )
     client.sandbox.processes = processes
 
-    import harbor.environments.hyperbrowser.environment as hb
+    import sprint.environments.hyperbrowser.environment as hb
 
     clock_values = iter((100.0, 116.0))
     monkeypatch.setattr(

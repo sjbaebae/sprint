@@ -5,13 +5,13 @@ from __future__ import annotations
 import pytest
 from postgrest.exceptions import APIError
 
-from harbor.auth.errors import AuthenticationError
-from harbor.upload.auth import UPLOAD_AUTH_ERROR, is_hub_auth_error
+from sprint.auth.errors import AuthenticationError
+from sprint.upload.auth import UPLOAD_AUTH_ERROR, is_hub_auth_error
 
 
 class TestIsHubAuthError:
     def test_authentication_error(self) -> None:
-        from harbor.auth.errors import NotAuthenticatedError
+        from sprint.auth.errors import NotAuthenticatedError
 
         assert is_hub_auth_error(NotAuthenticatedError())
         assert is_hub_auth_error(AuthenticationError("expired"))
@@ -39,10 +39,10 @@ class TestRequireHubUploadAuth:
         db = MagicMock()
         db.get_user_id = AsyncMock(return_value="user-abc")
         monkeypatch.setattr(
-            "harbor.upload.db_client.UploadDB", MagicMock(return_value=db)
+            "sprint.upload.db_client.UploadDB", MagicMock(return_value=db)
         )
 
-        from harbor.upload.auth import require_hub_upload_auth
+        from sprint.upload.auth import require_hub_upload_auth
 
         await require_hub_upload_auth()
         db.get_user_id.assert_awaited_once()
@@ -58,10 +58,10 @@ class TestRequireHubUploadAuth:
             )
         )
         monkeypatch.setattr(
-            "harbor.upload.db_client.UploadDB", MagicMock(return_value=db)
+            "sprint.upload.db_client.UploadDB", MagicMock(return_value=db)
         )
 
-        from harbor.upload.auth import require_hub_upload_auth
+        from sprint.upload.auth import require_hub_upload_auth
 
         with pytest.raises(RuntimeError, match="Not authenticated"):
             await require_hub_upload_auth()

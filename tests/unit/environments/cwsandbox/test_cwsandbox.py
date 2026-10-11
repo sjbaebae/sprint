@@ -17,19 +17,19 @@ from cwsandbox import AuthStrategy
 from cwsandbox import Secret as RealSecret
 from cwsandbox import SandboxUnavailableError
 
-from harbor.environments.cwsandbox import (
+from sprint.environments.cwsandbox import (
     _REMOTE_TAR_PREFIX,
     _REMOTE_TAR_SUFFIX,
     _sdk_uses_v1_api,
     CWSandboxEnvironment,
 )
-from harbor.environments.factory import EnvironmentFactory
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.config import EnvironmentConfig as TrialEnvironmentConfig
-from harbor.models.trial.config import ResourceMode
-from harbor.models.trial.paths import TrialPaths
-from harbor.utils.optional_import import MissingExtraError
+from sprint.environments.factory import EnvironmentFactory
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.config import EnvironmentConfig as TrialEnvironmentConfig
+from sprint.models.trial.config import ResourceMode
+from sprint.models.trial.paths import TrialPaths
+from sprint.utils.optional_import import MissingExtraError
 from tests.unit.environments.cwsandbox.conftest import (
     _FakeV1NetworkOptions,
     _FakeSandbox,
@@ -258,7 +258,7 @@ def test_resource_capabilities_advertise_requests_and_limits() -> None:
 
 
 def test_missing_extra_raises_clean_error(tmp_path, monkeypatch):
-    monkeypatch.setattr("harbor.environments.cwsandbox._HAS_CWSANDBOX", False)
+    monkeypatch.setattr("sprint.environments.cwsandbox._HAS_CWSANDBOX", False)
 
     with pytest.raises(MissingExtraError):
         _make_env(tmp_path)
@@ -273,7 +273,7 @@ def test_cwsandbox_sdk_is_resolved_once_per_instance(
     tmp_path, fake_backend, monkeypatch
 ):
     env = _make_env(tmp_path)
-    monkeypatch.setattr("harbor.environments.cwsandbox._cwsandbox", None)
+    monkeypatch.setattr("sprint.environments.cwsandbox._cwsandbox", None)
 
     secret = env._create_secret(store="user", name="OPENAI_API_KEY")
 
@@ -1476,7 +1476,7 @@ async def test_start_cancellation_does_not_orphan_sandbox(
     """
     backend_sandboxes: set[str] = set()
     monkeypatch.setattr(
-        "harbor.environments.cwsandbox._cwsandbox",
+        "sprint.environments.cwsandbox._cwsandbox",
         _make_orphan_sdk(backend_sandboxes),
     )
 
@@ -1506,7 +1506,7 @@ async def test_start_cancellation_after_sdk_start_deletes_sandbox(
         await asyncio.sleep(60)
 
     monkeypatch.setattr(
-        "harbor.environments.cwsandbox.asyncio.to_thread",
+        "sprint.environments.cwsandbox.asyncio.to_thread",
         _blocked_to_thread,
     )
 

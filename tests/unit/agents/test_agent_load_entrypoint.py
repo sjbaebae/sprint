@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.aider import Aider
-from harbor.agents.nop import NopAgent
+from sprint.agents.installed.aider import Aider
+from sprint.agents.nop import NopAgent
 
 
 @pytest.mark.asyncio

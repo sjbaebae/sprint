@@ -7,9 +7,9 @@ from unittest.mock import patch
 
 import pytest
 
-from harbor.agents.installed.junie import Junie
-from harbor.models.agent.context import AgentContext
-from harbor.models.trajectories import (
+from sprint.agents.installed.junie import Junie
+from sprint.models.agent.context import AgentContext
+from sprint.models.trajectories import (
     Metrics,
     ObservationResult,
     ToolCall,

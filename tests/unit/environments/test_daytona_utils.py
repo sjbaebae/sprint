@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, Mock
 import pytest
 from tenacity import RetryCallState, retry, wait_fixed
 
-from harbor.environments.base import SandboxBuildFailedError
-from harbor.environments.daytona.utils import (
+from sprint.environments.base import SandboxBuildFailedError
+from sprint.environments.daytona.utils import (
     SANDBOX_RETRY,
     SANDBOX_WAIT,
     SNAPSHOT_GET_RETRY,
@@ -38,7 +38,7 @@ def fake_daytona_module(monkeypatch: pytest.MonkeyPatch) -> None:
     fake.common.errors.DaytonaRateLimitError = FakeDaytonaRateLimitError
     fake.common.errors.DaytonaConflictError = FakeDaytonaConflictError
     monkeypatch.setattr(
-        "harbor.environments.daytona.utils._get_daytona",
+        "sprint.environments.daytona.utils._get_daytona",
         lambda: fake,
     )
 

@@ -26,8 +26,8 @@ def make_experiment(tmp_path):
 
 
 def test_compile_keeps_private_files_out_of_learner(tmp_path):
-    pytest.importorskip("harbor")
-    from harbor.models.task.task import Task as HarborTask
+    pytest.importorskip("sprint")
+    from sprint.models.task.task import Task as HarborTask
 
     experiment = make_experiment(tmp_path)
     task = experiment.compile(tmp_path / "task")
@@ -47,7 +47,7 @@ def test_compile_keeps_private_files_out_of_learner(tmp_path):
 
 
 def test_compile_rejects_overlapping_public_private(tmp_path):
-    pytest.importorskip("harbor")
+    pytest.importorskip("sprint")
     experiment = make_experiment(tmp_path)
     experiment = Experiment(
         experiment.task, experiment.validation, experiment.agent, World(files=tmp_path)
@@ -57,7 +57,7 @@ def test_compile_rejects_overlapping_public_private(tmp_path):
 
 
 def test_compile_rejects_symlink_bundle(tmp_path):
-    pytest.importorskip("harbor")
+    pytest.importorskip("sprint")
     experiment = make_experiment(tmp_path)
     (experiment.world.files / "leak").symlink_to(experiment.validation.bundle)
     with pytest.raises(ValueError, match="symlink"):
@@ -212,7 +212,7 @@ def test_gpu_and_validation_resources_are_independent(tmp_path):
 
 
 def test_agent_trace_requires_separate_verifier():
-    from harbor.models.task.config import VerifierConfig
+    from sprint.models.task.config import VerifierConfig
 
     with pytest.raises(ValueError, match="separate"):
         VerifierConfig(include_agent_trace=True, environment_mode="shared")
@@ -290,7 +290,7 @@ def test_worker_and_agent_share_public_data_but_not_private_validation(tmp_path)
 
 
 def test_operator_setup_is_built_before_dropping_privileges():
-    from sprint.backends.harbor import dockerfile
+    from sprint.backends.runtime import dockerfile
 
     image = dockerfile(Sandbox(setup=("install-toolchain",)), copy_workspace=False)
     assert image.index("RUN install-toolchain") < image.index("USER agent")

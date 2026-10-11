@@ -6,9 +6,9 @@ from unittest.mock import patch
 
 import pytest
 
-from harbor.environments.apple_container import AppleContainerEnvironment
-from harbor.environments.daytona import DaytonaEnvironment, _DaytonaDirect
-from harbor.environments.definition import (
+from sprint.environments.apple_container import AppleContainerEnvironment
+from sprint.environments.daytona import DaytonaEnvironment, _DaytonaDirect
+from sprint.environments.definition import (
     effective_exec_cwd,
     environment_content_hash,
     has_agent_environment_definition,
@@ -17,12 +17,12 @@ from harbor.environments.definition import (
     should_upload_environment_dir,
     should_use_prebuilt_docker_image,
 )
-from harbor.environments.docker.docker import DockerEnvironment
-from harbor.environments.e2b import E2BEnvironment
-from harbor.environments.novita import NovitaEnvironment
-from harbor.environments.runloop import RunloopEnvironment
-from harbor.models.task.config import EnvironmentConfig
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments.docker.docker import DockerEnvironment
+from sprint.environments.e2b import E2BEnvironment
+from sprint.environments.novita import NovitaEnvironment
+from sprint.environments.runloop import RunloopEnvironment
+from sprint.models.task.config import EnvironmentConfig
+from sprint.models.trial.paths import TrialPaths
 
 
 def _trial_paths(temp_dir: Path) -> TrialPaths:

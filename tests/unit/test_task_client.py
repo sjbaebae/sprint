@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from harbor.db.client import ResolvedTaskVersion
-from harbor.models.task.id import GitTaskId, LocalTaskId, PackageTaskId
-from harbor.tasks.client import TaskClient
+from sprint.db.client import ResolvedTaskVersion
+from sprint.models.task.id import GitTaskId, LocalTaskId, PackageTaskId
+from sprint.tasks.client import TaskClient
 
 
 def _run_git(repo: Path, *args: str) -> str:
@@ -423,7 +423,7 @@ async def test_git_download_rejects_links(
 async def test_git_download_materializes_internal_links(
     tmp_path: Path, symlinks_available: None, pinned: bool, export: bool
 ) -> None:
-    from harbor.models.task.task import Task
+    from sprint.models.task.task import Task
 
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -512,7 +512,7 @@ async def test_git_download_normalizes_task_paths(
         path=Path("tasks/demo"),
     )
     output = tmp_path / "cache"
-    monkeypatch.setattr("harbor.models.task.id.TASK_CACHE_DIR", output)
+    monkeypatch.setattr("sprint.models.task.id.TASK_CACHE_DIR", output)
     client = TaskClient()
 
     first = await client.download_tasks([task_id], output_dir=output, export=export)
@@ -568,12 +568,12 @@ async def test_pinned_package_cache_hit_skips_hub(
     task_id = PackageTaskId(org="acme", name="demo", ref=f"sha256:{digest}")
     target = tmp_path / "acme" / "demo" / digest
     target.mkdir(parents=True)
-    monkeypatch.setattr("harbor.constants.PACKAGE_CACHE_DIR", tmp_path)
+    monkeypatch.setattr("sprint.constants.PACKAGE_CACHE_DIR", tmp_path)
     resolve = AsyncMock(side_effect=AssertionError("Unexpected Hub lookup"))
     monkeypatch.setattr(TaskClient, "_resolve_package_version", resolve)
     download = AsyncMock(side_effect=AssertionError("Unexpected archive download"))
     monkeypatch.setattr(
-        "harbor.storage.supabase.SupabaseStorage.download_file", download
+        "sprint.storage.supabase.SupabaseStorage.download_file", download
     )
     started, completed = MagicMock(), MagicMock()
 
@@ -651,7 +651,7 @@ async def test_yanked_package_task_resolution_warns(monkeypatch, caplog) -> None
             yanked_reason="broken verifier",
         )
     )
-    monkeypatch.setattr("harbor.db.client.RegistryDB", MagicMock(return_value=db))
+    monkeypatch.setattr("sprint.db.client.RegistryDB", MagicMock(return_value=db))
 
     resolved = await TaskClient()._resolve_package_version(
         PackageTaskId(org="acme", name="demo", ref="12")

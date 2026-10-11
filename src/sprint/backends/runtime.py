@@ -1,0 +1,381 @@
+"""Translate the small authoring API into native Harbor tasks and jobs."""
+
+import json
+import shlex
+import shutil
+from pathlib import Path
+
+
+def copy_tree(source, target):
+    """Reject symlinks and special files; never accidentally include outside data."""
+    source = Path(source)
+    if source.is_symlink() or not source.is_dir():
+        raise ValueError("bundle must be a real directory")
+    for path in source.rglob("*"):
+        if path.is_symlink() or not (path.is_file() or path.is_dir()):
+            raise ValueError(f"bundle contains a symlink or special file: {path}")
+    shutil.copytree(source, target)
+
+
+def dockerfile(
+    sandbox,
+    *,
+    verifier=False,
+    copy_workspace=True,
+    submission="/app/submission",
+    attachments=(),
+    workers=(),
+):
+    """Build tooling once in the image; do not download dependencies during grading."""
+    lines = [f"FROM {sandbox.image}", "WORKDIR /app"]
+    lines.extend("RUN " + command for command in sandbox.setup)
+    if sandbox.packages:
+        lines.append(
+            "RUN python -m pip install --no-cache-dir " + shlex.join(sandbox.packages)
+        )
+    if verifier:
+        lines += ["COPY . /tests"]
+    else:
+        lines.append("RUN useradd --create-home agent")
+        if copy_workspace:
+            lines.append("COPY workspace/ /app/")
+        # Explicit RUN works with providers whose Dockerfile translation drops
+        # COPY --chown. Create the output directory before dropping privileges.
+        lines.append(
+            f"RUN mkdir -p {shlex.quote(submission)} && chown -R agent:agent /app"
+        )
+        for name in attachments:
+            lines.append(f"COPY resources/{name}/ /resources/{name}/")
+        if attachments:
+            lines.append(
+                "RUN chown -R root:root /resources && "
+                "find /resources -type d -exec chmod 555 {} + && "
+                "find /resources -type f -exec chmod 444 {} +"
+            )
+        if workers:
+            lines += [
+                "COPY resource_client.py /opt/sprint-resource.py",
+                "RUN mkdir -p /resources/control/requests /resources/control/results && "
+                "chown agent:agent /resources/control/requests && "
+                "chmod 755 /resources /resources/control /resources/control/results && "
+                "printf '#!/bin/sh\\nexec python -I -S /opt/sprint-resource.py \"$@\"\\n' > /usr/local/bin/sprint-resource && "
+                "chmod 755 /usr/local/bin/sprint-resource && chmod 444 /opt/sprint-resource.py",
+                "COPY resource_manifest.json /resources/control/manifest.json",
+            ]
+        lines.append("USER agent")
+    return "\n".join(lines) + "\n"
+
+
+def build_worker(worker, directory, files=None):
+    """One build definition for inspected and provisioned worker images."""
+    directory = Path(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    for name, attachment in (files or {}).items():
+        (directory / "resources").mkdir(exist_ok=True)
+        copy_tree(attachment.path, directory / "resources" / name)
+    (directory / "Dockerfile").write_text(
+        dockerfile(
+            worker.sandbox, copy_workspace=False, attachments=tuple(files or {})
+        ).replace(
+            "USER agent\n",
+            "COPY worker_export.py /opt/sprint-export.py\n"
+            "RUN chmod 444 /opt/sprint-export.py\nUSER agent\n",
+        )
+    )
+    shutil.copyfile(
+        Path(__file__).parents[1] / "worker_export.py", directory / "worker_export.py"
+    )
+    return directory
+
+
+def compile_task(experiment, directory):
+    """Emit a new task with separate verifier; refuse to overwrite authored state."""
+    import toml
+    from ..spec import Files, Worker
+    from sprint.models.task.config import TaskConfig
+
+    directory = Path(directory)
+    if experiment.world.files is not None:
+        public = Path(experiment.world.files).resolve()
+        private = Path(experiment.validation.bundle).resolve()
+        if public.is_relative_to(private) or private.is_relative_to(public):
+            raise ValueError(
+                "learner files and private validation bundle must be separate trees"
+            )
+        if directory.resolve().is_relative_to(public):
+            raise ValueError("generated task cannot be inside the learner source tree")
+    if directory.resolve().is_relative_to(Path(experiment.validation.bundle).resolve()):
+        raise ValueError("generated task cannot be inside the validation source tree")
+    private = Path(experiment.validation.bundle).resolve()
+    for attachment in experiment.world.attachments.values():
+        if not isinstance(attachment, Files):
+            continue
+        source = Path(attachment.path).resolve()
+        if source.is_relative_to(private) or private.is_relative_to(source):
+            raise ValueError(
+                "attachments and private validation must be separate trees"
+            )
+        if directory.resolve().is_relative_to(source):
+            raise ValueError(
+                "generated task cannot be inside an attachment source tree"
+            )
+    directory.mkdir(parents=True, exist_ok=False)
+    directory.chmod(0o700)
+    learner = directory / "environment"
+    tests = directory / "tests"
+    learner.mkdir()
+    tests.mkdir()
+    world = experiment.world
+    validation = experiment.validation
+    if world.files is None:
+        (learner / "workspace").mkdir()
+    else:
+        copy_tree(world.files, learner / "workspace")
+    for name, attachment in world.attachments.items():
+        if isinstance(attachment, Worker):
+            worker_dir = directory / "workers" / name
+            build_worker(
+                attachment,
+                worker_dir,
+                {
+                    key: value
+                    for key, value in world.attachments.items()
+                    if isinstance(value, Files)
+                },
+            )
+            continue
+        (learner / "resources").mkdir(exist_ok=True)
+        copy_tree(attachment.path, learner / "resources" / name)
+    copy_tree(validation.bundle, tests / "bundle")
+    if not (tests / "bundle" / validation.entrypoint).is_file():
+        raise ValueError("validation entrypoint is missing")
+    if validation.rubric and not (tests / "bundle" / validation.rubric).is_file():
+        raise ValueError("rubric is missing")
+    workers = {
+        name: value
+        for name, value in world.attachments.items()
+        if isinstance(value, Worker)
+    }
+    if workers:
+        shutil.copyfile(
+            Path(__file__).parents[1] / "resource_client.py",
+            learner / "resource_client.py",
+        )
+        (learner / "resource_manifest.json").write_text(
+            json.dumps(
+                {
+                    name: {
+                        "operations": ["run", "status", "collect"],
+                        "seconds": value.seconds,
+                        "gpu": value.resources.gpu,
+                    }
+                    for name, value in workers.items()
+                }
+            )
+        )
+    (learner / "Dockerfile").write_text(
+        dockerfile(
+            world.sandbox,
+            copy_workspace=any((learner / "workspace").rglob("*")),
+            workers=workers,
+            submission=experiment.task.submission,
+            attachments=[
+                name
+                for name, value in world.attachments.items()
+                if isinstance(value, Files)
+            ],
+        )
+    )
+    (tests / "Dockerfile").write_text(dockerfile(validation.sandbox, verifier=True))
+    shutil.copyfile(Path(__file__).parents[1] / "validation.py", tests / "validate.py")
+    (tests / "config.json").write_text(
+        json.dumps(
+            {
+                "entrypoint": validation.entrypoint,
+                "rubric": validation.rubric,
+                "weights": validation.weights,
+                "submission": experiment.task.submission,
+            }
+        )
+    )
+    (tests / "test.sh").write_text(
+        "#!/bin/sh\nset -eu\npython /tests/validate.py /tests/config.json\n"
+    )
+    (tests / "test.sh").chmod(0o755)
+    if validation.reference is not None:
+        reference = Path(validation.reference)
+        if reference.is_symlink() or not reference.is_file():
+            raise ValueError("reference solution must be a regular shell script")
+        solution = directory / "solution"
+        solution.mkdir()
+        shutil.copyfile(reference, solution / "solve.sh")
+        (solution / "solve.sh").chmod(0o755)
+    (directory / "instruction.md").write_text(
+        experiment.task.objective
+        + "".join(
+            f"\nRead-only resource {name}: /resources/{name}\n"
+            for name, value in world.attachments.items()
+            if isinstance(value, Files)
+        )
+        + (
+            "\nUse sprint-resource list; sprint-resource run NAME SCRIPT.py --wait 60; sprint-resource status REQUEST_ID --wait 60; sprint-resource collect REQUEST_ID FILE_RELATIVE_TO_APP --wait 60. Collection returns a read-only artifact path to copy into your submission. Jobs execute Python on the named worker and preserve /app between calls.\n"
+            if workers
+            else ""
+        )
+        + f"\n\nWrite your final artifact under {experiment.task.submission}.\n"
+    )
+
+    def policy(sandbox):
+        mode = {"none": "no-network", "full": "public", "allowlist": "allowlist"}[
+            sandbox.internet
+        ]
+        return {"network_mode": mode, "allowed_hosts": list(sandbox.allowed_hosts)}
+
+    def resources(request):
+        return {
+            "cpus": request.cpus,
+            "memory_mb": request.memory_mb,
+            "gpus": request.gpu_count if request.gpu else 0,
+            "gpu_types": [request.gpu] if request.gpu else [],
+        }
+
+    sandbox = world.sandbox
+    config = {
+        "schema_version": "1.4",
+        "task": {"name": "sprint/" + experiment.task.name, "version": "0.1.0"},
+        "artifacts": [experiment.task.submission],
+        "agent": {
+            "timeout_sec": experiment.budget.seconds,
+            "user": "agent",
+            **policy(sandbox),
+        },
+        "environment": {
+            **resources(world.resources),
+            **policy(sandbox),
+        },
+        "verifier": {
+            "timeout_sec": validation.seconds,
+            "environment_mode": "separate",
+            "include_agent_trace": True,
+            "user": "root",
+            "environment": {
+                **resources(validation.resources),
+                **policy(validation.sandbox),
+            },
+            **policy(validation.sandbox),
+        },
+    }
+    TaskConfig.model_validate(config)
+    (directory / "task.toml").write_text(toml.dumps(config))
+    return directory
+
+
+async def run(experiment, *, directory, backend, trials, parallel):
+    """Use Harbor scheduling and native agent adapters rather than another runner."""
+    from sprint import (
+        Job,
+        JobConfig,
+        TrialAgentConfig,
+        TrialEnvironmentConfig,
+        TrialTaskConfig,
+    )
+
+    from ..spec import Worker
+
+    if trials < 1 or parallel < 1:
+        raise ValueError("trials and parallel must be positive")
+    directory = Path(directory).resolve()
+    task = compile_task(experiment, directory / "task")
+    config = JobConfig(
+        jobs_dir=directory / "runs",
+        n_attempts=trials,
+        n_concurrent_trials=parallel,
+        tasks=[TrialTaskConfig(path=task)],
+        agents=[
+            TrialAgentConfig(
+                name=experiment.agent.harness,
+                model_name=experiment.agent.model,
+                kwargs=experiment.agent.options,
+            )
+        ],
+        environment=TrialEnvironmentConfig(type=backend),
+    )
+    from sprint.trial.hooks import TrialEvent
+    from ..results import collect
+
+    job = await Job.create(config)
+    events_path = directory / "events.jsonl"
+
+    async def record(event):
+        # Operator-side lifecycle times; not substituted for absent agent turn times.
+        payload = {
+            "timestamp": event.timestamp.isoformat(),
+            "event": event.event.value,
+            "trial": event.trial_name,
+        }
+        with events_path.open("a") as stream:
+            stream.write(json.dumps(payload) + "\n")
+
+    for event in TrialEvent:
+        job.add_hook(event, record)
+    from ..broker import ResourceBroker
+    from ..workers import close_all
+
+    brokers = {}
+
+    async def resources(event):
+        if event.event == TrialEvent.AGENT_START:
+            workers = {
+                name: value
+                for name, value in experiment.world.attachments.items()
+                if isinstance(value, Worker)
+            }
+            if workers:
+                broker = ResourceBroker(
+                    event.environment,
+                    workers,
+                    directory=directory / "resources" / event.trial_name,
+                    backend=backend,
+                    contexts={name: task / "workers" / name for name in workers},
+                )
+                brokers[event.trial_name] = broker
+                await broker.start()
+        elif event.event == TrialEvent.AGENT_END:
+            broker = brokers.get(event.trial_name)
+            if broker is not None:
+                await broker.close()
+                brokers.pop(event.trial_name, None)
+
+    async def evidence(event):
+        # Separate-mode hook runs after learner shutdown and log collection.
+        # Replace learner-created lookalikes before supplying operator evidence.
+        if event.environment is None:
+            raise RuntimeError("missing trial environment for evidence transfer")
+        target = event.environment.trial_paths.agent_dir / "sprint-resources"
+        if target.is_dir() and not target.is_symlink():
+            shutil.rmtree(target)
+        elif target.exists() or target.is_symlink():
+            target.unlink()
+        target.mkdir(mode=0o700)
+        source = directory / "resources" / event.trial_name
+        if source.is_dir():
+            for worker in source.iterdir():
+                if worker.is_dir():
+                    destination = target / worker.name
+                    destination.mkdir()
+                    for file in worker.iterdir():
+                        if file.is_file() and file.suffix in {".py", ".jsonl"}:
+                            shutil.copyfile(file, destination / file.name)
+                elif worker.suffix == ".json":
+                    shutil.copyfile(worker, target / worker.name)
+
+    job.add_hook(TrialEvent.VERIFICATION_START, evidence)
+    job.add_hook(TrialEvent.AGENT_START, resources)
+    job.add_hook(TrialEvent.AGENT_END, resources)
+    try:
+        native = await job.run()
+    finally:
+        await close_all(brokers.values())
+    return collect(
+        directory, job.job_dir, native, submission=experiment.task.submission
+    )

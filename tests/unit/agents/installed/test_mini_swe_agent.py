@@ -18,13 +18,13 @@ from uuid import UUID
 
 import pytest
 
-from harbor.agents.installed.mini_swe_agent import (
+from sprint.agents.installed.mini_swe_agent import (
     MiniSweAgent,
     _normalize_content,
     convert_and_save_trajectory,
     convert_mini_swe_agent_to_atif,
 )
-from harbor.models.agent.context import AgentContext
+from sprint.models.agent.context import AgentContext
 
 # ---------------------------------------------------------------------------
 # Fixtures: realistic v2 tool-calling trajectory data

@@ -6,20 +6,20 @@ from pathlib import Path
 
 import pytest
 
-from harbor.agents.base import BaseAgent
-from harbor.environments.base import BaseEnvironment
-from harbor.environments.capabilities import EnvironmentCapabilities
-from harbor.models.agent.context import AgentContext
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.trial.config import (
+from sprint.agents.base import BaseAgent
+from sprint.environments.base import BaseEnvironment
+from sprint.environments.capabilities import EnvironmentCapabilities
+from sprint.models.agent.context import AgentContext
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.trial.config import (
     AgentConfig,
     EnvironmentConfig,
     TaskConfig,
     TrialConfig,
     VerifierConfig,
 )
-from harbor.trial.hooks import TrialEvent
-from harbor.trial.trial import Trial
+from sprint.trial.hooks import TrialEvent
+from sprint.trial.trial import Trial
 
 
 class HangingAgent(BaseAgent):

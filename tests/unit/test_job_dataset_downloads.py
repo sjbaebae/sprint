@@ -5,15 +5,15 @@ from uuid import uuid4
 import pytest
 from typer.testing import CliRunner
 
-from harbor.cli.main import app
-from harbor.job import Job
-from harbor.models.job.config import DatasetConfig, JobConfig
-from harbor.models.job.result import JobResult
-from harbor.models.registry import DatasetMetadata
-from harbor.models.task.id import PackageTaskId
-from harbor.models.trial.config import AgentConfig
-from harbor.registry.client.package import PackageDatasetClient
-from harbor.tasks.client import BatchDownloadResult, TaskDownloadResult
+from sprint.cli.main import app
+from sprint.job import Job
+from sprint.models.job.config import DatasetConfig, JobConfig
+from sprint.models.job.result import JobResult
+from sprint.models.registry import DatasetMetadata
+from sprint.models.task.id import PackageTaskId
+from sprint.models.trial.config import AgentConfig
+from sprint.registry.client.package import PackageDatasetClient
+from sprint.tasks.client import BatchDownloadResult, TaskDownloadResult
 
 pytestmark = pytest.mark.unit
 
@@ -41,9 +41,9 @@ def package_job(monkeypatch, tmp_path):
             total_time_sec=0,
         )
     )
-    monkeypatch.setattr("harbor.tasks.client.TaskClient.download_tasks", downloads)
+    monkeypatch.setattr("sprint.tasks.client.TaskClient.download_tasks", downloads)
     record = AsyncMock()
-    monkeypatch.setattr("harbor.db.client.RegistryDB.record_dataset_download", record)
+    monkeypatch.setattr("sprint.db.client.RegistryDB.record_dataset_download", record)
     config = JobConfig(
         job_name="dataset-download-test",
         jobs_dir=tmp_path / "jobs",
@@ -128,10 +128,10 @@ async def test_recording_failure_does_not_prevent_job_creation(package_job):
 def test_hub_dataset_dry_run_does_not_record_download(package_job, monkeypatch):
     config, downloads, record = package_job
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight", lambda **_: None
+        "sprint.environments.factory.EnvironmentFactory.run_preflight", lambda **_: None
     )
     monkeypatch.setattr(
-        "harbor.cli.jobs.show_registry_hint_if_first_run", lambda _: None
+        "sprint.cli.jobs.show_registry_hint_if_first_run", lambda _: None
     )
 
     result = CliRunner().invoke(

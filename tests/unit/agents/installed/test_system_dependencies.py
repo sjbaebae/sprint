@@ -4,13 +4,13 @@ from unittest.mock import AsyncMock, call, patch
 
 import pytest
 
-from harbor.agents.installed.aider import Aider
-from harbor.agents.installed.antigravity_cli import AntigravityCli
-from harbor.agents.installed.gemini_cli import GeminiCli
-from harbor.agents.installed.kimi_cli import KimiCli
-from harbor.agents.installed.mimo import MiMo
-from harbor.agents.installed.pi import Pi
-from harbor.agents.installed.qwen_code import QwenCode
+from sprint.agents.installed.aider import Aider
+from sprint.agents.installed.antigravity_cli import AntigravityCli
+from sprint.agents.installed.gemini_cli import GeminiCli
+from sprint.agents.installed.kimi_cli import KimiCli
+from sprint.agents.installed.mimo import MiMo
+from sprint.agents.installed.pi import Pi
+from sprint.agents.installed.qwen_code import QwenCode
 
 
 def _result(

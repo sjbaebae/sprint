@@ -4,16 +4,16 @@ from pathlib import Path
 
 import pytest
 
-from harbor.models.task.config import (
+from sprint.models.task.config import (
     EnvironmentConfig,
     StepConfig,
     TaskConfig,
     VerifierConfig,
     VerifierEnvironmentMode,
 )
-from harbor.models.task.paths import TaskPaths
-from harbor.models.task.task import Task
-from harbor.models.task.verifier_mode import (
+from sprint.models.task.paths import TaskPaths
+from sprint.models.task.task import Task
+from sprint.models.task.verifier_mode import (
     resolve_effective_verifier_env_config,
     resolve_step_verifier_mode,
     resolve_task_verifier_mode,

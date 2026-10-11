@@ -5,17 +5,17 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
-from harbor.cli.download import _download_dataset
-from harbor.cli.main import app
-from harbor.models.job.config import DatasetConfig, JobConfig
-from harbor.models.package.dataset_task import DatasetVersionTaskRow
-from harbor.models.registry import DatasetMetadata
-from harbor.models.task.id import PackageTaskId
-from harbor.registry.client.base import (
+from sprint.cli.download import _download_dataset
+from sprint.cli.main import app
+from sprint.models.job.config import DatasetConfig, JobConfig
+from sprint.models.package.dataset_task import DatasetVersionTaskRow
+from sprint.models.registry import DatasetMetadata
+from sprint.models.task.id import PackageTaskId
+from sprint.registry.client.base import (
     EmptyDatasetError,
     UnavailableDatasetTasksError,
 )
-from harbor.registry.client.package import PackageDatasetClient
+from sprint.registry.client.package import PackageDatasetClient
 
 _DATASET_RESOLUTION_ERRORS = (
     EmptyDatasetError("acme/benchmark@latest"),
@@ -200,7 +200,7 @@ async def test_cli_preserves_unavailable_task_error(monkeypatch) -> None:
         side_effect=UnavailableDatasetTasksError("acme/benchmark@latest", 1)
     )
     monkeypatch.setattr(
-        "harbor.registry.client.package.PackageDatasetClient",
+        "sprint.registry.client.package.PackageDatasetClient",
         MagicMock(return_value=client),
     )
 
@@ -226,18 +226,18 @@ def test_run_reports_unavailable_tasks_before_creating_job(
         side_effect=UnavailableDatasetTasksError("acme/benchmark@latest", 2)
     )
     monkeypatch.setattr(
-        "harbor.registry.client.package.PackageDatasetClient",
+        "sprint.registry.client.package.PackageDatasetClient",
         MagicMock(return_value=client),
     )
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight",
+        "sprint.environments.factory.EnvironmentFactory.run_preflight",
         lambda **_: None,
     )
     monkeypatch.setattr(
-        "harbor.cli.jobs.show_registry_hint_if_first_run", lambda _: None
+        "sprint.cli.jobs.show_registry_hint_if_first_run", lambda _: None
     )
     run_job = AsyncMock()
-    monkeypatch.setattr("harbor.job.Job.run", run_job)
+    monkeypatch.setattr("sprint.job.Job.run", run_job)
     jobs_dir = tmp_path / "jobs"
 
     result = CliRunner().invoke(
@@ -292,7 +292,7 @@ async def test_package_task_configs_pin_version_to_resolved_ref(monkeypatch) -> 
         )
     )
     monkeypatch.setattr(
-        "harbor.registry.client.package.PackageDatasetClient",
+        "sprint.registry.client.package.PackageDatasetClient",
         MagicMock(return_value=client),
     )
     config = DatasetConfig(name="acme/benchmark", version="1.2.3")
@@ -311,7 +311,7 @@ async def test_package_task_configs_reject_empty_dataset(monkeypatch) -> None:
     client = MagicMock()
     client.get_dataset_metadata = AsyncMock(return_value=_empty_dataset_metadata())
     monkeypatch.setattr(
-        "harbor.registry.client.package.PackageDatasetClient",
+        "sprint.registry.client.package.PackageDatasetClient",
         MagicMock(return_value=client),
     )
 
@@ -330,7 +330,7 @@ async def test_cli_preserves_empty_dataset_error(monkeypatch) -> None:
         side_effect=EmptyDatasetError("acme/benchmark@latest")
     )
     monkeypatch.setattr(
-        "harbor.registry.client.package.PackageDatasetClient",
+        "sprint.registry.client.package.PackageDatasetClient",
         MagicMock(return_value=client),
     )
 
@@ -354,18 +354,18 @@ def test_run_reports_empty_dataset_before_creating_job(
     client = MagicMock()
     client.get_dataset_metadata = AsyncMock(return_value=_empty_dataset_metadata())
     monkeypatch.setattr(
-        "harbor.registry.client.package.PackageDatasetClient",
+        "sprint.registry.client.package.PackageDatasetClient",
         MagicMock(return_value=client),
     )
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight",
+        "sprint.environments.factory.EnvironmentFactory.run_preflight",
         lambda **_: None,
     )
     monkeypatch.setattr(
-        "harbor.cli.jobs.show_registry_hint_if_first_run", lambda _: None
+        "sprint.cli.jobs.show_registry_hint_if_first_run", lambda _: None
     )
     run_job = AsyncMock()
-    monkeypatch.setattr("harbor.job.Job.run", run_job)
+    monkeypatch.setattr("sprint.job.Job.run", run_job)
     jobs_dir = tmp_path / "jobs"
 
     result = CliRunner().invoke(
@@ -404,12 +404,12 @@ def _mock_package_dataset(
     else:
         client.get_dataset_metadata = AsyncMock(return_value=metadata)
     monkeypatch.setattr(
-        "harbor.registry.client.package.PackageDatasetClient",
+        "sprint.registry.client.package.PackageDatasetClient",
         MagicMock(return_value=client),
     )
     db = MagicMock()
     db.get_package_type = AsyncMock(return_value="dataset")
-    monkeypatch.setattr("harbor.db.client.RegistryDB", MagicMock(return_value=db))
+    monkeypatch.setattr("sprint.db.client.RegistryDB", MagicMock(return_value=db))
     return client
 
 
@@ -494,15 +494,15 @@ def test_resume_reports_dataset_resolution_before_creating_job(
     client = MagicMock()
     client.get_dataset_metadata = AsyncMock(side_effect=exc)
     monkeypatch.setattr(
-        "harbor.registry.client.package.PackageDatasetClient",
+        "sprint.registry.client.package.PackageDatasetClient",
         MagicMock(return_value=client),
     )
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight",
+        "sprint.environments.factory.EnvironmentFactory.run_preflight",
         lambda **_: None,
     )
     run_job = AsyncMock()
-    monkeypatch.setattr("harbor.job.Job.run", run_job)
+    monkeypatch.setattr("sprint.job.Job.run", run_job)
 
     result = CliRunner().invoke(app, ["jobs", "resume", "--job-path", str(job_dir)])
 
@@ -521,15 +521,15 @@ def test_regrade_reports_dataset_resolution_before_creating_job(
     client = MagicMock()
     client.get_dataset_metadata = AsyncMock(side_effect=exc)
     monkeypatch.setattr(
-        "harbor.registry.client.package.PackageDatasetClient",
+        "sprint.registry.client.package.PackageDatasetClient",
         MagicMock(return_value=client),
     )
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight",
+        "sprint.environments.factory.EnvironmentFactory.run_preflight",
         lambda **_: None,
     )
     run_job = AsyncMock()
-    monkeypatch.setattr("harbor.job.Job.run", run_job)
+    monkeypatch.setattr("sprint.job.Job.run", run_job)
 
     result = CliRunner().invoke(
         app, ["jobs", "regrade", str(job_dir), "--dataset", "acme/benchmark"]

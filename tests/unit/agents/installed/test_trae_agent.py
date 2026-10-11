@@ -6,8 +6,8 @@ from unittest.mock import patch
 
 import yaml
 
-from harbor.agents.installed.trae_agent import TraeAgent
-from harbor.models.agent.context import AgentContext
+from sprint.agents.installed.trae_agent import TraeAgent
+from sprint.models.agent.context import AgentContext
 
 
 # ---------------------------------------------------------------------------
@@ -134,7 +134,7 @@ class TestTraeAgentTrajectoryConverter:
         assert s.observation is None
 
         # Ensure the trajectory is valid ATIF
-        from harbor.utils.trajectory_validator import TrajectoryValidator
+        from sprint.utils.trajectory_validator import TrajectoryValidator
 
         validator = TrajectoryValidator()
         is_valid = validator.validate(trajectory.to_json_dict(), validate_images=False)
@@ -359,7 +359,7 @@ class TestTraeAgentTrajectoryConverter:
 
     def test_trajectory_passes_validation(self, temp_dir):
         """The converted trajectory must pass the TrajectoryValidator."""
-        from harbor.utils.trajectory_validator import TrajectoryValidator
+        from sprint.utils.trajectory_validator import TrajectoryValidator
 
         agent = TraeAgent(
             logs_dir=temp_dir, model_name="anthropic/claude-sonnet-4-20250514"

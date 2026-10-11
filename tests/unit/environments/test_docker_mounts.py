@@ -6,12 +6,12 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.environments.docker import self_bind_mount
-from harbor.environments.docker.compose_env import ComposeInfraEnvVars
-from harbor.environments.docker.docker import DockerEnvironment
-from harbor.models.task.config import EnvironmentConfig
-from harbor.models.trial.config import ServiceVolumeConfig
-from harbor.models.trial.paths import EnvironmentPaths, TrialPaths
+from sprint.environments.docker import self_bind_mount
+from sprint.environments.docker.compose_env import ComposeInfraEnvVars
+from sprint.environments.docker.docker import DockerEnvironment
+from sprint.models.task.config import EnvironmentConfig
+from sprint.models.trial.config import ServiceVolumeConfig
+from sprint.models.trial.paths import EnvironmentPaths, TrialPaths
 
 
 @pytest.fixture

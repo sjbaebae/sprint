@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from harbor.analyze.analyzer import (
+from sprint.analyze.analyzer import (
     ANALYZE_TASK_TEMPLATE_DIR,
     _extract_analyze_result,
     _get_trial_dirs,
@@ -19,12 +19,12 @@ from harbor.analyze.analyzer import (
     assemble_analyze_task,
     run_analyze,
 )
-from harbor.analyze.models import (
+from sprint.analyze.models import (
     AnalyzeReportResult,
     build_analyze_response_model,
     load_rubric,
 )
-from harbor.models.task.task import Task
+from sprint.models.task.task import Task
 
 MOCK_ANALYZE_RESULT = {
     "trial_name": "test-trial",

@@ -10,12 +10,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from harbor.environments import ec2 as ec2_module
-from harbor.environments.base import ExecResult
-from harbor.environments.ec2 import EC2Environment
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments import ec2 as ec2_module
+from sprint.environments.base import ExecResult
+from sprint.environments.ec2 import EC2Environment
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.paths import TrialPaths
 
 
 pytestmark = pytest.mark.skipif(

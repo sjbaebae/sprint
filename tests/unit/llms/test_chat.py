@@ -1,8 +1,8 @@
 import pytest
 
-from harbor.llms.base import BaseLLM, LLMResponse
-from harbor.llms.chat import Chat
-from harbor.models.metric import UsageInfo
+from sprint.llms.base import BaseLLM, LLMResponse
+from sprint.llms.chat import Chat
+from sprint.models.metric import UsageInfo
 
 
 class FakeLLM(BaseLLM):

@@ -1,4 +1,4 @@
-"""Run from the repository root: uv run --package research-sprint python examples/sprint/answer/environment.py."""
+"""Run from the repository root: uv run --package sprint python examples/sprint/answer/environment.py."""
 
 import asyncio
 from pathlib import Path

@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from typer.testing import CliRunner
 
-from harbor.cli.main import app
+from sprint.cli.main import app
 
 runner = CliRunner()
 
@@ -41,11 +41,11 @@ class TestCheckCommand:
     @pytest.mark.unit
     def test_check_task_error_exits_nonzero(self, tmp_path):
         """A task whose check couldn't be produced exits nonzero for CI/scripts."""
-        from harbor.cli.quality_checker.models import CheckReport, QualityCheckResult
+        from sprint.cli.quality_checker.models import CheckReport, QualityCheckResult
 
         report = CheckReport(results=[QualityCheckResult(task_name="t", error="boom")])
         with patch(
-            "harbor.analyze.checker.run_checks",
+            "sprint.analyze.checker.run_checks",
             AsyncMock(return_value=(report, tmp_path / "jobs" / "j")),
         ):
             result = runner.invoke(app, ["check", str(tmp_path)])
@@ -55,7 +55,7 @@ class TestCheckCommand:
     @pytest.mark.unit
     def test_check_fail_outcome_exits_zero(self, tmp_path):
         """A produced check with a 'fail' criterion is valid data, not an error."""
-        from harbor.cli.quality_checker.models import CheckReport, QualityCheckResult
+        from sprint.cli.quality_checker.models import CheckReport, QualityCheckResult
 
         report = CheckReport(
             results=[
@@ -66,7 +66,7 @@ class TestCheckCommand:
             ]
         )
         with patch(
-            "harbor.analyze.checker.run_checks",
+            "sprint.analyze.checker.run_checks",
             AsyncMock(return_value=(report, tmp_path / "jobs" / "j")),
         ):
             result = runner.invoke(app, ["check", str(tmp_path)])
@@ -121,14 +121,14 @@ class TestAnalyzeCommand:
     @pytest.mark.unit
     def test_analyze_trial_error_exits_nonzero(self, tmp_path):
         """A trial whose analysis couldn't be produced exits nonzero for CI/scripts."""
-        from harbor.analyze.models import AnalyzeReport, AnalyzeReportResult
+        from sprint.analyze.models import AnalyzeReport, AnalyzeReportResult
 
         trial_dir = _make_trial_dir(tmp_path)
         report = AnalyzeReport(
             results=[AnalyzeReportResult(trial_name="trial", error="boom")]
         )
         with patch(
-            "harbor.analyze.analyzer.run_analyze",
+            "sprint.analyze.analyzer.run_analyze",
             AsyncMock(return_value=(report, tmp_path / "jobs" / "j")),
         ):
             result = runner.invoke(app, ["analyze", str(trial_dir)])
@@ -138,7 +138,7 @@ class TestAnalyzeCommand:
     @pytest.mark.unit
     def test_analyze_fail_outcome_exits_zero(self, tmp_path):
         """A produced analysis with a 'fail' criterion is valid data, not an error."""
-        from harbor.analyze.models import AnalyzeReport, AnalyzeReportResult
+        from sprint.analyze.models import AnalyzeReport, AnalyzeReportResult
 
         trial_dir = _make_trial_dir(tmp_path)
         report = AnalyzeReport(
@@ -151,7 +151,7 @@ class TestAnalyzeCommand:
             ]
         )
         with patch(
-            "harbor.analyze.analyzer.run_analyze",
+            "sprint.analyze.analyzer.run_analyze",
             AsyncMock(return_value=(report, tmp_path / "jobs" / "j")),
         ):
             result = runner.invoke(app, ["analyze", str(trial_dir)])
@@ -161,7 +161,7 @@ class TestAnalyzeCommand:
     @pytest.mark.unit
     def test_analyze_forwards_flags_to_run_analyze(self, tmp_path):
         """CLI flags map onto run_analyze keyword arguments."""
-        from harbor.analyze.models import AnalyzeReport, AnalyzeReportResult
+        from sprint.analyze.models import AnalyzeReport, AnalyzeReportResult
 
         trial_dir = _make_trial_dir(tmp_path)
         report = AnalyzeReport(
@@ -174,7 +174,7 @@ class TestAnalyzeCommand:
             ]
         )
         mock_run = AsyncMock(return_value=(report, tmp_path / "jobs" / "j"))
-        with patch("harbor.analyze.analyzer.run_analyze", mock_run):
+        with patch("sprint.analyze.analyzer.run_analyze", mock_run):
             result = runner.invoke(
                 app,
                 ["analyze", "-n", "7", "-k", "2", "-m", "opus", str(trial_dir)],

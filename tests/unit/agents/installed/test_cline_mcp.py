@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.cline.cline import ClineCli
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.cline.cline import ClineCli
+from sprint.models.task.config import MCPServerConfig
 
 
 class TestRegisterMcpServers:

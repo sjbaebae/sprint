@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from harbor.analyze.models import AnalyzeResult, QualityCheckModel
+from sprint.analyze.models import AnalyzeResult, QualityCheckModel
 
 
 class TestAnalyzeResult:

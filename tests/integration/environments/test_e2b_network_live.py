@@ -10,9 +10,9 @@ import pytest
 
 pytest.importorskip("e2b")
 
-from harbor.environments.e2b import E2BEnvironment
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments.e2b import E2BEnvironment
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.paths import TrialPaths
 
 pytestmark = pytest.mark.integration
 

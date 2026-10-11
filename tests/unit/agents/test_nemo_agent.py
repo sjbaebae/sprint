@@ -9,9 +9,9 @@ import pytest
 import yaml
 from unittest.mock import AsyncMock
 
-from harbor.agents.installed.nemo_agent import NemoAgent
-from harbor.models.agent.context import AgentContext
-from harbor.models.agent.name import AgentName
+from sprint.agents.installed.nemo_agent import NemoAgent
+from sprint.models.agent.context import AgentContext
+from sprint.models.agent.name import AgentName
 
 
 @pytest.fixture

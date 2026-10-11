@@ -6,10 +6,10 @@ from unittest.mock import AsyncMock
 import pytest
 import yaml
 
-from harbor.agents.factory import AgentFactory
-from harbor.agents.installed.hermes import Hermes
-from harbor.models.agent.context import AgentContext
-from harbor.models.agent.name import AgentName
+from sprint.agents.factory import AgentFactory
+from sprint.agents.installed.hermes import Hermes
+from sprint.models.agent.context import AgentContext
+from sprint.models.agent.name import AgentName
 
 
 def test_agent_metadata():

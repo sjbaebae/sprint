@@ -21,10 +21,10 @@ from modal.exception import (
     SandboxFilesystemNotFoundError,
 )
 
-import harbor.environments.modal as modal_mod
-from harbor.environments.base import ExecResult, ServiceOperationsUnsupportedError
-from harbor.environments.factory import EnvironmentFactory
-from harbor.environments.modal import (
+import sprint.environments.modal as modal_mod
+from sprint.environments.base import ExecResult, ServiceOperationsUnsupportedError
+from sprint.environments.factory import EnvironmentFactory
+from sprint.environments.modal import (
     _MODAL_DEFAULT_CPU_REQUEST_CORES,
     _MODAL_DEFAULT_MEMORY_REQUEST_MB,
     ModalEnvironment,
@@ -32,10 +32,10 @@ from harbor.environments.modal import (
     _ModalDinD,
     _ModalDirect,
 )
-from harbor.environments.ssh import SSHAccess, SSHAccessError, StreamHandle
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.config import ResourceMode, ServiceVolumeConfig
-from harbor.models.trial.paths import EnvironmentPaths, TrialPaths
+from sprint.environments.ssh import SSHAccess, SSHAccessError, StreamHandle
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.config import ResourceMode, ServiceVolumeConfig
+from sprint.models.trial.paths import EnvironmentPaths, TrialPaths
 
 
 def _make_env(
@@ -196,7 +196,7 @@ class TestStreaming:
     async def test_start_only_prepares_ssh_when_requested(
         self, temp_dir, monkeypatch, stream
     ):
-        from harbor.environments.ssh import StreamHandle
+        from sprint.environments.ssh import StreamHandle
 
         env = _make_env(temp_dir, environment_kwargs={"stream": stream})
         handle = StreamHandle(provider="modal", reference={"sandbox_id": "sb-test"})
@@ -233,7 +233,7 @@ class TestSandboxLabels:
     ) -> dict[str, Any]:
         sandbox_cls = MagicMock()
         sandbox_cls.create.aio = AsyncMock(return_value=MagicMock())
-        monkeypatch.setattr("harbor.environments.modal.Sandbox", sandbox_cls)
+        monkeypatch.setattr("sprint.environments.modal.Sandbox", sandbox_cls)
         await env._create_sandbox()
         await_args = sandbox_cls.create.aio.await_args
         assert await_args is not None
@@ -243,9 +243,9 @@ class TestSandboxLabels:
         env = _make_env(temp_dir)
 
         assert env._sandbox_labels() == {
-            "harbor.managed": "true",
-            "harbor.environment_name": env.environment_name,
-            "harbor.session_id": env.session_id,
+            "sprint.managed": "true",
+            "sprint.environment_name": env.environment_name,
+            "sprint.session_id": env.session_id,
         }
 
     async def test_default_assigns_modal_tags(self, temp_dir, monkeypatch):
@@ -254,9 +254,9 @@ class TestSandboxLabels:
         kwargs = await self._create_kwargs(env, monkeypatch)
 
         assert kwargs["tags"] == {
-            "harbor.managed": "true",
-            "harbor.environment_name": env.environment_name,
-            "harbor.session_id": env.session_id,
+            "sprint.managed": "true",
+            "sprint.environment_name": env.environment_name,
+            "sprint.session_id": env.session_id,
         }
 
     def test_gate_off_user_labels_apply_without_auto_labels(self, temp_dir):
@@ -279,16 +279,16 @@ class TestSandboxLabels:
             temp_dir,
             environment_kwargs={
                 "auto_labels": True,
-                "labels": {"harbor.myrun": "sweep-3", "team": "modal"},
+                "labels": {"sprint.myrun": "sweep-3", "team": "modal"},
             },
         )
 
         assert env._sandbox_labels() == {
-            "harbor.myrun": "sweep-3",
+            "sprint.myrun": "sweep-3",
             "team": "modal",
-            "harbor.managed": "true",
-            "harbor.environment_name": env.environment_name,
-            "harbor.session_id": env.session_id,
+            "sprint.managed": "true",
+            "sprint.environment_name": env.environment_name,
+            "sprint.session_id": env.session_id,
         }
 
     @pytest.mark.parametrize("auto_labels", [False, True])
@@ -300,7 +300,7 @@ class TestSandboxLabels:
                 temp_dir,
                 environment_kwargs={
                     "auto_labels": auto_labels,
-                    "labels": {"harbor.session_id": "spoof"},
+                    "labels": {"sprint.session_id": "spoof"},
                 },
             )
 
@@ -311,7 +311,7 @@ class TestSandboxRegion:
     ) -> dict[str, Any]:
         sandbox_cls = MagicMock()
         sandbox_cls.create.aio = AsyncMock(return_value=MagicMock())
-        monkeypatch.setattr("harbor.environments.modal.Sandbox", sandbox_cls)
+        monkeypatch.setattr("sprint.environments.modal.Sandbox", sandbox_cls)
         await env._create_sandbox()
         await_args = sandbox_cls.create.aio.await_args
         assert await_args is not None
@@ -341,7 +341,7 @@ class TestNetworkPolicy:
     async def _create_kwargs(self, env, monkeypatch) -> dict:
         sandbox_cls = MagicMock()
         sandbox_cls.create.aio = AsyncMock(return_value=MagicMock())
-        monkeypatch.setattr("harbor.environments.modal.Sandbox", sandbox_cls)
+        monkeypatch.setattr("sprint.environments.modal.Sandbox", sandbox_cls)
         await env._create_sandbox()
         return sandbox_cls.create.aio.await_args.kwargs
 
@@ -421,7 +421,7 @@ class TestDynamicNetworkPolicy:
     async def _create_kwargs(env, monkeypatch) -> dict:
         sandbox_cls = MagicMock()
         sandbox_cls.create.aio = AsyncMock(return_value=MagicMock())
-        monkeypatch.setattr("harbor.environments.modal.Sandbox", sandbox_cls)
+        monkeypatch.setattr("sprint.environments.modal.Sandbox", sandbox_cls)
         await env._create_sandbox()
         return sandbox_cls.create.aio.await_args.kwargs
 
@@ -1684,7 +1684,7 @@ class TestCreateSandboxEntrypoint:
     async def test_entrypoint_forwarded_as_positional_args(self, temp_dir):
         env = _make_env(temp_dir)
         with patch(
-            "harbor.environments.modal.Sandbox.create",
+            "sprint.environments.modal.Sandbox.create",
             new=MagicMock(aio=AsyncMock(return_value=MagicMock())),
         ) as mock_create:
             await env._create_sandbox(entrypoint=["sh", "-c", "sleep infinity"])
@@ -1697,7 +1697,7 @@ class TestCreateSandboxEntrypoint:
     async def test_no_entrypoint_passes_no_positional_args(self, temp_dir):
         env = _make_env(temp_dir)
         with patch(
-            "harbor.environments.modal.Sandbox.create",
+            "sprint.environments.modal.Sandbox.create",
             new=MagicMock(aio=AsyncMock(return_value=MagicMock())),
         ) as mock_create:
             await env._create_sandbox()
@@ -1722,11 +1722,11 @@ class TestCreateSandboxEntrypoint:
 
         with (
             patch(
-                "harbor.environments.modal.Image.from_dockerfile",
+                "sprint.environments.modal.Image.from_dockerfile",
                 return_value=MagicMock(),
             ),
             patch(
-                "harbor.environments.modal.App.lookup",
+                "sprint.environments.modal.App.lookup",
                 new=MagicMock(aio=AsyncMock(return_value=MagicMock())),
             ),
             patch.object(
@@ -1773,11 +1773,11 @@ class TestCreateSandboxEntrypoint:
 
         with (
             patch(
-                "harbor.environments.modal.Image.from_registry",
+                "sprint.environments.modal.Image.from_registry",
                 return_value=MagicMock(),
             ),
             patch(
-                "harbor.environments.modal.App.lookup",
+                "sprint.environments.modal.App.lookup",
                 new=MagicMock(aio=AsyncMock(return_value=MagicMock())),
             ),
             patch.object(
@@ -1811,11 +1811,11 @@ class TestCreateSandboxEntrypoint:
 
         with (
             patch(
-                "harbor.environments.modal.Image.from_dockerfile",
+                "sprint.environments.modal.Image.from_dockerfile",
                 return_value=MagicMock(),
             ),
             patch(
-                "harbor.environments.modal.App.lookup",
+                "sprint.environments.modal.App.lookup",
                 new=MagicMock(aio=AsyncMock(return_value=MagicMock())),
             ),
             patch.object(
@@ -1843,11 +1843,11 @@ class TestCreateSandboxEntrypoint:
 
         with (
             patch(
-                "harbor.environments.modal.Image.from_dockerfile",
+                "sprint.environments.modal.Image.from_dockerfile",
                 return_value=MagicMock(),
             ),
             patch(
-                "harbor.environments.modal.App.lookup",
+                "sprint.environments.modal.App.lookup",
                 new=MagicMock(aio=AsyncMock(return_value=MagicMock())),
             ),
             patch.object(
@@ -1903,7 +1903,7 @@ class TestSSH:
         )
         monkeypatch.setattr(modal_mod, "run_local", run_local)
         monkeypatch.setattr(
-            "harbor.environments.ssh.user_cache_path", lambda _: tmp_path / "cache"
+            "sprint.environments.ssh.user_cache_path", lambda _: tmp_path / "cache"
         )
         monkeypatch.setattr(SSHAccess, "run", AsyncMock(return_value=b""))
         return sandbox

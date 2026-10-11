@@ -6,21 +6,21 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from harbor.job import Job
-from harbor.metrics.mean import Mean
-from harbor.models.job.config import JobConfig
-from harbor.models.job.lock import VerifierLock, TaskLock, TrialLock
-from harbor.models.job.result import JobResult, JobStats
-from harbor.models.trial.config import (
+from sprint.job import Job
+from sprint.metrics.mean import Mean
+from sprint.models.job.config import JobConfig
+from sprint.models.job.lock import VerifierLock, TaskLock, TrialLock
+from sprint.models.job.result import JobResult, JobStats
+from sprint.models.trial.config import (
     AgentConfig,
     EnvironmentConfig,
     TaskConfig,
     TrialConfig,
 )
-from harbor.models.trial.result import AgentInfo, ExceptionInfo, TrialResult
-from harbor.models.verifier.result import VerifierResult
-from harbor.tasks.client import TaskDownloadResult
-from harbor.trial.hooks import TrialEvent, TrialHookEvent
+from sprint.models.trial.result import AgentInfo, ExceptionInfo, TrialResult
+from sprint.models.verifier.result import VerifierResult
+from sprint.tasks.client import TaskDownloadResult
+from sprint.trial.hooks import TrialEvent, TrialHookEvent
 
 
 def _make_job(tmp_path: Path, task_configs: list[TaskConfig] | None = None) -> Job:
@@ -387,7 +387,7 @@ def test_job_resume_skips_unparseable_existing_trial_results(
     )
     (truncated_trial_dir / "result.json").write_text('{"task_name":')
     first_job._close_logger_handlers()
-    caplog.set_level(logging.WARNING, logger="harbor.utils.logger")
+    caplog.set_level(logging.WARNING, logger="sprint.utils.logger")
 
     resumed_job = _make_job(tmp_path, [task_config])
     try:

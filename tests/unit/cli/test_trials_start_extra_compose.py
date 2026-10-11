@@ -3,8 +3,8 @@ from types import SimpleNamespace
 
 from typer.testing import CliRunner
 
-from harbor.cli.main import app
-from harbor.models.trial.config import TrialConfig
+from sprint.cli.main import app
+from sprint.models.trial.config import TrialConfig
 
 
 runner = CliRunner()
@@ -40,7 +40,7 @@ def test_trials_start_appends_repeated_extra_docker_compose_flags(
         captured.append(config)
         return _FakeTrial(config)
 
-    monkeypatch.setattr("harbor.trial.trial.Trial.create", create)
+    monkeypatch.setattr("sprint.trial.trial.Trial.create", create)
 
     result = runner.invoke(
         app,

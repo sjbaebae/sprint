@@ -7,8 +7,8 @@ import httpx
 import pytest
 from storage3.exceptions import StorageApiError
 
-from harbor.storage.resumable import _encode_tus_metadata, upload_resumable_file
-from harbor.upload.storage import UploadStorage
+from sprint.storage.resumable import _encode_tus_metadata, upload_resumable_file
+from sprint.upload.storage import UploadStorage
 
 
 @pytest.fixture
@@ -22,9 +22,9 @@ def patched_client(monkeypatch):
     reset_client = MagicMock()
 
     monkeypatch.setattr(
-        "harbor.upload.storage.create_authenticated_client", create_client
+        "sprint.upload.storage.create_authenticated_client", create_client
     )
-    monkeypatch.setattr("harbor.upload.storage.reset_client", reset_client)
+    monkeypatch.setattr("sprint.upload.storage.reset_client", reset_client)
     return bucket, create_client, reset_client
 
 
@@ -122,9 +122,9 @@ async def test_upload_file_retries_on_transient_ssl_error(
     sleep = AsyncMock()
 
     monkeypatch.setattr(
-        "harbor.upload.storage.create_authenticated_client", create_client
+        "sprint.upload.storage.create_authenticated_client", create_client
     )
-    monkeypatch.setattr("harbor.upload.storage.reset_client", reset_client)
+    monkeypatch.setattr("sprint.upload.storage.reset_client", reset_client)
     monkeypatch.setattr(UploadStorage.upload_file.retry, "sleep", sleep)
 
     file_path = tmp_path / "file.tar.gz"
@@ -151,9 +151,9 @@ async def test_upload_file_raises_after_max_retries(
     sleep = AsyncMock()
 
     monkeypatch.setattr(
-        "harbor.upload.storage.create_authenticated_client", create_client
+        "sprint.upload.storage.create_authenticated_client", create_client
     )
-    monkeypatch.setattr("harbor.upload.storage.reset_client", reset_client)
+    monkeypatch.setattr("sprint.upload.storage.reset_client", reset_client)
     monkeypatch.setattr(UploadStorage.upload_file.retry, "sleep", sleep)
 
     file_path = tmp_path / "file.tar.gz"
@@ -219,10 +219,10 @@ class FakeAsyncClient:
 def _patch_resumable_client(monkeypatch, token: str = "token-123"):
     get_token = AsyncMock(return_value=token)
     monkeypatch.setattr(
-        "harbor.storage.resumable.SUPABASE_URL", "https://abc.supabase.co"
+        "sprint.storage.resumable.SUPABASE_URL", "https://abc.supabase.co"
     )
-    monkeypatch.setattr("harbor.storage.resumable.get_access_token", get_token)
-    monkeypatch.setattr("harbor.storage.resumable.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("sprint.storage.resumable.get_access_token", get_token)
+    monkeypatch.setattr("sprint.storage.resumable.httpx.AsyncClient", FakeAsyncClient)
     FakeAsyncClient.instances = []
     FakeAsyncClient.fail_first_patch = False
     FakeAsyncClient.unauthorized_patch_at = None
@@ -234,7 +234,7 @@ async def test_upload_large_file_uses_standard_upload_below_threshold(
     patched_client, monkeypatch, tmp_path: Path
 ) -> None:
     bucket, _, _ = patched_client
-    monkeypatch.setattr("harbor.storage.resumable.RESUMABLE_UPLOAD_THRESHOLD_BYTES", 10)
+    monkeypatch.setattr("sprint.storage.resumable.RESUMABLE_UPLOAD_THRESHOLD_BYTES", 10)
     file_path = tmp_path / "small.tar.gz"
     file_path.write_bytes(b"small")
 
@@ -249,10 +249,10 @@ async def test_upload_large_file_uses_tus_above_threshold(
 ) -> None:
     get_token = _patch_resumable_client(monkeypatch)
     monkeypatch.setattr(
-        "harbor.storage.resumable.SUPABASE_URL", "https://abc.supabase.co"
+        "sprint.storage.resumable.SUPABASE_URL", "https://abc.supabase.co"
     )
-    monkeypatch.setattr("harbor.storage.resumable.RESUMABLE_UPLOAD_THRESHOLD_BYTES", 3)
-    monkeypatch.setattr("harbor.storage.resumable.RESUMABLE_UPLOAD_CHUNK_SIZE", 4)
+    monkeypatch.setattr("sprint.storage.resumable.RESUMABLE_UPLOAD_THRESHOLD_BYTES", 3)
+    monkeypatch.setattr("sprint.storage.resumable.RESUMABLE_UPLOAD_CHUNK_SIZE", 4)
     file_path = tmp_path / "large.tar.gz"
     file_path.write_bytes(b"abcdefghi")
 
@@ -293,13 +293,13 @@ async def test_upload_resumable_file_uses_fresh_token_per_chunk(
     # chunks must carry the fresh bearer instead of the frozen initial one.
     get_token = AsyncMock(side_effect=["token-1", "token-2", "token-3", "token-4"])
     monkeypatch.setattr(
-        "harbor.storage.resumable.SUPABASE_URL", "https://abc.supabase.co"
+        "sprint.storage.resumable.SUPABASE_URL", "https://abc.supabase.co"
     )
-    monkeypatch.setattr("harbor.storage.resumable.get_access_token", get_token)
-    monkeypatch.setattr("harbor.storage.resumable.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("sprint.storage.resumable.get_access_token", get_token)
+    monkeypatch.setattr("sprint.storage.resumable.httpx.AsyncClient", FakeAsyncClient)
     FakeAsyncClient.instances = []
     FakeAsyncClient.fail_first_patch = False
-    monkeypatch.setattr("harbor.storage.resumable.RESUMABLE_UPLOAD_CHUNK_SIZE", 4)
+    monkeypatch.setattr("sprint.storage.resumable.RESUMABLE_UPLOAD_CHUNK_SIZE", 4)
     file_path = tmp_path / "large.tar.gz"
     file_path.write_bytes(b"abcdefghi")
 
@@ -324,7 +324,7 @@ async def test_upload_resumable_file_uses_transport_only_token_provider(
     monkeypatch, tmp_path: Path
 ) -> None:
     get_token = _patch_resumable_client(monkeypatch)
-    monkeypatch.setattr("harbor.storage.resumable.RESUMABLE_UPLOAD_CHUNK_SIZE", 4)
+    monkeypatch.setattr("sprint.storage.resumable.RESUMABLE_UPLOAD_CHUNK_SIZE", 4)
     file_path = tmp_path / "source.tar.gz"
     file_path.write_bytes(b"abcdefghi")
     sidecar = file_path.with_suffix(file_path.suffix + ".tus-url")
@@ -355,7 +355,7 @@ async def test_resumed_upload_rotates_scoped_token_and_retries_chunk_after_401(
 ) -> None:
     get_token = _patch_resumable_client(monkeypatch)
     FakeAsyncClient.unauthorized_patch_at = 1
-    monkeypatch.setattr("harbor.storage.resumable.RESUMABLE_UPLOAD_CHUNK_SIZE", 4)
+    monkeypatch.setattr("sprint.storage.resumable.RESUMABLE_UPLOAD_CHUNK_SIZE", 4)
     file_path = tmp_path / "source.tar.gz"
     file_path.write_bytes(b"abcdefghi")
     sidecar = file_path.with_suffix(file_path.suffix + ".tus-url")
@@ -396,7 +396,7 @@ async def test_upload_resumable_file_resumes_from_sidecar_url(
     monkeypatch, tmp_path: Path
 ) -> None:
     _patch_resumable_client(monkeypatch)
-    monkeypatch.setattr("harbor.storage.resumable.RESUMABLE_UPLOAD_CHUNK_SIZE", 4)
+    monkeypatch.setattr("sprint.storage.resumable.RESUMABLE_UPLOAD_CHUNK_SIZE", 4)
     file_path = tmp_path / "large.tar.gz"
     file_path.write_bytes(b"abcdefghi")
     file_path.with_suffix(file_path.suffix + ".tus-url").write_text(
@@ -425,8 +425,8 @@ async def test_upload_resumable_file_refreshes_offset_after_chunk_read_error(
     _patch_resumable_client(monkeypatch)
     FakeAsyncClient.fail_first_patch = True
     sleep = AsyncMock()
-    monkeypatch.setattr("harbor.storage.resumable.asyncio.sleep", sleep)
-    monkeypatch.setattr("harbor.storage.resumable.RESUMABLE_UPLOAD_CHUNK_SIZE", 4)
+    monkeypatch.setattr("sprint.storage.resumable.asyncio.sleep", sleep)
+    monkeypatch.setattr("sprint.storage.resumable.RESUMABLE_UPLOAD_CHUNK_SIZE", 4)
     file_path = tmp_path / "large.tar.gz"
     file_path.write_bytes(b"abcdefghi")
 

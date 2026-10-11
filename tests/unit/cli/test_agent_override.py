@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 from typer.testing import CliRunner
 
-from harbor.cli.main import app
+from sprint.cli.main import app
 
 runner = CliRunner()
 
@@ -25,7 +25,7 @@ def _mock_trial_create(monkeypatch, captured: dict) -> None:
 
         return _DummyTrial()
 
-    monkeypatch.setattr("harbor.trial.trial.Trial.create", _fake_create)
+    monkeypatch.setattr("sprint.trial.trial.Trial.create", _fake_create)
 
 
 def test_trial_start_agent_import_path_overrides_config_import_path(

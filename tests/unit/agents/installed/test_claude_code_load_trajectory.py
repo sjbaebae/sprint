@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.claude_code import ClaudeCode
-from harbor.models.trajectories import Agent, Step, Trajectory
+from sprint.agents.installed.claude_code import ClaudeCode
+from sprint.models.trajectories import Agent, Step, Trajectory
 
 SESSION_ID = "d7d4e19e-608d-44ef-b166-cd050ef274ba"
 

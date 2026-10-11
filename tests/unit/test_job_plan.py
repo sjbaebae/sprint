@@ -4,20 +4,20 @@ from uuid import uuid4
 
 import pytest
 
-from harbor import JobPlan as PublicJobPlan
-from harbor.job_plan import JobPlan
-from harbor.metrics.mean import Mean
-from harbor.models.bridge import BridgeConfig, BridgeKind
-from harbor.models.job.config import JobConfig
-from harbor.models.trial.config import (
+from sprint import JobPlan as PublicJobPlan
+from sprint.job_plan import JobPlan
+from sprint.metrics.mean import Mean
+from sprint.models.bridge import BridgeConfig, BridgeKind
+from sprint.models.job.config import JobConfig
+from sprint.models.trial.config import (
     AgentConfig,
     TaskConfig,
     TrialConfig,
     UserAgentConfig,
 )
-from harbor.models.trial.result import AgentInfo, TrialResult
-from harbor.models.verifier.result import VerifierResult
-from harbor.tasks.client import TaskDownloadResult
+from sprint.models.trial.result import AgentInfo, TrialResult
+from sprint.models.verifier.result import VerifierResult
+from sprint.tasks.client import TaskDownloadResult
 
 
 def _make_task_dir(tmp_path: Path) -> Path:

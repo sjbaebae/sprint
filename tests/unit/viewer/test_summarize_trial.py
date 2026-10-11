@@ -4,8 +4,8 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
-from harbor.analyze.models import AnalyzeReport, AnalyzeReportResult
-from harbor.viewer.server import create_app
+from sprint.analyze.models import AnalyzeReport, AnalyzeReportResult
+from sprint.viewer.server import create_app
 
 
 def _make_trial(tmp_path: Path, job: str = "job", trial: str = "trial__abc") -> Path:
@@ -30,7 +30,7 @@ def test_summarize_trial_runs_analyze_and_forwards_environment(tmp_path: Path) -
         return AnalyzeReport(results=[result]), jobs_dir / "analyze-job"
 
     client = TestClient(create_app(tmp_path))
-    with patch("harbor.analyze.analyzer.run_analyze", fake_run_analyze):
+    with patch("sprint.analyze.analyzer.run_analyze", fake_run_analyze):
         response = client.post(
             "/api/jobs/job/trials/trial__abc/summarize",
             json={"model": "haiku", "environment": "modal"},
@@ -52,7 +52,7 @@ def test_summarize_trial_surfaces_error(tmp_path: Path) -> None:
         return report, jobs_dir / "analyze-job"
 
     client = TestClient(create_app(tmp_path))
-    with patch("harbor.analyze.analyzer.run_analyze", fake_run_analyze):
+    with patch("sprint.analyze.analyzer.run_analyze", fake_run_analyze):
         response = client.post(
             "/api/jobs/job/trials/trial__abc/summarize", json={"model": "haiku"}
         )
@@ -80,7 +80,7 @@ def test_summarize_job_runs_analyze_and_persists_report(tmp_path: Path) -> None:
         return report, jobs_dir / "analyze-job"
 
     client = TestClient(create_app(tmp_path))
-    with patch("harbor.analyze.analyzer.run_analyze", fake_run_analyze):
+    with patch("sprint.analyze.analyzer.run_analyze", fake_run_analyze):
         response = client.post(
             "/api/jobs/job/summarize",
             json={

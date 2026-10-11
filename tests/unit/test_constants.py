@@ -4,7 +4,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from types import ModuleType
 
-import harbor.constants as constants
+import sprint.constants as constants
 
 
 @contextmanager
@@ -39,12 +39,12 @@ def test_harbor_registry_website_url_defaults_to_hub() -> None:
 
 
 def test_harbor_registry_website_url_prefers_env() -> None:
-    with patched_harbor_registry_website_url("https://branch.harbor.test") as reloaded:
-        assert reloaded.HARBOR_REGISTRY_WEBSITE_URL == "https://branch.harbor.test"
-        assert reloaded.HARBOR_REGISTRY_TASKS_URL == "https://branch.harbor.test/tasks"
+    with patched_harbor_registry_website_url("https://branch.sprint.test") as reloaded:
+        assert reloaded.HARBOR_REGISTRY_WEBSITE_URL == "https://branch.sprint.test"
+        assert reloaded.HARBOR_REGISTRY_TASKS_URL == "https://branch.sprint.test/tasks"
         assert (
             reloaded.HARBOR_REGISTRY_DATASETS_URL
-            == "https://branch.harbor.test/datasets"
+            == "https://branch.sprint.test/datasets"
         )
-        assert reloaded.HARBOR_VIEWER_WEBSITE_URL == "https://branch.harbor.test"
-        assert reloaded.HARBOR_VIEWER_JOBS_URL == "https://branch.harbor.test/jobs"
+        assert reloaded.HARBOR_VIEWER_WEBSITE_URL == "https://branch.sprint.test"
+        assert reloaded.HARBOR_VIEWER_JOBS_URL == "https://branch.sprint.test/jobs"

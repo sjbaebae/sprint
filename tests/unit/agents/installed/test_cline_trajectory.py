@@ -2,8 +2,8 @@
 
 import pytest
 
-from harbor.agents.installed.cline.trajectory import convert_messages_to_trajectory
-from harbor.models.trajectories import Trajectory
+from sprint.agents.installed.cline.trajectory import convert_messages_to_trajectory
+from sprint.models.trajectories import Trajectory
 
 
 def _doc(messages: list[dict], session_id: str = "sess-1") -> dict:

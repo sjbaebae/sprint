@@ -6,10 +6,10 @@ import os
 from pathlib import Path
 from typing import override
 
-from harbor.job import Job
-from harbor.models.job.plugin import BaseJobPlugin
-from harbor.models.job.result import JobResult
-from harbor.trial.hooks import TrialHookEvent
+from sprint.job import Job
+from sprint.models.job.plugin import BaseJobPlugin
+from sprint.models.job.result import JobResult
+from sprint.trial.hooks import TrialHookEvent
 
 from harbor_atif2otel.export import export_trial, export_trials
 from harbor_atif2otel.uploaders.base import Uploader

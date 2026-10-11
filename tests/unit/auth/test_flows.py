@@ -8,15 +8,15 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-import harbor.auth.flows as flows_mod
-from harbor.auth.credentials import (
+import sprint.auth.flows as flows_mod
+from sprint.auth.credentials import (
     API_KEY_ENV_VAR,
     StoredCredentials,
     read_stored_credentials,
     write_stored_credentials,
 )
-from harbor.auth.errors import ApiKeyRejectedError, AuthenticationError
-from harbor.auth.flows import (
+from sprint.auth.errors import ApiKeyRejectedError, AuthenticationError
+from sprint.auth.flows import (
     auth_status,
     begin_login,
     complete_login,
@@ -24,7 +24,7 @@ from harbor.auth.flows import (
     login,
     logout,
 )
-from harbor.auth.oauth import OAuthUser
+from sprint.auth.oauth import OAuthUser
 
 STORED_KEY = "sk-harbor-storedKEY0001_secretsecretsecret"
 

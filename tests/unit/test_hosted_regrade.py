@@ -6,11 +6,11 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.cli.trials import regrade
-from harbor.hosted.config import HostedAgentConfig, HostedJobConfig, HostedRegradeSource
-from harbor.hosted.submit import submit_hosted_job
-from harbor.models.trial.config import TaskConfig
-from harbor.upload.db_client import TrialDownloadRow
+from sprint.cli.trials import regrade
+from sprint.hosted.config import HostedAgentConfig, HostedJobConfig, HostedRegradeSource
+from sprint.hosted.submit import submit_hosted_job
+from sprint.models.trial.config import TaskConfig
+from sprint.upload.db_client import TrialDownloadRow
 
 SOURCE = UUID("00000000-0000-4000-8000-000000000001")
 
@@ -28,7 +28,7 @@ def source_trials(monkeypatch):
         ]
     )
     monkeypatch.setattr(
-        "harbor.upload.db_client.UploadDB.list_trial_downloads_for_job", lookup
+        "sprint.upload.db_client.UploadDB.list_trial_downloads_for_job", lookup
     )
     return lookup
 
@@ -36,7 +36,7 @@ def source_trials(monkeypatch):
 def test_launch_registry_regrade_uses_normal_launcher(monkeypatch):
     captured = {}
     monkeypatch.setattr(
-        "harbor.cli.hosted_jobs.run_hosted_launch",
+        "sprint.cli.hosted_jobs.run_hosted_launch",
         lambda **kwargs: captured.update(kwargs),
     )
     regrade(str(SOURCE), task_ref="example/task@2", launch=True, org="example")
@@ -69,8 +69,8 @@ async def test_submit_regrade_reference_is_outside_config(monkeypatch):
     async def submit(**kwargs):
         captured.update(kwargs)
 
-    monkeypatch.setattr("harbor.hosted.submit.require_user_id", user)
-    monkeypatch.setattr("harbor.hosted.submit._submit_hosted_job_once", submit)
+    monkeypatch.setattr("sprint.hosted.submit.require_user_id", user)
+    monkeypatch.setattr("sprint.hosted.submit._submit_hosted_job_once", submit)
     await submit_hosted_job(
         HostedJobConfig(
             tasks=[TaskConfig(name="example/task", ref="2")],
@@ -95,11 +95,11 @@ def test_invalid_source_selection(ids):
 def test_job_launch_uses_one_submission_without_downloading_sources(
     monkeypatch, source_trials
 ):
-    from harbor.cli.jobs import regrade as job_regrade
+    from sprint.cli.jobs import regrade as job_regrade
 
     captured = {}
     monkeypatch.setattr(
-        "harbor.cli.hosted_jobs.run_hosted_launch",
+        "sprint.cli.hosted_jobs.run_hosted_launch",
         lambda **kwargs: captured.update(kwargs),
     )
     other = UUID("00000000-0000-4000-8000-000000000002")
@@ -130,7 +130,7 @@ def test_job_launch_uses_one_submission_without_downloading_sources(
 
 
 def test_job_launch_defaults_to_recorded_trials(monkeypatch):
-    from harbor.cli.jobs import regrade as job_regrade
+    from sprint.cli.jobs import regrade as job_regrade
 
     rows = [
         TrialDownloadRow(
@@ -146,11 +146,11 @@ def test_job_launch_defaults_to_recorded_trials(monkeypatch):
     )
     lookup = AsyncMock(return_value=rows)
     monkeypatch.setattr(
-        "harbor.upload.db_client.UploadDB.list_trial_downloads_for_job", lookup
+        "sprint.upload.db_client.UploadDB.list_trial_downloads_for_job", lookup
     )
     captured = {}
     monkeypatch.setattr(
-        "harbor.cli.hosted_jobs.run_hosted_launch", lambda **kw: captured.update(kw)
+        "sprint.cli.hosted_jobs.run_hosted_launch", lambda **kw: captured.update(kw)
     )
     job_regrade(str(SOURCE), task_refs=["example/task@2"], launch=True, org="example")
     lookup.assert_awaited_once_with(SOURCE)
@@ -162,8 +162,8 @@ def test_job_launch_defaults_to_recorded_trials(monkeypatch):
 def test_job_launch_uses_local_dataset_resolution(
     monkeypatch, tmp_path, dataset, source_trials
 ):
-    from harbor.cli.jobs import regrade as job_regrade
-    from harbor.models.job.config import DatasetConfig
+    from sprint.cli.jobs import regrade as job_regrade
+    from sprint.models.job.config import DatasetConfig
 
     captured = {}
     task = TaskConfig(name="example/task", ref="sha256:" + "a" * 64)
@@ -188,9 +188,9 @@ def test_job_launch_uses_local_dataset_resolution(
     download = AsyncMock(
         return_value=SimpleNamespace(results=[SimpleNamespace(path=local_task)])
     )
-    monkeypatch.setattr("harbor.tasks.client.TaskClient.download_tasks", download)
+    monkeypatch.setattr("sprint.tasks.client.TaskClient.download_tasks", download)
     monkeypatch.setattr(
-        "harbor.cli.hosted_jobs.run_hosted_launch", lambda **kw: captured.update(kw)
+        "sprint.cli.hosted_jobs.run_hosted_launch", lambda **kw: captured.update(kw)
     )
     job_regrade(
         str(SOURCE),
@@ -212,7 +212,7 @@ def test_job_launch_uses_local_dataset_resolution(
 
 
 def test_job_launch_expands_parent_directory_once(monkeypatch, tmp_path, source_trials):
-    from harbor.cli.jobs import regrade as job_regrade
+    from sprint.cli.jobs import regrade as job_regrade
 
     for name in ("task", "unrelated-shared-task"):
         folder = tmp_path / name
@@ -220,7 +220,7 @@ def test_job_launch_expands_parent_directory_once(monkeypatch, tmp_path, source_
         (folder / "task.toml").write_text(f'[task]\nname="{name}"\n')
     captured = {}
     monkeypatch.setattr(
-        "harbor.cli.hosted_jobs.run_hosted_launch", lambda **kw: captured.update(kw)
+        "sprint.cli.hosted_jobs.run_hosted_launch", lambda **kw: captured.update(kw)
     )
     job_regrade(
         str(SOURCE),
@@ -236,7 +236,7 @@ def test_job_launch_expands_parent_directory_once(monkeypatch, tmp_path, source_
 
 @pytest.mark.asyncio
 async def test_job_selection_paginates_like_job_download(monkeypatch):
-    from harbor.cli.hosted_jobs import prepare_hosted_job_regrade
+    from sprint.cli.hosted_jobs import prepare_hosted_job_regrade
 
     calls = []
 
@@ -262,7 +262,7 @@ async def test_job_selection_paginates_like_job_download(monkeypatch):
             )
 
     monkeypatch.setattr(
-        "harbor.upload.db_client.create_authenticated_client",
+        "sprint.upload.db_client.create_authenticated_client",
         AsyncMock(return_value=Client()),
     )
     selection, tasks = await prepare_hosted_job_regrade(
@@ -276,10 +276,10 @@ async def test_job_selection_paginates_like_job_download(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_job_without_recorded_trials_is_rejected(monkeypatch):
-    from harbor.cli.hosted_jobs import prepare_hosted_job_regrade
+    from sprint.cli.hosted_jobs import prepare_hosted_job_regrade
 
     monkeypatch.setattr(
-        "harbor.upload.db_client.UploadDB.list_trial_downloads_for_job",
+        "sprint.upload.db_client.UploadDB.list_trial_downloads_for_job",
         AsyncMock(return_value=[]),
     )
     with pytest.raises(ValueError, match="No recorded trials"):
@@ -291,7 +291,7 @@ def test_job_regrade_selection_uses_positional_source_only():
     from typer import Typer
     from typer.main import get_command
 
-    from harbor.cli.jobs import regrade as job_regrade
+    from sprint.cli.jobs import regrade as job_regrade
 
     app = Typer()
     app.command()(job_regrade)
@@ -310,8 +310,8 @@ async def test_batch_submit_sends_selection_in_one_request(monkeypatch):
     async def submit(**kwargs):
         captured.append(kwargs["request_body"])
 
-    monkeypatch.setattr("harbor.hosted.submit.require_user_id", user)
-    monkeypatch.setattr("harbor.hosted.submit._submit_hosted_job_once", submit)
+    monkeypatch.setattr("sprint.hosted.submit.require_user_id", user)
+    monkeypatch.setattr("sprint.hosted.submit._submit_hosted_job_once", submit)
     other = UUID("00000000-0000-4000-8000-000000000002")
     await submit_hosted_job(
         HostedJobConfig(
@@ -333,7 +333,7 @@ async def test_batch_submit_sends_selection_in_one_request(monkeypatch):
 
 
 def test_hosted_job_requires_hub_source_id(tmp_path):
-    from harbor.cli.jobs import regrade as job_regrade
+    from sprint.cli.jobs import regrade as job_regrade
 
     with pytest.raises(ValueError, match="existing Hub job UUID"):
         job_regrade(
@@ -374,8 +374,8 @@ def test_regrade_launch_controls_reach_preflight_and_payload(
     from typer import Typer
     from typer.testing import CliRunner
 
-    from harbor.cli.jobs import regrade as job_regrade
-    from harbor.hosted.submit import HostedSubmitResult
+    from sprint.cli.jobs import regrade as job_regrade
+    from sprint.hosted.submit import HostedSubmitResult
 
     preflight = AsyncMock(return_value=[])
     submit = AsyncMock(
@@ -387,11 +387,11 @@ def test_regrade_launch_controls_reach_preflight_and_payload(
             owner_org="example",
         )
     )
-    monkeypatch.setattr("harbor.cli.hosted_jobs._gather_preflight_warnings", preflight)
+    monkeypatch.setattr("sprint.cli.hosted_jobs._gather_preflight_warnings", preflight)
     monkeypatch.setattr(
-        "harbor.hosted.submit.require_user_id", AsyncMock(return_value="user")
+        "sprint.hosted.submit.require_user_id", AsyncMock(return_value="user")
     )
-    monkeypatch.setattr("harbor.hosted.submit._submit_hosted_job_once", submit)
+    monkeypatch.setattr("sprint.hosted.submit._submit_hosted_job_once", submit)
     app = Typer()
     app.command()(job_regrade if command == "job" else regrade)
     args = [
@@ -436,10 +436,10 @@ def test_regrade_launch_controls_reach_preflight_and_payload(
     ],
 )
 def test_regrade_launch_controls_require_launch(monkeypatch, command, kwargs):
-    from harbor.cli.jobs import regrade as job_regrade
+    from sprint.cli.jobs import regrade as job_regrade
 
     download = AsyncMock()
-    monkeypatch.setattr("harbor.tasks.client.TaskClient.download_tasks", download)
+    monkeypatch.setattr("sprint.tasks.client.TaskClient.download_tasks", download)
     callback = (
         partial(job_regrade, task_refs=["example/task@2"])
         if command == "job"
@@ -462,10 +462,10 @@ def test_regrade_launch_controls_require_launch(monkeypatch, command, kwargs):
 def test_regrade_reuses_registry_selection_validation(
     monkeypatch, command, selectors, source_trials
 ):
-    from harbor.cli.jobs import regrade as job_regrade
+    from sprint.cli.jobs import regrade as job_regrade
 
     submit = AsyncMock()
-    monkeypatch.setattr("harbor.hosted.submit.submit_hosted_job", submit)
+    monkeypatch.setattr("sprint.hosted.submit.submit_hosted_job", submit)
     callback = (
         partial(job_regrade, task_refs=["example/task@2"])
         if command == "job"

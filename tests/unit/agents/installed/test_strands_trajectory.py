@@ -1,6 +1,6 @@
 import pytest
 
-from harbor.agents.installed.strands_trajectory import convert_strands_to_atif
+from sprint.agents.installed.strands_trajectory import convert_strands_to_atif
 
 
 @pytest.mark.parametrize(

@@ -45,8 +45,8 @@ def create_mock_trial_paths(tmp_dir: str):
 
 
 def make_env(env_dir: Path, trial_paths, env_name: str = "novita-e2e-test"):
-    from harbor.environments.novita import NovitaEnvironment
-    from harbor.models.task.config import EnvironmentConfig
+    from sprint.environments.novita import NovitaEnvironment
+    from sprint.models.task.config import EnvironmentConfig
 
     return NovitaEnvironment(
         environment_dir=env_dir,

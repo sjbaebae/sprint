@@ -3,8 +3,8 @@ from types import SimpleNamespace
 import pytest
 from litellm.exceptions import BadRequestError as LiteLLMBadRequestError
 
-from harbor.llms.base import ContextLengthExceededError, OutputLengthExceededError
-from harbor.llms.lite_llm import LiteLLM
+from sprint.llms.base import ContextLengthExceededError, OutputLengthExceededError
+from sprint.llms.lite_llm import LiteLLM
 
 
 @pytest.mark.asyncio

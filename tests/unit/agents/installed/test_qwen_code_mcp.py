@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.qwen_code import QwenCode
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.qwen_code import QwenCode
+from sprint.models.task.config import MCPServerConfig
 
 
 class TestRegisterMcpServers:

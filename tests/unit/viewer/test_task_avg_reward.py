@@ -4,13 +4,13 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from harbor.models.agent.context import AgentContext
-from harbor.models.job.config import JobConfig
-from harbor.models.task.id import PackageTaskId
-from harbor.models.trial.config import TrialConfig
-from harbor.models.trial.result import AgentInfo, ModelInfo, TrialResult
-from harbor.models.verifier.result import VerifierResult
-from harbor.viewer.server import create_app
+from sprint.models.agent.context import AgentContext
+from sprint.models.job.config import JobConfig
+from sprint.models.task.id import PackageTaskId
+from sprint.models.trial.config import TrialConfig
+from sprint.models.trial.result import AgentInfo, ModelInfo, TrialResult
+from sprint.models.verifier.result import VerifierResult
+from sprint.viewer.server import create_app
 
 
 def _write_trial_config(
@@ -339,7 +339,7 @@ def test_trial_duration_sorting(
 def test_trial_navigation_does_not_load_summaries(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, index: int
 ) -> None:
-    from harbor.viewer.scanner import JobScanner
+    from sprint.viewer.scanner import JobScanner
 
     names = [f"trial-{i:05d}" for i in range(10000)]
     calls = []
@@ -401,7 +401,7 @@ def test_trial_sorting_uses_displayed_fallback_metric(
 @pytest.mark.unit
 def test_trial_navigation_tracks_job_completion(tmp_path: Path) -> None:
     from uuid import uuid4
-    from harbor.models.job.result import JobResult
+    from sprint.models.job.result import JobResult
 
     job_dir = _write_job(tmp_path, "completion")
     _write_trial_config(job_dir / "trial", trial_name="trial", task_name="task")
@@ -425,7 +425,7 @@ def test_trial_navigation_tracks_job_completion(tmp_path: Path) -> None:
 def test_missing_trial_metadata_filters(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, dimension: str, field: str
 ) -> None:
-    from harbor.viewer import server
+    from sprint.viewer import server
 
     job_dir = _write_job(tmp_path, "missing-metadata")
     metadata = {
@@ -563,7 +563,7 @@ def test_trial_reasoning_effort_summary_filters_and_facets(tmp_path: Path) -> No
 def test_chart_snapshot_scans_each_trial_once(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from harbor.viewer.scanner import JobScanner
+    from sprint.viewer.scanner import JobScanner
 
     job = _write_job(tmp_path, "chart-job")
     for i in range(101):
@@ -634,7 +634,7 @@ def test_reward_sort_groups_errors_before_numeric_rewards(
         path = job_dir / name / "result.json"
         result = TrialResult.model_validate_json(path.read_text())
         if error:
-            from harbor.models.trial.result import ExceptionInfo
+            from sprint.models.trial.result import ExceptionInfo
 
             result.exception_info = ExceptionInfo(
                 exception_type=error,

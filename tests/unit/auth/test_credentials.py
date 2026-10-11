@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from harbor.auth.credentials import (
+from sprint.auth.credentials import (
     API_KEY_ENV_VAR,
     StoredCredentials,
     delete_stored_credentials,

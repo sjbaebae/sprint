@@ -7,14 +7,14 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.cli.trials import regrade
-from harbor.job import Job
-from harbor.models.job.config import JobConfig, SourceJobConfig
-from harbor.models.trial.config import AgentConfig, ArtifactConfig, TaskConfig
-from harbor.models.trial.paths import TrialPaths
-from harbor.models.trial.result import TrialResult
-from harbor.models.verifier.result import VerifierResult
-from harbor.trial.trial import Trial
+from sprint.cli.trials import regrade
+from sprint.job import Job
+from sprint.models.job.config import JobConfig, SourceJobConfig
+from sprint.models.trial.config import AgentConfig, ArtifactConfig, TaskConfig
+from sprint.models.trial.paths import TrialPaths
+from sprint.models.trial.result import TrialResult
+from sprint.models.verifier.result import VerifierResult
+from sprint.trial.trial import Trial
 from tests.unit.test_regrade import (
     _multi_step_verifier_task,
     _separate_verifier_task,
@@ -129,7 +129,7 @@ def test_regrade_preserves_run_inputs_from_result_config(
         agent_env = _stock_mock_env()
         verifier_env = _stock_mock_env()
         with patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=agent_env,
         ):
             trial = await Trial.create(config)

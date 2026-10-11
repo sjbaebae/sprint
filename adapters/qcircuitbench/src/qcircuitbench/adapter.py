@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Iterable, Optional, Union
 
 try:
-    from harbor.models.task.paths import TaskPaths
+    from sprint.models.task.paths import TaskPaths
 except Exception:  # pragma: no cover - fallback for running without package install
 
     class TaskPaths:

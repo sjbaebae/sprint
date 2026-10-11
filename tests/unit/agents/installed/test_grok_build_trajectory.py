@@ -6,8 +6,8 @@ grok CLI (v0.2.91) to ``~/.grok/sessions/<encoded-cwd>/<session-id>/``.
 
 import json
 
-from harbor.agents.installed.grok_build import GrokBuild
-from harbor.models.agent.context import AgentContext
+from sprint.agents.installed.grok_build import GrokBuild
+from sprint.models.agent.context import AgentContext
 
 MODEL = "xai/grok-4.5"
 

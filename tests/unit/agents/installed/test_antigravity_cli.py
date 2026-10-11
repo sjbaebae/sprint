@@ -8,9 +8,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.antigravity_cli import AntigravityCli
-from harbor.models.agent.context import AgentContext
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.antigravity_cli import AntigravityCli
+from sprint.models.agent.context import AgentContext
+from sprint.models.task.config import MCPServerConfig
 
 
 @pytest.fixture(autouse=True)
@@ -166,7 +166,7 @@ class TestAntigravityStepTranscript:
         This is the same validation production consumers rely on; a written
         trajectory that fails it would silently break downstream tooling.
         """
-        from harbor.utils.trajectory_validator import TrajectoryValidator
+        from sprint.utils.trajectory_validator import TrajectoryValidator
 
         path = temp_dir / "trajectory.json"
         validator = TrajectoryValidator()

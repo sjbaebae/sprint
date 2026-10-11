@@ -14,8 +14,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from harbor.agents.terminus_2.terminus_2 import Terminus2
-from harbor.llms.base import ContextLengthExceededError
+from sprint.agents.terminus_2.terminus_2 import Terminus2
+from sprint.llms.base import ContextLengthExceededError
 
 
 @pytest.fixture

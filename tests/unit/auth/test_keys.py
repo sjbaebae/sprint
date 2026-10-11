@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock
 import httpx
 import pytest
 
-from harbor.auth.errors import AuthenticationError
-from harbor.auth.keys import (
+from sprint.auth.errors import AuthenticationError
+from sprint.auth.keys import (
     API_KEY_COLUMNS,
     list_api_keys,
     mint_api_key,
@@ -100,7 +100,7 @@ class TestListApiKeys:
     async def test_lists_with_enumerated_columns(self, monkeypatch) -> None:
         client = _list_client([[{"key_id": "abc", "name": "k"}]])
         monkeypatch.setattr(
-            "harbor.auth.keys.create_authenticated_client",
+            "sprint.auth.keys.create_authenticated_client",
             AsyncMock(return_value=client),
         )
 
@@ -120,7 +120,7 @@ class TestListApiKeys:
         full_page = [{"key_id": f"k{i}"} for i in range(1000)]
         client = _list_client([full_page, [{"key_id": "last"}]])
         monkeypatch.setattr(
-            "harbor.auth.keys.create_authenticated_client",
+            "sprint.auth.keys.create_authenticated_client",
             AsyncMock(return_value=client),
         )
 
@@ -171,7 +171,7 @@ class TestRevokeApiKey:
         self, patch_transport, monkeypatch
     ) -> None:
         monkeypatch.setattr(
-            "harbor.auth.keys.get_access_token",
+            "sprint.auth.keys.get_access_token",
             AsyncMock(return_value="jwt-resolved"),
         )
         seen = {}

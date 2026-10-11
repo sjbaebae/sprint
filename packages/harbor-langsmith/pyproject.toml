@@ -8,11 +8,11 @@ license-files = ["LICENSE"]
 authors = [{ name = "Alex Shaw", email = "alexgshaw64@gmail.com" }]
 requires-python = ">=3.12"
 dependencies = [
-    "research-sprint>=0.24.0",
+    "sprint>=0.24.0",
     "requests>=2.32.4",
 ]
 
-[project.entry-points."harbor.plugins"]
+[project.entry-points."sprint.plugins"]
 langsmith = "harbor_langsmith:LangSmithPlugin"
 
 [project.urls]
@@ -20,7 +20,7 @@ Repository = "https://github.com/harbor-framework/harbor"
 Issues = "https://github.com/harbor-framework/harbor/issues"
 
 [tool.uv.sources]
-research-sprint = { workspace = true }
+sprint = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.10.8,<0.11.0"]

@@ -4,8 +4,8 @@ import logging
 import pytest
 from pydantic import ValidationError
 
-from harbor.cli.utils import load_mcp_servers, parse_kwargs, parse_tpu_spec
-from harbor.models.task.config import TpuSpec
+from sprint.cli.utils import load_mcp_servers, parse_kwargs, parse_tpu_spec
+from sprint.models.task.config import TpuSpec
 
 
 class TestParseKwargs:

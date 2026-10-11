@@ -2,7 +2,7 @@
 
 import json
 
-from harbor.agents.installed.mimo import MiMo
+from sprint.agents.installed.mimo import MiMo
 
 
 def test_custom_provider_base_url_is_registered(temp_dir, monkeypatch):

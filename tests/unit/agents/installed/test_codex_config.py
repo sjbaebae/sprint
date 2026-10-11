@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock
 import pytest
 import toml
 
-from harbor.agents.installed.codex import Codex
-from harbor.agents.installed.openhands import OpenHands
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.codex import Codex
+from sprint.agents.installed.openhands import OpenHands
+from sprint.models.task.config import MCPServerConfig
 
 
 def test_codex_accepts_config_file_path(tmp_path: Path, temp_dir: Path) -> None:
@@ -137,10 +137,10 @@ def test_effective_config_merges_harbor_overrides(
     )
 
     with caplog.at_level("WARNING"):
-        config = agent._build_effective_config("https://harbor.example.com")
+        config = agent._build_effective_config("https://sprint.example.com")
 
     assert config["model_reasoning_effort"] == "medium"
-    assert config["openai_base_url"] == "https://harbor.example.com"
+    assert config["openai_base_url"] == "https://sprint.example.com"
     assert config["mcp_servers"]["user-server"] == {
         "url": "https://user-mcp.example.com"
     }

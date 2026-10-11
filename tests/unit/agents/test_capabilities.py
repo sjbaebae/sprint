@@ -1,8 +1,8 @@
 import pytest
 
-from harbor.agents.base import BaseAgent
-from harbor.agents.capabilities import AgentCapabilities
-from harbor.models.bridge import BridgeKind
+from sprint.agents.base import BaseAgent
+from sprint.agents.capabilities import AgentCapabilities
+from sprint.models.bridge import BridgeKind
 
 
 def test_every_capability_has_a_description() -> None:

@@ -4,7 +4,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from types import ModuleType
 
-import harbor.auth.constants as constants
+import sprint.auth.constants as constants
 
 
 ENV_KEYS = (

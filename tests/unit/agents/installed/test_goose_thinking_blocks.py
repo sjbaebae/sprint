@@ -9,7 +9,7 @@ up only as empty tool metrics on exactly the arms that reason.
 
 import json
 
-from harbor.agents.installed.goose import Goose
+from sprint.agents.installed.goose import Goose
 
 
 def _stream(*content: dict) -> str:

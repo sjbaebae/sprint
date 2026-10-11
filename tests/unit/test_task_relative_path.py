@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from harbor.models.task.task import Task
+from sprint.models.task.task import Task
 
 
 def test_task_init_with_dot_path(tmp_path, monkeypatch):

@@ -3,11 +3,11 @@ from typing import Annotated, Literal, override
 
 import pytest
 
-from harbor.agents.installed.base import BaseInstalledAgent, CliFlag
-from harbor.agents.nop import NopAgent
-from harbor.agents.options import Cli, Env, InstalledAgentOptions
-from harbor.environments.base import BaseEnvironment
-from harbor.models.agent.context import AgentContext
+from sprint.agents.installed.base import BaseInstalledAgent, CliFlag
+from sprint.agents.nop import NopAgent
+from sprint.agents.options import Cli, Env, InstalledAgentOptions
+from sprint.environments.base import BaseEnvironment
+from sprint.models.agent.context import AgentContext
 
 
 class DemoOptions(InstalledAgentOptions):
@@ -109,7 +109,7 @@ def test_numeric_string_options_coerce_from_cli_literals(tmp_path: Path):
 
 
 def test_migrated_agent_compiles_options(tmp_path: Path):
-    from harbor.agents.installed.claude_code import ClaudeCode
+    from sprint.agents.installed.claude_code import ClaudeCode
 
     agent = ClaudeCode(logs_dir=tmp_path, max_turns=5)
     assert "--max-turns 5" in agent.build_cli_flags()

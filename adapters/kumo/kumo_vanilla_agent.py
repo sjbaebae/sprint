@@ -8,21 +8,21 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from harbor.agents.base import BaseAgent
-from harbor.agents.capabilities import AgentCapabilities
-from harbor.environments.base import BaseEnvironment
-from harbor.llms.lite_llm import LiteLLM
-from harbor.models.agent.context import AgentContext
-from harbor.models.metric import UsageInfo
-from harbor.models.trajectories.agent import Agent as AtifAgent
-from harbor.models.trajectories.final_metrics import FinalMetrics
-from harbor.models.trajectories.metrics import Metrics
-from harbor.models.trajectories.observation import Observation
-from harbor.models.trajectories.observation_result import ObservationResult
-from harbor.models.trajectories.step import Step
-from harbor.models.trajectories.tool_call import ToolCall
-from harbor.models.trajectories.trajectory import Trajectory
-from harbor.utils.trajectory_utils import format_trajectory_json
+from sprint.agents.base import BaseAgent
+from sprint.agents.capabilities import AgentCapabilities
+from sprint.environments.base import BaseEnvironment
+from sprint.llms.lite_llm import LiteLLM
+from sprint.models.agent.context import AgentContext
+from sprint.models.metric import UsageInfo
+from sprint.models.trajectories.agent import Agent as AtifAgent
+from sprint.models.trajectories.final_metrics import FinalMetrics
+from sprint.models.trajectories.metrics import Metrics
+from sprint.models.trajectories.observation import Observation
+from sprint.models.trajectories.observation_result import ObservationResult
+from sprint.models.trajectories.step import Step
+from sprint.models.trajectories.tool_call import ToolCall
+from sprint.models.trajectories.trajectory import Trajectory
+from sprint.utils.trajectory_utils import format_trajectory_json
 
 
 _MAX_STEPS_RE = re.compile(r"at most\s+\*\*(?P<max_steps>\d+)\*\*", re.IGNORECASE)

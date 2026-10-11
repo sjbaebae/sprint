@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from harbor.models.trial.paths import TrialPaths
+from sprint.models.trial.paths import TrialPaths
 
 
 @pytest.mark.unit

@@ -6,18 +6,18 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.environments.base import ExecResult
-from harbor.environments.docker.docker import DockerEnvironment
-from harbor.environments.docker.runtime import ContainerRuntime
-from harbor.environments.factory import (
+from sprint.environments.base import ExecResult
+from sprint.environments.docker.docker import DockerEnvironment
+from sprint.environments.docker.runtime import ContainerRuntime
+from sprint.environments.factory import (
     EnvironmentFactory,
     _ENVIRONMENT_REGISTRY,
     _load_environment_class,
 )
-from harbor.environments.podman import PodmanEnvironment
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.paths import EnvironmentPaths, TrialPaths
+from sprint.environments.podman import PodmanEnvironment
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.paths import EnvironmentPaths, TrialPaths
 
 PODMAN_V2 = ContainerRuntime(
     engine=("podman",),
@@ -43,7 +43,7 @@ def _podman_runtime_and_probe():
     with (
         patch.object(PodmanEnvironment, "runtime", return_value=PODMAN_V2),
         patch(
-            "harbor.environments.docker.docker.subprocess.run",
+            "sprint.environments.docker.docker.subprocess.run",
             return_value=subprocess.CompletedProcess(args=[], returncode=0),
         ),
     ):
@@ -143,7 +143,7 @@ async def test_compose_command_uses_podman_compose(podman_env) -> None:
         return proc
 
     with patch(
-        "harbor.environments.docker.docker.asyncio.create_subprocess_exec",
+        "sprint.environments.docker.docker.asyncio.create_subprocess_exec",
         side_effect=fake_exec,
     ):
         await podman_env._run_docker_compose_command(["ps"])
@@ -166,7 +166,7 @@ async def test_compose_1x_omits_project_directory(podman_env) -> None:
     with (
         patch.object(PodmanEnvironment, "runtime", return_value=PODMAN_COMPOSE_1X),
         patch(
-            "harbor.environments.docker.docker.asyncio.create_subprocess_exec",
+            "sprint.environments.docker.docker.asyncio.create_subprocess_exec",
             side_effect=fake_exec,
         ),
     ):

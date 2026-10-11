@@ -5,11 +5,11 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import ValidationError
 
-from harbor.environments import ssh
-from harbor.environments.daytona.environment import DaytonaClientManager
-from harbor.environments.daytona.ssh import connect_ssh, ssh_destination
-from harbor.environments.ssh import SSHAccessError, StreamHandle
-from harbor.environments.factory import EnvironmentFactory
+from sprint.environments import ssh
+from sprint.environments.daytona.environment import DaytonaClientManager
+from sprint.environments.daytona.ssh import connect_ssh, ssh_destination
+from sprint.environments.ssh import SSHAccessError, StreamHandle
+from sprint.environments.factory import EnvironmentFactory
 
 
 @pytest.mark.parametrize(
@@ -122,7 +122,7 @@ async def test_stopped_sandbox_is_not_modified(sandbox):
 async def test_factory_resolves_handle_without_constructing_environment(
     sandbox, monkeypatch
 ):
-    from harbor.environments.daytona.environment import DaytonaEnvironment
+    from sprint.environments.daytona.environment import DaytonaEnvironment
 
     def no_constructor(*args, **kwargs):
         raise AssertionError("Viewer must not construct or provision an environment")

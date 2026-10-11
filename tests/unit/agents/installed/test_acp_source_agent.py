@@ -6,13 +6,13 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.factory import AgentFactory
-from harbor.agents.installed.acp import AcpAgent
-from harbor.agents.installed.base import NonZeroAgentExitCodeError
-from harbor.environments.base import ExecResult
-from harbor.models.agent.acp_source import AcpAgentSource
-from harbor.models.agent.context import AgentContext
-from harbor.models.trial.config import AgentConfig
+from sprint.agents.factory import AgentFactory
+from sprint.agents.installed.acp import AcpAgent
+from sprint.agents.installed.base import NonZeroAgentExitCodeError
+from sprint.environments.base import ExecResult
+from sprint.models.agent.acp_source import AcpAgentSource
+from sprint.models.agent.context import AgentContext
+from sprint.models.trial.config import AgentConfig
 
 _COMMIT_SHA = "b" * 40
 
@@ -403,7 +403,7 @@ async def test_run_git_preserves_ambient_auth_without_fetch_override(
     process.communicate.return_value = (b"", b"")
     create_process = AsyncMock(return_value=process)
     monkeypatch.setattr(
-        "harbor.agents.installed.acp.asyncio.create_subprocess_exec",
+        "sprint.agents.installed.acp.asyncio.create_subprocess_exec",
         create_process,
     )
 
@@ -439,7 +439,7 @@ async def test_run_git_isolates_dedicated_source_auth(
     process.communicate.return_value = (b"", b"")
     create_process = AsyncMock(return_value=process)
     monkeypatch.setattr(
-        "harbor.agents.installed.acp.asyncio.create_subprocess_exec",
+        "sprint.agents.installed.acp.asyncio.create_subprocess_exec",
         create_process,
     )
 

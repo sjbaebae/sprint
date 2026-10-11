@@ -565,7 +565,7 @@ The Harbor project provides a reference implementation of ATIF in Python using P
 
 #### **Pydantic Models**
 
-The complete ATIF schema is implemented as Pydantic models in the `src/harbor/models/trajectories/` directory:
+The complete ATIF schema is implemented as Pydantic models in the `src/sprint/models/trajectories/` directory:
 
 - **`agent.py`** — Agent configuration model
 - **`content.py`** — Multimodal content models (`ContentPart`, `ImageSource` for v1.6+, `AudioSource` for v1.8+)
@@ -587,7 +587,7 @@ These models provide:
 
 #### **Trajectory Validator**
 
-The `src/harbor/utils/trajectory_validator.py` module provides a command-line tool and programmatic API for validating ATIF trajectory files:
+The `src/sprint/utils/trajectory_validator.py` module provides a command-line tool and programmatic API for validating ATIF trajectory files:
 
 ```bash
 # Validate a trajectory file
@@ -616,7 +616,7 @@ if not is_valid:
 
 #### **Integration in Agents**
 
-The Terminus 2 agent (`src/harbor/agents/terminus_2/terminus_2.py`) demonstrates full integration of ATIF:
+The Terminus 2 agent (`src/sprint/agents/terminus_2/terminus_2.py`) demonstrates full integration of ATIF:
 
 - Constructs trajectory steps using Pydantic models throughout the execution
 - Tracks token metrics, costs, and logprobs in the `Metrics` model

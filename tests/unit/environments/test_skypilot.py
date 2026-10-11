@@ -13,16 +13,16 @@ from typing import Any
 
 import pytest
 
-import harbor.environments.skypilot as skypilot_module
-from harbor.environments.factory import _ENVIRONMENT_REGISTRY
-from harbor.environments.skypilot import (
+import sprint.environments.skypilot as skypilot_module
+from sprint.environments.factory import _ENVIRONMENT_REGISTRY
+from sprint.environments.skypilot import (
     SkypilotEnvironment,
     _sanitize_dns_name,
     _sanitize_image_repo,
 )
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.paths import TrialPaths
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.paths import TrialPaths
 
 
 # ── Fakes for the sky.sandbox SDK ──────────────────────────────────────────
@@ -169,7 +169,7 @@ def _make_env(
 
 def test_factory_registers_skypilot():
     entry = _ENVIRONMENT_REGISTRY[EnvironmentType.SKYPILOT]
-    assert entry.module == "harbor.environments.skypilot"
+    assert entry.module == "sprint.environments.skypilot"
     assert entry.class_name == "SkypilotEnvironment"
     assert entry.pip_extra == "skypilot"
 
@@ -217,7 +217,7 @@ def test_preflight_missing_sandbox_sdk_reports_via_systemexit(monkeypatch):
 
 def test_run_preflight_command_path_reports_missing_sandbox_sdk(monkeypatch):
     """The factory preflight (what `harbor run -e skypilot` calls) emits the report."""
-    from harbor.environments.factory import EnvironmentFactory
+    from sprint.environments.factory import EnvironmentFactory
 
     monkeypatch.setattr(skypilot_module, "_HAS_SKYPILOT", False)
 
@@ -403,7 +403,7 @@ async def test_build_uses_platform_flag(fake_sky, temp_dir, monkeypatch):
         return _FakeProc()
 
     monkeypatch.setattr(
-        "harbor.environments.skypilot.asyncio.create_subprocess_exec", _fake_exec
+        "sprint.environments.skypilot.asyncio.create_subprocess_exec", _fake_exec
     )
 
     await env._build_and_push_image()

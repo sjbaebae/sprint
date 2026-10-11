@@ -11,19 +11,19 @@ import pytest
 
 smol = pytest.importorskip("smol")
 
-from harbor.environments.factory import EnvironmentFactory  # noqa: E402
-from harbor.environments.smol import close_harbor_goldens  # noqa: E402
-from harbor.environments.ssh import STREAM_HANDLE_NAME  # noqa: E402
-from harbor.models.environment_type import EnvironmentType  # noqa: E402
-from harbor.models.task.config import EnvironmentConfig as TaskEnvironmentConfig  # noqa: E402
-from harbor.models.trial.config import (  # noqa: E402
+from sprint.environments.factory import EnvironmentFactory  # noqa: E402
+from sprint.environments.smol import close_harbor_goldens  # noqa: E402
+from sprint.environments.ssh import STREAM_HANDLE_NAME  # noqa: E402
+from sprint.models.environment_type import EnvironmentType  # noqa: E402
+from sprint.models.task.config import EnvironmentConfig as TaskEnvironmentConfig  # noqa: E402
+from sprint.models.trial.config import (  # noqa: E402
     AgentConfig,
     EnvironmentConfig,
     TaskConfig,
     TrialConfig,
 )
-from harbor.models.trial.paths import TrialPaths  # noqa: E402
-from harbor.trial.trial import Trial  # noqa: E402
+from sprint.models.trial.paths import TrialPaths  # noqa: E402
+from sprint.trial.trial import Trial  # noqa: E402
 
 _available, _code, _reason = smol.local_availability()
 pytestmark = [

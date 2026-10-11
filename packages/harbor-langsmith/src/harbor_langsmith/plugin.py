@@ -8,10 +8,10 @@ from uuid import NAMESPACE_URL, uuid4, uuid5
 
 import requests
 
-from harbor.job import Job
-from harbor.models.job.plugin import BaseJobPlugin
-from harbor.models.job.result import JobResult
-from harbor.trial.hooks import TrialEvent, TrialHookEvent
+from sprint.job import Job
+from sprint.models.job.plugin import BaseJobPlugin
+from sprint.models.job.result import JobResult
+from sprint.trial.hooks import TrialEvent, TrialHookEvent
 
 from harbor_langsmith import nesting
 

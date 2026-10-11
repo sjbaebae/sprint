@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from harbor.models.trial.config import (
+from sprint.models.trial.config import (
     AgentConfig,
     EnvironmentConfig,
     TrialConfig,

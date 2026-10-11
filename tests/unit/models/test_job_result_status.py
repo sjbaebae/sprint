@@ -4,10 +4,10 @@ from uuid import uuid4
 
 import pytest
 
-from harbor.models.job.result import JobResult, JobStats
-from harbor.models.trial.config import TaskConfig, TrialConfig
-from harbor.models.trial.result import AgentInfo, ExceptionInfo, TrialResult
-from harbor.models.verifier.result import VerifierResult
+from sprint.models.job.result import JobResult, JobStats
+from sprint.models.trial.config import TaskConfig, TrialConfig
+from sprint.models.trial.result import AgentInfo, ExceptionInfo, TrialResult
+from sprint.models.verifier.result import VerifierResult
 
 
 def _trial_result(

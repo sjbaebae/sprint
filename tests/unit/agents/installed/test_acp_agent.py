@@ -5,15 +5,15 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.acp import (
+from sprint.agents.installed.acp import (
     AcpAgent,
     AcpBinaryTarget,
     AcpLocalTarget,
     AcpPackageDistribution,
     _load_registry_entry,
 )
-from harbor.models.agent.context import AgentContext
-from harbor.models.agent.name import AgentName
+from sprint.models.agent.context import AgentContext
+from sprint.models.agent.name import AgentName
 
 
 REGISTRY_ENTRY = {
@@ -84,7 +84,7 @@ class TestAcpAgentBasics:
         }
         resolver = AsyncMock(return_value=resolved_entry)
         monkeypatch.setattr(
-            "harbor.agents.installed.acp.resolve_registry_entry_payload",
+            "sprint.agents.installed.acp.resolve_registry_entry_payload",
             resolver,
         )
 

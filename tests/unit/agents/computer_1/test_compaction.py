@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from harbor.agents.computer_1.compaction import (
+from sprint.agents.computer_1.compaction import (
     IMAGE_TOKEN_ESTIMATE,
     Computer1Compactor,
     extract_prompt_text,

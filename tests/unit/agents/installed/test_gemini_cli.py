@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.gemini_cli import GeminiCli
+from sprint.agents.installed.gemini_cli import GeminiCli
 
 _OAUTH_MODEL = "google/gemini-3.1-pro-preview"
 

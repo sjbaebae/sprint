@@ -2,10 +2,10 @@ from pathlib import Path
 
 import pytest
 
-import harbor.exec.executor as executor_module
-from harbor.exec import Executor
-from harbor.models.compile import CompileConfig, CompileInstruction
-from harbor.models.exec import (
+import sprint.exec.executor as executor_module
+from sprint.exec import Executor
+from sprint.models.compile import CompileConfig, CompileInstruction
+from sprint.models.exec import (
     ExecConfig,
     ExecJobConfig,
     ExecMapConfig,
@@ -13,11 +13,11 @@ from harbor.models.exec import (
     ExecReduceEnvironment,
     ExecReduceTaskConfig,
 )
-from harbor.models.job.config import JobConfig
-from harbor.models.job.result import JobResult
-from harbor.models.task.paths import TaskPaths
-from harbor.models.trial.config import TaskConfig
-from harbor.models.trial.result import TrialResult
+from sprint.models.job.config import JobConfig
+from sprint.models.job.result import JobResult
+from sprint.models.task.paths import TaskPaths
+from sprint.models.trial.config import TaskConfig
+from sprint.models.trial.result import TrialResult
 
 
 class FakeJob:
@@ -263,7 +263,7 @@ async def test_executor_attaches_plugins_around_map_and_reduce_jobs(
     import sys
     import types
 
-    from harbor.cli.job_plugins import PluginConfig
+    from sprint.cli.job_plugins import PluginConfig
 
     plugin_module = types.ModuleType("exec_recording_plugin")
     plugin_module.RecordingPlugin = RecordingPlugin

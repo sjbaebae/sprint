@@ -15,8 +15,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
 
-from harbor.models.task.config import TaskConfig
-from harbor.models.task.paths import TaskPaths
+from sprint.models.task.config import TaskConfig
+from sprint.models.task.paths import TaskPaths
 
 LOGGER = logging.getLogger(__name__)
 

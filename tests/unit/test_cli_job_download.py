@@ -4,11 +4,11 @@ from uuid import uuid4
 
 import pytest
 
-from harbor.cli.jobs import download as job_download
+from sprint.cli.jobs import download as job_download
 
 
 def _patched_downloader(monkeypatch, *, result: MagicMock) -> MagicMock:
-    """Replace `Downloader` in `harbor.download.downloader` with a mock.
+    """Replace `Downloader` in `sprint.download.downloader` with a mock.
 
     The CLI imports it lazily inside the coroutine, so patching the class in
     its defining module is enough — the import happens after monkeypatch.
@@ -18,7 +18,7 @@ def _patched_downloader(monkeypatch, *, result: MagicMock) -> MagicMock:
     instance.db.get_user_id = AsyncMock(return_value="user-id")
     instance.download_job = AsyncMock(return_value=result)
     cls = MagicMock(return_value=instance)
-    monkeypatch.setattr("harbor.download.downloader.Downloader", cls)
+    monkeypatch.setattr("sprint.download.downloader.Downloader", cls)
     return instance
 
 

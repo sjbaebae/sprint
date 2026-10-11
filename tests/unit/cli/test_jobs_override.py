@@ -4,10 +4,10 @@ from types import SimpleNamespace
 
 from typer.testing import CliRunner
 
-from harbor.cli.main import app
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.bridge import BridgeKind
-from harbor.models.job.config import JobConfig
+from sprint.cli.main import app
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.bridge import BridgeKind
+from sprint.models.job.config import JobConfig
 
 runner = CliRunner()
 
@@ -30,22 +30,22 @@ def _capture_job_config(monkeypatch, tmp_path: Path) -> list[JobConfig]:
         captured.append(config)
         return _FakeJob(config, tmp_path)
 
-    monkeypatch.setattr("harbor.job.Job.create", create)
+    monkeypatch.setattr("sprint.job.Job.create", create)
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight",
+        "sprint.environments.factory.EnvironmentFactory.run_preflight",
         lambda **_: None,
     )
     monkeypatch.setattr(
-        "harbor.agents.factory.AgentFactory.run_preflight",
+        "sprint.agents.factory.AgentFactory.run_preflight",
         lambda *_args, **_kwargs: None,
     )
     monkeypatch.setattr(
-        "harbor.cli.jobs.show_registry_hint_if_first_run", lambda _: None
+        "sprint.cli.jobs.show_registry_hint_if_first_run", lambda _: None
     )
     monkeypatch.setattr(
-        "harbor.cli.jobs._confirm_host_env_access", lambda *_, **__: None
+        "sprint.cli.jobs._confirm_host_env_access", lambda *_, **__: None
     )
-    monkeypatch.setattr("harbor.cli.jobs.print_job_results_tables", lambda _: None)
+    monkeypatch.setattr("sprint.cli.jobs.print_job_results_tables", lambda _: None)
 
     return captured
 

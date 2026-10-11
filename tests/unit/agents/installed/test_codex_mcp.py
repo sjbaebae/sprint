@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock
 import pytest
 import toml
 
-from harbor.agents.installed.codex import Codex
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.codex import Codex
+from sprint.models.task.config import MCPServerConfig
 
 
 class TestBuildEffectiveConfig:

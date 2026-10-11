@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from harbor.skills import resolve_skills
+from sprint.skills import resolve_skills
 
 
 def _make_skill(parent: Path, name: str, content: str = "# skill\n") -> Path:

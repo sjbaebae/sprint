@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from harbor.models.task.task import Task
+from sprint.models.task.task import Task
 
 
 def _make_windows_multi_step_task(tmp_path: Path, *, shared_test: bool) -> Path:

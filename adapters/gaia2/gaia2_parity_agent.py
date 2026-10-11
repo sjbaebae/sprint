@@ -5,9 +5,9 @@ import os
 import shlex
 from pathlib import Path
 
-from harbor.agents.base import BaseAgent
-from harbor.environments.base import BaseEnvironment
-from harbor.models.agent.context import AgentContext
+from sprint.agents.base import BaseAgent
+from sprint.environments.base import BaseEnvironment
+from sprint.models.agent.context import AgentContext
 
 
 class Gaia2ParityAgent(BaseAgent):

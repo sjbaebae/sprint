@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.factory import AgentFactory
-from harbor.models.trial.config import AgentConfig
+from sprint.agents.factory import AgentFactory
+from sprint.models.trial.config import AgentConfig
 
 
 def _agent(tmp_path, name: str, **kwargs):

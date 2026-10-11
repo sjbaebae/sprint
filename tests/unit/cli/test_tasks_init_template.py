@@ -4,8 +4,8 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from harbor.cli.init import _init_dataset
-from harbor.cli.tasks import tasks_app
+from sprint.cli.init import _init_dataset
+from sprint.cli.tasks import tasks_app
 
 runner = CliRunner()
 
@@ -120,7 +120,7 @@ def test_init_include_standard_metadata_errors(tmp_tasks_dir: Path):
 
 
 def test_init_auto_adds_to_existing_dataset_manifest(tmp_tasks_dir: Path):
-    from harbor.models.dataset.manifest import DatasetManifest
+    from sprint.models.dataset.manifest import DatasetManifest
 
     _init_dataset("test-org/my-dataset", tmp_tasks_dir)
 
@@ -134,7 +134,7 @@ def test_init_auto_adds_to_existing_dataset_manifest(tmp_tasks_dir: Path):
 
 
 def test_init_no_package_skips_dataset_manifest_update(tmp_tasks_dir: Path):
-    from harbor.models.dataset.manifest import DatasetManifest
+    from sprint.models.dataset.manifest import DatasetManifest
 
     _init_dataset("test-org/my-dataset", tmp_tasks_dir)
 

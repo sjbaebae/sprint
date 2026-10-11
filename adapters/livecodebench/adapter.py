@@ -1,6 +1,6 @@
 """
 Adapter that converts LiveCodeBench tasks into Harbor task structure.
-Some implementations are adapted from the mapper adapter (src/harbor/mappers/terminal_bench.py).
+Some implementations are adapted from the mapper adapter (src/sprint/mappers/terminal_bench.py).
 """
 
 import importlib.util
@@ -31,12 +31,12 @@ def _import_module_from_file(module_name: str, file_path: Path):
 
 # Import models directly from their files
 difficulty_module = _import_module_from_file(
-    "harbor.models.difficulty", src_path / "harbor" / "models" / "difficulty.py"
+    "sprint.models.difficulty", src_path / "harbor" / "models" / "difficulty.py"
 )
 Difficulty = difficulty_module.Difficulty
 
 task_config_module = _import_module_from_file(
-    "harbor.models.task.config", src_path / "harbor" / "models" / "task" / "config.py"
+    "sprint.models.task.config", src_path / "harbor" / "models" / "task" / "config.py"
 )
 AgentConfig = task_config_module.AgentConfig
 EnvironmentConfig = task_config_module.EnvironmentConfig
@@ -44,7 +44,7 @@ TaskConfig = task_config_module.TaskConfig
 VerifierConfig = task_config_module.VerifierConfig
 
 task_paths_module = _import_module_from_file(
-    "harbor.models.task.paths", src_path / "harbor" / "models" / "task" / "paths.py"
+    "sprint.models.task.paths", src_path / "harbor" / "models" / "task" / "paths.py"
 )
 TaskPaths = task_paths_module.TaskPaths
 

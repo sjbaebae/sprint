@@ -5,11 +5,11 @@ from uuid import UUID
 
 import pytest
 
-from harbor.environments.base import BaseEnvironment, ExecResult
-from harbor.environments.capabilities import EnvironmentCapabilities
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import EnvironmentConfig, TaskOS
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments.base import BaseEnvironment, ExecResult
+from sprint.environments.capabilities import EnvironmentCapabilities
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import EnvironmentConfig, TaskOS
+from sprint.models.trial.paths import TrialPaths
 
 
 class _StubEnvironment(BaseEnvironment):

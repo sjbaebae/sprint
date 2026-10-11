@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from rich.console import Console
 
-from harbor.cli.plugins.harbor_hub import HarborHubUploadPlugin
+from sprint.cli.plugins.harbor_hub import HarborHubUploadPlugin
 
 
 def _make_plugin(**kwargs) -> HarborHubUploadPlugin:
@@ -28,14 +28,14 @@ class TestHarborHubUploadPluginFinalize:
         instance = MagicMock()
         instance.upload_job = AsyncMock(return_value=upload_result or MagicMock())
         cls = MagicMock(return_value=instance)
-        monkeypatch.setattr("harbor.cli.plugins.harbor_hub.Uploader", cls)
+        monkeypatch.setattr("sprint.cli.plugins.harbor_hub.Uploader", cls)
         return instance
 
     @pytest.mark.asyncio
     async def test_success_prints_share_url(
         self, tmp_path: Path, monkeypatch, capsys
     ) -> None:
-        from harbor.constants import HARBOR_VIEWER_JOBS_URL
+        from sprint.constants import HARBOR_VIEWER_JOBS_URL
 
         upload_result = MagicMock()
         upload_result.job_id = "abc-123"
@@ -186,12 +186,12 @@ class TestHarborHubUploadPluginOnJobStart:
         )
         instance.upload_single_trial = AsyncMock(return_value=MagicMock())
         cls = MagicMock(return_value=instance)
-        monkeypatch.setattr("harbor.cli.plugins.harbor_hub.Uploader", cls)
+        monkeypatch.setattr("sprint.cli.plugins.harbor_hub.Uploader", cls)
         return instance
 
     def _patch_auth_ok(self, monkeypatch) -> None:
         monkeypatch.setattr(
-            "harbor.cli.plugins.harbor_hub.require_hub_upload_auth",
+            "sprint.cli.plugins.harbor_hub.require_hub_upload_auth",
             AsyncMock(),
         )
 
@@ -204,7 +204,7 @@ class TestHarborHubUploadPluginOnJobStart:
         job.config.model_dump.return_value = {"job_name": "my-job"}
         job.on_trial_ended = MagicMock()
         job.__len__ = MagicMock(return_value=7)
-        monkeypatch.setattr("harbor.cli.plugins.harbor_hub.datetime", _dt)
+        monkeypatch.setattr("sprint.cli.plugins.harbor_hub.datetime", _dt)
         return job
 
     @pytest.mark.asyncio
@@ -251,12 +251,12 @@ class TestHarborHubUploadPluginOnJobStart:
 
     @pytest.mark.asyncio
     async def test_on_job_start_rejected_key_exits_1(self, monkeypatch, capsys) -> None:
-        from harbor.auth.errors import NotAuthenticatedError
-        from harbor.auth.tokens import STORED_KEY_REJECTED_MESSAGE
+        from sprint.auth.errors import NotAuthenticatedError
+        from sprint.auth.tokens import STORED_KEY_REJECTED_MESSAGE
 
         self._patched_uploader(monkeypatch)
         monkeypatch.setattr(
-            "harbor.cli.plugins.harbor_hub.require_hub_upload_auth",
+            "sprint.cli.plugins.harbor_hub.require_hub_upload_auth",
             AsyncMock(side_effect=NotAuthenticatedError(STORED_KEY_REJECTED_MESSAGE)),
         )
         job = self._make_job_mock(monkeypatch)
@@ -361,9 +361,9 @@ class TestRunFlagValidation:
     def test_public_without_upload_errors(
         self, tmp_path: Path, monkeypatch, capsys
     ) -> None:
-        from harbor.cli.jobs import start
+        from sprint.cli.jobs import start
 
-        with patch("harbor.job.Job") as mock_job:
+        with patch("sprint.job.Job") as mock_job:
             mock_job.side_effect = AssertionError(
                 "Job should never be instantiated when flag validation fails"
             )
@@ -375,9 +375,9 @@ class TestRunFlagValidation:
     def test_private_without_upload_errors(
         self, tmp_path: Path, monkeypatch, capsys
     ) -> None:
-        from harbor.cli.jobs import start
+        from sprint.cli.jobs import start
 
-        with patch("harbor.job.Job") as mock_job:
+        with patch("sprint.job.Job") as mock_job:
             mock_job.side_effect = AssertionError(
                 "Job should never be instantiated when flag validation fails"
             )
@@ -391,7 +391,7 @@ class TestRunExtraInstructionPaths:
     def test_start_passes_extra_instruction_paths_to_job_config(
         self, tmp_path: Path, monkeypatch
     ) -> None:
-        from harbor.cli.jobs import start
+        from sprint.cli.jobs import start
 
         task_dir = tmp_path / "task"
         (task_dir / "environment").mkdir(parents=True)
@@ -419,15 +419,15 @@ class TestRunExtraInstructionPaths:
             job_instance.config = config
             return job_instance
 
-        monkeypatch.setattr("harbor.job.Job.create", fake_create)
+        monkeypatch.setattr("sprint.job.Job.create", fake_create)
         monkeypatch.setattr(
-            "harbor.environments.factory.EnvironmentFactory.run_preflight",
+            "sprint.environments.factory.EnvironmentFactory.run_preflight",
             lambda **_: None,
         )
         monkeypatch.setattr(
-            "harbor.cli.jobs.show_registry_hint_if_first_run", lambda _: None
+            "sprint.cli.jobs.show_registry_hint_if_first_run", lambda _: None
         )
-        monkeypatch.setattr("harbor.cli.jobs.print_job_results_tables", lambda _: None)
+        monkeypatch.setattr("sprint.cli.jobs.print_job_results_tables", lambda _: None)
 
         start(
             path=task_dir,
@@ -446,7 +446,7 @@ class TestRunExtraInstructions:
     def test_start_passes_extra_instructions_to_job_config(
         self, tmp_path: Path, monkeypatch
     ) -> None:
-        from harbor.cli.jobs import start
+        from sprint.cli.jobs import start
 
         task_dir = tmp_path / "task"
         (task_dir / "environment").mkdir(parents=True)
@@ -474,15 +474,15 @@ class TestRunExtraInstructions:
             job_instance.config = config
             return job_instance
 
-        monkeypatch.setattr("harbor.job.Job.create", fake_create)
+        monkeypatch.setattr("sprint.job.Job.create", fake_create)
         monkeypatch.setattr(
-            "harbor.environments.factory.EnvironmentFactory.run_preflight",
+            "sprint.environments.factory.EnvironmentFactory.run_preflight",
             lambda **_: None,
         )
         monkeypatch.setattr(
-            "harbor.cli.jobs.show_registry_hint_if_first_run", lambda _: None
+            "sprint.cli.jobs.show_registry_hint_if_first_run", lambda _: None
         )
-        monkeypatch.setattr("harbor.cli.jobs.print_job_results_tables", lambda _: None)
+        monkeypatch.setattr("sprint.cli.jobs.print_job_results_tables", lambda _: None)
 
         start(
             path=task_dir,

@@ -4,8 +4,8 @@ import json
 import shlex
 from typing import Any
 
-from harbor.agents.installed.copilot_cli import CopilotCli
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.copilot_cli import CopilotCli
+from sprint.models.task.config import MCPServerConfig
 
 
 class TestBuildMcpConfigFlag:

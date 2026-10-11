@@ -20,9 +20,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.computer_1.computer_1 import Computer1, FINAL_ANSWER_FILENAME
-from harbor.agents.computer_1.runtime import ComputerAction
-from harbor.models.trial.paths import EnvironmentPaths
+from sprint.agents.computer_1.computer_1 import Computer1, FINAL_ANSWER_FILENAME
+from sprint.agents.computer_1.runtime import ComputerAction
+from sprint.models.trial.paths import EnvironmentPaths
 
 
 def _make_agent(tmp_path: Path) -> Computer1:

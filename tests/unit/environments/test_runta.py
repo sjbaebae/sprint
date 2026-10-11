@@ -9,14 +9,14 @@ from typing import Any
 
 import pytest
 
-from harbor.environments.base import ExecResult, ServiceOperationsUnsupportedError
-from harbor.environments.factory import _ENVIRONMENT_REGISTRY
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import NetworkMode, NetworkPolicy
+from sprint.environments.base import ExecResult, ServiceOperationsUnsupportedError
+from sprint.environments.factory import _ENVIRONMENT_REGISTRY
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import NetworkMode, NetworkPolicy
 
 from runta import EgressMode
 
-from harbor.environments.runta import (
+from sprint.environments.runta import (
     _RUNTA_CONTAINER_CA_BUNDLE,
     _RUNTA_CONTAINER_CA_ENV,
     _RuntaComposeStrategy,
@@ -170,7 +170,7 @@ def test_runta_environment_is_registered() -> None:
     entry = _ENVIRONMENT_REGISTRY[EnvironmentType.RUNTA]
 
     assert RuntaEnvironment.type() is EnvironmentType.RUNTA
-    assert entry.module == "harbor.environments.runta"
+    assert entry.module == "sprint.environments.runta"
     assert entry.class_name == "RuntaEnvironment"
     assert entry.pip_extra == "runta"
 
@@ -859,7 +859,7 @@ async def test_start_deletes_runtime_when_readiness_or_strategy_setup_fails(
     runtime = Runtime()
     client = Client(runtime)
     monkeypatch.setattr(
-        "harbor.environments.runta.AsyncRunta",
+        "sprint.environments.runta.AsyncRunta",
         lambda **_kwargs: client,
     )
     monkeypatch.setattr(
@@ -960,7 +960,7 @@ async def test_start_recovers_and_deletes_runtime_when_create_is_cancelled(
     runtime = Runtime()
     client = Client(runtime)
     monkeypatch.setattr(
-        "harbor.environments.runta.AsyncRunta",
+        "sprint.environments.runta.AsyncRunta",
         lambda **_kwargs: client,
     )
     monkeypatch.setattr(

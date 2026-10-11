@@ -7,24 +7,24 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from harbor.agents.capabilities import AgentCapabilities
-from harbor.environments.base import ExecResult
-from harbor.environments.capabilities import EnvironmentCapabilities
-from harbor.environments.factory import EnvironmentFactory
-from harbor.models.task.config import (
+from sprint.agents.capabilities import AgentCapabilities
+from sprint.environments.base import ExecResult
+from sprint.environments.capabilities import EnvironmentCapabilities
+from sprint.environments.factory import EnvironmentFactory
+from sprint.models.task.config import (
     NetworkMode,
     NetworkPolicy,
     TaskConfig as TaskTomlConfig,
     VerifierEnvironmentMode,
 )
-from harbor.models.trial.config import AgentConfig, EnvironmentConfig, TaskConfig
-from harbor.models.trial.config import TrialConfig, VerifierConfig
-from harbor.models.trial.result import AgentInfo
-from harbor.models.verifier.result import VerifierResult
-from harbor.trial.network_policy import resolve_trial_network_plan
-from harbor.trial.trial import Trial
-from harbor.models.trial.config import AgentConfig as TrialAgentConfig
-from harbor.models.trial.config import EnvironmentConfig as TrialEnvironmentConfig
+from sprint.models.trial.config import AgentConfig, EnvironmentConfig, TaskConfig
+from sprint.models.trial.config import TrialConfig, VerifierConfig
+from sprint.models.trial.result import AgentInfo
+from sprint.models.verifier.result import VerifierResult
+from sprint.trial.network_policy import resolve_trial_network_plan
+from sprint.trial.trial import Trial
+from sprint.models.trial.config import AgentConfig as TrialAgentConfig
+from sprint.models.trial.config import EnvironmentConfig as TrialEnvironmentConfig
 
 
 def _make_task_dir(
@@ -191,11 +191,11 @@ async def _run_trial(
     )
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             side_effect=fake_create,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=MagicMock(
                 name=lambda: "oracle",
                 version=lambda: "1.0",
@@ -205,7 +205,7 @@ async def _run_trial(
                 to_agent_info=lambda: AgentInfo(name="oracle", version="1.0"),
             ),
         ),
-        patch("harbor.trial.trial.AgentName") as agent_name,
+        patch("sprint.trial.trial.AgentName") as agent_name,
     ):
         agent_name.ORACLE.value = "oracle"
         trial = await Trial.create(config)
@@ -590,11 +590,11 @@ class TestAgentPhasePolicy:
             )
             with (
                 patch(
-                    "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+                    "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
                     side_effect=fake_create,
                 ),
                 patch(
-                    "harbor.trial.trial.AgentFactory.create_agent_from_config",
+                    "sprint.trial.trial.AgentFactory.create_agent_from_config",
                     return_value=MagicMock(
                         name=lambda: "oracle",
                         version=lambda: "1.0",
@@ -631,11 +631,11 @@ class TestSharedVerifierPhasePolicy:
 
             with (
                 patch(
-                    "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+                    "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
                     side_effect=fake_create,
                 ),
                 patch(
-                    "harbor.trial.trial.AgentFactory.create_agent_from_config",
+                    "sprint.trial.trial.AgentFactory.create_agent_from_config",
                     return_value=MagicMock(
                         name=lambda: "oracle",
                         version=lambda: "1.0",
@@ -669,11 +669,11 @@ class TestSharedVerifierPhasePolicy:
             )
             with (
                 patch(
-                    "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+                    "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
                     side_effect=fake_create,
                 ),
                 patch(
-                    "harbor.trial.trial.AgentFactory.create_agent_from_config",
+                    "sprint.trial.trial.AgentFactory.create_agent_from_config",
                     return_value=MagicMock(
                         name=lambda: "oracle",
                         version=lambda: "1.0",
@@ -721,7 +721,7 @@ class TestSharedVerifierPhasePolicy:
                 return VerifierResult(rewards={"reward": 1.0})
 
             with patch(
-                "harbor.verifier.verifier.Verifier.verify",
+                "sprint.verifier.verifier.Verifier.verify",
                 verify_with_policy_observation,
             ):
                 await _run_trial(task_dir, trials_dir, fake_create)
@@ -1067,7 +1067,7 @@ class TestSeparateVerifierPhasePolicy:
                 return VerifierResult(rewards={"reward": 1.0})
 
             with patch(
-                "harbor.verifier.verifier.Verifier.verify",
+                "sprint.verifier.verifier.Verifier.verify",
                 verify_with_policy_observation,
             ):
                 await _run_trial(task_dir, trials_dir, fake_create)

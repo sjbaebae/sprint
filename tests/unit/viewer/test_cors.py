@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from harbor.viewer.server import create_app
+from sprint.viewer.server import create_app
 
 EVIL = "https://evil.example"
 BASE = "http://127.0.0.1:8087"

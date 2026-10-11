@@ -6,17 +6,17 @@ from uuid import uuid4
 
 import pytest
 
-from harbor.models.task.config import (
+from sprint.models.task.config import (
     AgentConfig as TaskAgentConfig,
     EnvironmentConfig as TaskEnvironmentConfig,
 )
-from harbor.models.trial.config import (
+from sprint.models.trial.config import (
     AgentConfig,
     TaskConfig,
     TrialConfig,
 )
-from harbor.models.trial.paths import EnvironmentPaths, TrialPaths
-from harbor.trial.single_step import SingleStepTrial
+from sprint.models.trial.paths import EnvironmentPaths, TrialPaths
+from sprint.trial.single_step import SingleStepTrial
 
 
 def _make_skill(parent: Path, name: str) -> Path:
@@ -61,7 +61,7 @@ def _make_trial(
         return MagicMock()
 
     monkeypatch.setattr(
-        "harbor.trial.trial.AgentFactory.create_agent_from_config",
+        "sprint.trial.trial.AgentFactory.create_agent_from_config",
         create_agent_from_config,
     )
     trial._init_agent()

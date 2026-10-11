@@ -4,15 +4,15 @@ from pathlib import Path
 
 import pytest
 
-import harbor.models.job.lock as lock_models
-from harbor.models.job.config import DatasetConfig, JobConfig
-from harbor.models.bridge import BridgeConfig, BridgeKind
-from harbor.models.job.lock import (
+import sprint.models.job.lock as lock_models
+from sprint.models.job.config import DatasetConfig, JobConfig
+from sprint.models.bridge import BridgeConfig, BridgeKind
+from sprint.models.job.lock import (
     JobLock,
     build_job_lock as _build_job_lock,
 )
-from harbor.skills import compute_skill_digest
-from harbor.models.trial.config import (
+from sprint.skills import compute_skill_digest
+from sprint.models.trial.config import (
     AgentConfig,
     EnvironmentConfig,
     TaskConfig,
@@ -20,8 +20,8 @@ from harbor.models.trial.config import (
     UserAgentConfig,
     VerifierConfig,
 )
-from harbor.publisher.packager import Packager
-from harbor.tasks.client import TaskDownloadResult
+from sprint.publisher.packager import Packager
+from sprint.tasks.client import TaskDownloadResult
 
 
 TASK_TOML = """\
@@ -906,7 +906,7 @@ def test_harbor_git_commit_hash_uses_direct_url_vcs_commit(monkeypatch) -> None:
         lock_models,
         "_get_harbor_direct_url_data",
         lambda: {
-            "url": "https://github.com/harbor-framework/harbor.git",
+            "url": "https://github.com/harbor-framework/sprint.git",
             "vcs_info": {"vcs": "git", "commit_id": commit_id},
         },
     )

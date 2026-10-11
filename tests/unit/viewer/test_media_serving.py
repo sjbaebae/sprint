@@ -10,7 +10,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from harbor.viewer.server import MAX_FILE_SIZE, MAX_MEDIA_FILE_SIZE, create_app
+from sprint.viewer.server import MAX_FILE_SIZE, MAX_MEDIA_FILE_SIZE, create_app
 
 
 def _make_agent_file(tmp_path: Path, name: str, data: bytes) -> tuple[TestClient, str]:
@@ -81,8 +81,8 @@ def test_oversized_text_is_still_rejected(tmp_path: Path):
 
 def test_every_audio_media_type_in_the_schema_is_servable(tmp_path: Path):
     """A media type ATIF accepts but the viewer cannot serve would not play."""
-    from harbor.models.trajectories.content import AudioMediaType
-    from harbor.viewer.server import MEDIA_EXTENSIONS
+    from sprint.models.trajectories.content import AudioMediaType
+    from sprint.viewer.server import MEDIA_EXTENSIONS
     from typing import get_args
 
     servable = {v for v in MEDIA_EXTENSIONS.values() if v.startswith("audio/")}

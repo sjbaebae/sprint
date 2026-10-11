@@ -1,20 +1,20 @@
 import pytest
 from pydantic import ValidationError
 
-from harbor.models.task.config import (
+from sprint.models.task.config import (
     NetworkAllowlistEntryType,
     NetworkMode,
     TaskConfig,
     VerifierEnvironmentMode,
     classify_network_allowlist_entry,
 )
-from harbor.models.task.verifier_mode import (
+from sprint.models.task.verifier_mode import (
     resolve_step_verifier_mode,
     resolve_task_verifier_mode,
 )
-from harbor.models.trial.config import AgentConfig as TrialAgentConfig
-from harbor.models.trial.config import EnvironmentConfig as TrialEnvironmentConfig
-from harbor.trial.network_policy import resolve_trial_network_plan
+from sprint.models.trial.config import AgentConfig as TrialAgentConfig
+from sprint.models.trial.config import EnvironmentConfig as TrialEnvironmentConfig
+from sprint.trial.network_policy import resolve_trial_network_plan
 
 
 def _plan(

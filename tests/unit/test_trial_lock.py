@@ -3,11 +3,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from uuid import UUID
 
-import harbor.models.job.lock as lock_models
-from harbor.models.trial.config import TaskConfig, TrialConfig
-from harbor.models.trial.paths import TrialPaths
-from harbor.tasks.client import TaskDownloadResult
-from harbor.trial.single_step import SingleStepTrial
+import sprint.models.job.lock as lock_models
+from sprint.models.trial.config import TaskConfig, TrialConfig
+from sprint.models.trial.paths import TrialPaths
+from sprint.tasks.client import TaskDownloadResult
+from sprint.trial.single_step import SingleStepTrial
 
 
 def test_trial_writes_trial_lock_json(tmp_path):
@@ -86,7 +86,7 @@ def test_trial_lock_hashes_loaded_task_dir(tmp_path, monkeypatch):
 
 
 def _trial_lock_with_mode(mode):
-    from harbor.models.trial.config import (
+    from sprint.models.trial.config import (
         AgentConfig,
         EnvironmentConfig,
     )
@@ -111,7 +111,7 @@ def test_trial_lock_verifier_mode_participates_in_equality():
 
 
 def test_job_lock_equality_catches_mode_flips():
-    from harbor.models.job.config import RetryConfig
+    from sprint.models.job.config import RetryConfig
 
     def job_lock(mode):
         return lock_models.JobLock(

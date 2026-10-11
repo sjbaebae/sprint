@@ -8,10 +8,10 @@ from unittest.mock import AsyncMock, patch
 import pytest
 import toml
 
-from harbor.agents.installed.grok_build import GrokBuild
-from harbor.models.agent.context import AgentContext
-from harbor.models.agent.name import AgentName
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.grok_build import GrokBuild
+from sprint.models.agent.context import AgentContext
+from sprint.models.agent.name import AgentName
+from sprint.models.task.config import MCPServerConfig
 
 MODEL = "xai/grok-4.5"
 
@@ -247,7 +247,7 @@ class TestGrokBuildRun:
     def test_capacity_errors_classify_as_overloaded(self, temp_dir):
         from unittest.mock import Mock
 
-        from harbor.agents.installed.base import ApiOverloadedError
+        from sprint.agents.installed.base import ApiOverloadedError
 
         agent = GrokBuild(logs_dir=temp_dir, model_name=MODEL)
         result = Mock(

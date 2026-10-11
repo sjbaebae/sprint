@@ -5,9 +5,9 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
-from harbor.cli.main import app
-from harbor.cli.utils import resolve_environment_spec
-from harbor.models.environment_type import EnvironmentType
+from sprint.cli.main import app
+from sprint.cli.utils import resolve_environment_spec
+from sprint.models.environment_type import EnvironmentType
 
 runner = CliRunner()
 
@@ -29,7 +29,7 @@ def _mock_trial_create(monkeypatch, captured: dict) -> None:
 
         return _DummyTrial()
 
-    monkeypatch.setattr("harbor.trial.trial.Trial.create", _fake_create)
+    monkeypatch.setattr("sprint.trial.trial.Trial.create", _fake_create)
 
 
 def _run(monkeypatch, tmp_path: Path, *args: str):

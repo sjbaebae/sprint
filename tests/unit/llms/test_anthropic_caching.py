@@ -12,7 +12,7 @@ from typing import Any
 
 from litellm import Message
 
-from harbor.llms.utils import add_anthropic_caching
+from sprint.llms.utils import add_anthropic_caching
 
 
 def _count_cache_blocks(messages: list[Any]) -> int:

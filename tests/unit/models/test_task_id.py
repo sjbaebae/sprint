@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from harbor.models.task.id import GitTaskId, LocalTaskId
+from sprint.models.task.id import GitTaskId, LocalTaskId
 
 
 @pytest.mark.unit

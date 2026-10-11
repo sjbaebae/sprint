@@ -1,6 +1,6 @@
 import pytest
 
-from harbor.viewer.models import evals_from_reward_totals, evals_from_rewards
+from sprint.viewer.models import evals_from_reward_totals, evals_from_rewards
 
 
 @pytest.mark.unit

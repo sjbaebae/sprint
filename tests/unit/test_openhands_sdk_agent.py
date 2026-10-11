@@ -7,10 +7,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.agents.installed.openhands_sdk import OpenHandsSDK
-from harbor.models.agent.context import AgentContext
-from harbor.models.agent.name import AgentName
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.openhands_sdk import OpenHandsSDK
+from sprint.models.agent.context import AgentContext
+from sprint.models.agent.name import AgentName
+from sprint.models.task.config import MCPServerConfig
 
 
 class TestOpenHandsSDKAgent:
@@ -594,7 +594,7 @@ class TestOpenHandsSDKIntegration:
 
     def test_agent_in_factory(self):
         """Test agent can be created via factory."""
-        from harbor.agents.factory import AgentFactory
+        from sprint.agents.factory import AgentFactory
 
         with tempfile.TemporaryDirectory() as tmpdir:
             agent = AgentFactory.create_agent_from_name(

@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.openhands import OpenHands
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.openhands import OpenHands
+from sprint.models.task.config import MCPServerConfig
 
 
 class TestBuildMCPConfigToml:

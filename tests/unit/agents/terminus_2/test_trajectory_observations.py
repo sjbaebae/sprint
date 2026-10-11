@@ -1,4 +1,4 @@
-from harbor.agents.terminus_2.terminus_2 import (
+from sprint.agents.terminus_2.terminus_2 import (
     Command,
     _terminal_observation_source_call_id,
 )

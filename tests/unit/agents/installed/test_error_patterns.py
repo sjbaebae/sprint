@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.base import (
+from sprint.agents.installed.base import (
     AgentAuthenticationError,
     ModelNotFoundError,
     AgentSafetyRefusalError,
@@ -25,9 +25,9 @@ from harbor.agents.installed.base import (
     UnknownApiError,
     UnsupportedModelParametersError,
 )
-from harbor.agents.installed.antigravity_cli import AntigravityCli
-from harbor.agents.installed.claude_code import ClaudeCode
-from harbor.agents.installed.codex import Codex
+from sprint.agents.installed.antigravity_cli import AntigravityCli
+from sprint.agents.installed.claude_code import ClaudeCode
+from sprint.agents.installed.codex import Codex
 
 
 def _environment(stdout: str = "", stderr: str = "", return_code: int = 1):

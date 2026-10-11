@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.codex import Codex
-from harbor.models.trajectories import Agent, Step, Trajectory
+from sprint.agents.installed.codex import Codex
+from sprint.models.trajectories import Agent, Step, Trajectory
 
 ROLLOUT_NAME = "rollout-2026-08-05T19-10-29-019fd355-957d-7322-963d-eb9df3bdc7b0.jsonl"
 

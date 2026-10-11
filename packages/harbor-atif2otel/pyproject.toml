@@ -11,7 +11,7 @@ dependencies = [
     "opentelemetry-proto>=1.42.1",
 ]
 
-[project.entry-points."harbor.plugins"]
+[project.entry-points."sprint.plugins"]
 atif2otel = "harbor_atif2otel.plugin:OtelPlugin"
 
 [project.optional-dependencies]
@@ -19,7 +19,7 @@ test = [
     "pytest>=8.4.1",
 ]
 plugin = [
-    "research-sprint",
+    "sprint",
 ]
 
 [project.urls]
@@ -27,7 +27,7 @@ Repository = "https://github.com/harbor-framework/harbor"
 Issues = "https://github.com/harbor-framework/harbor/issues"
 
 [tool.uv.sources]
-research-sprint = { workspace = true }
+sprint = { workspace = true }
 
 [build-system]
 requires = ["hatchling>=1.27.0"]

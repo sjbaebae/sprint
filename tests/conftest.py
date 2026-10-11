@@ -64,7 +64,7 @@ def run_validator_cli(trajectory_path: Path, extra_args: list[str] | None = None
     cmd = [
         sys.executable,
         "-m",
-        "harbor.utils.trajectory_validator",
+        "sprint.utils.trajectory_validator",
         str(trajectory_path),
     ]
     if extra_args:

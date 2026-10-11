@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from harbor.agents.installed.junie import Junie
+from sprint.agents.installed.junie import Junie
 
 
 def _agent(temp_dir, model_name: str = "anthropic/sonnet") -> Junie:

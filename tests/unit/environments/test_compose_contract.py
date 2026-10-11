@@ -25,8 +25,8 @@ import re
 
 import pytest
 
-import harbor.environments
-from harbor.environments.base import BaseEnvironment
+import sprint.environments
+from sprint.environments.base import BaseEnvironment
 
 SERVICE_OPS = [
     "service_exec",
@@ -37,14 +37,14 @@ SERVICE_OPS = [
 
 
 def _environment_classes() -> list[type[BaseEnvironment]]:
-    """Import every harbor.environments module and collect env classes.
+    """Import every sprint.environments module and collect env classes.
 
     Modules whose optional provider SDK is not installed are skipped --
     their import guards raise at class-definition or import time.
     """
     classes: set[type[BaseEnvironment]] = set()
     for mod_info in pkgutil.walk_packages(
-        harbor.environments.__path__, harbor.environments.__name__ + "."
+        sprint.environments.__path__, sprint.environments.__name__ + "."
     ):
         try:
             module = importlib.import_module(mod_info.name)

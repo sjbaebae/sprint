@@ -5,7 +5,7 @@ import pytest
 
 pytest.importorskip("strands")
 
-from harbor.agents.installed.strands_runner import TaskLocalSandbox, _ModelBuilder
+from sprint.agents.installed.strands_runner import TaskLocalSandbox, _ModelBuilder
 
 
 @pytest.fixture(autouse=True)

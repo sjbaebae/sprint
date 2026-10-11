@@ -4,7 +4,7 @@ from uuid import uuid4
 import httpx
 import pytest
 
-from harbor.hosted.secrets import (
+from sprint.hosted.secrets import (
     SecretReplacementRequired,
     delete_hosted_secret,
     list_hosted_secrets,
@@ -55,15 +55,15 @@ class FakeSecretsHttpClient:
 @pytest.fixture
 def fake_auth(monkeypatch):
     monkeypatch.setattr(
-        "harbor.hosted.secrets.get_access_token",
+        "sprint.hosted.secrets.get_access_token",
         AsyncMock(return_value="access-token"),
     )
     monkeypatch.setattr(
-        "harbor.hosted.secrets.httpx.AsyncClient",
+        "sprint.hosted.secrets.httpx.AsyncClient",
         FakeSecretsHttpClient,
     )
     monkeypatch.setattr(
-        "harbor.hosted.secrets.hosted_secrets_url",
+        "sprint.hosted.secrets.hosted_secrets_url",
         lambda: SECRETS_URL,
     )
     FakeSecretsHttpClient.requests = []
@@ -286,10 +286,10 @@ async def test_set_hosted_secret_retries_after_stale_token_401(
     # token cache and retry, and the retried attempt must fetch a fresh token.
     invalidations: list[bool] = []
     monkeypatch.setattr(
-        "harbor.hosted.api.invalidate_token", lambda: invalidations.append(True)
+        "sprint.hosted.api.invalidate_token", lambda: invalidations.append(True)
     )
     monkeypatch.setattr(
-        "harbor.hosted.secrets.get_access_token",
+        "sprint.hosted.secrets.get_access_token",
         AsyncMock(side_effect=["stale-token", "fresh-token"]),
     )
     FakeSecretsHttpClient.responses = [

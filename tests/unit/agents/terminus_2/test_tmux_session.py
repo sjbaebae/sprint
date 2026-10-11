@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.terminus_2.tmux_session import TmuxSession
-from harbor.environments.base import ExecResult
+from sprint.agents.terminus_2.tmux_session import TmuxSession
+from sprint.environments.base import ExecResult
 
 
 @pytest.fixture

@@ -25,10 +25,10 @@ import pytest
 
 pytest.importorskip("opensandbox")
 
-from harbor.environments.opensandbox import OpenSandboxEnvironment
-from harbor.models.task.config import EnvironmentConfig, NetworkMode
-from harbor.models.task.config import NetworkPolicy as TaskNetworkPolicy
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments.opensandbox import OpenSandboxEnvironment
+from sprint.models.task.config import EnvironmentConfig, NetworkMode
+from sprint.models.task.config import NetworkPolicy as TaskNetworkPolicy
+from sprint.models.trial.paths import TrialPaths
 
 pytestmark = pytest.mark.integration
 

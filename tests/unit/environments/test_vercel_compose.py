@@ -8,9 +8,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.environments.base import ExecResult
-from harbor.environments.vercel.compose import VercelCompose
-from harbor.environments.vercel.snapshots import (
+from sprint.environments.base import ExecResult
+from sprint.environments.vercel.compose import VercelCompose
+from sprint.environments.vercel.snapshots import (
     builder_sandbox_name,
     host_cache_key,
     resolve_host_snapshot,
@@ -125,10 +125,10 @@ def test_snapshot_cache_builds_once_under_concurrency(tmp_path, monkeypatch) -> 
         return "snap-1"
 
     monkeypatch.setattr(
-        "harbor.environments.vercel.snapshots._build_host_snapshot", build
+        "sprint.environments.vercel.snapshots._build_host_snapshot", build
     )
     monkeypatch.setattr(
-        "harbor.environments.vercel.snapshots._cache_dir", lambda: tmp_path
+        "sprint.environments.vercel.snapshots._cache_dir", lambda: tmp_path
     )
     module = SandboxModule()
 

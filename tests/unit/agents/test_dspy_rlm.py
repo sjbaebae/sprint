@@ -5,15 +5,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from harbor.agents.dspy_rlm import (
+from sprint.agents.dspy_rlm import (
     DspyImportError,
     DspyRlmAgent,
     EnvironmentToolBridge,
     _require_dspy,
 )
-from harbor.environments.base import ExecResult
-from harbor.models.agent.context import AgentContext
-from harbor.models.agent.name import AgentName
+from sprint.environments.base import ExecResult
+from sprint.models.agent.context import AgentContext
+from sprint.models.agent.name import AgentName
 
 pytestmark = pytest.mark.unit
 
@@ -95,7 +95,7 @@ async def _run_agent(agent, mock_env, mock_dspy=None, instruction="Fix"):
     mock_dspy = mock_dspy or _make_mock_dspy()
     mock_env.exec.return_value = _exec_result(stdout="./main.py")
     context = AgentContext()
-    with patch("harbor.agents.dspy_rlm._require_dspy", return_value=mock_dspy):
+    with patch("sprint.agents.dspy_rlm._require_dspy", return_value=mock_dspy):
         await agent.run(instruction, mock_env, context)
     return context, mock_dspy
 
@@ -107,7 +107,7 @@ async def _run_agent(agent, mock_env, mock_dspy=None, instruction="Fix"):
 
 class TestDspyRlmAgent:
     def test_registered_in_enum_and_factory(self, logs_dir):
-        from harbor.agents.factory import AgentFactory
+        from sprint.agents.factory import AgentFactory
 
         assert DspyRlmAgent.name() == AgentName.DSPY_RLM.value
         agent = AgentFactory.create_agent_from_name(
@@ -198,7 +198,7 @@ class TestDspyImportError:
     def test_version_returns_none_when_dspy_missing(self, logs_dir):
         agent = DspyRlmAgent(logs_dir=logs_dir, model_name="openai/gpt-4o")
         with patch(
-            "harbor.agents.dspy_rlm._require_dspy", side_effect=DspyImportError()
+            "sprint.agents.dspy_rlm._require_dspy", side_effect=DspyImportError()
         ):
             assert agent.version() is None
 
@@ -419,7 +419,7 @@ class TestAgentRun:
 
     async def test_mcp_servers_injected_into_instruction(self, logs_dir, mock_env):
         """MCP server info should be appended to the instruction (like terminus_2)."""
-        from harbor.models.task.config import MCPServerConfig
+        from sprint.models.task.config import MCPServerConfig
 
         mcp = MCPServerConfig(
             name="test-server", transport="sse", url="http://localhost:8080"
@@ -433,7 +433,7 @@ class TestAgentRun:
         mock_env.exec.return_value = _exec_result(stdout="./main.py")
         context = AgentContext()
 
-        with patch("harbor.agents.dspy_rlm._require_dspy", return_value=mock_dspy):
+        with patch("sprint.agents.dspy_rlm._require_dspy", return_value=mock_dspy):
             await agent.run("Fix the bug", mock_env, context)
 
         # The RLM should receive the augmented instruction
@@ -450,7 +450,7 @@ class TestAgentRun:
         mock_env.exec.return_value = _exec_result(stdout="./main.py")
         context = AgentContext()
 
-        with patch("harbor.agents.dspy_rlm._require_dspy", return_value=mock_dspy):
+        with patch("sprint.agents.dspy_rlm._require_dspy", return_value=mock_dspy):
             await agent.run("Fix the bug", mock_env, context)
 
         call_kwargs = mock_dspy.RLM.return_value.call_args[1]
@@ -475,7 +475,7 @@ class TestErrorResilience:
         mock_env.exec.return_value = _exec_result(stdout="./main.py")
         context = AgentContext()
 
-        with patch("harbor.agents.dspy_rlm._require_dspy", return_value=mock_dspy):
+        with patch("sprint.agents.dspy_rlm._require_dspy", return_value=mock_dspy):
             with pytest.raises(RuntimeError, match="REPL crash"):
                 await agent.run("Fix", mock_env, context)
 
@@ -531,7 +531,7 @@ class TestErrorResilience:
         mock_env.exec.return_value = _exec_result(stdout="")
         context = AgentContext()
 
-        with patch("harbor.agents.dspy_rlm._require_dspy", return_value=mock_dspy):
+        with patch("sprint.agents.dspy_rlm._require_dspy", return_value=mock_dspy):
             await agent.run("Fix", mock_env, context)
 
         # RLM should be called with "(empty)" file tree

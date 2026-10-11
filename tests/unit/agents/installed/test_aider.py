@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.aider import _SNAPSHOT_UNTRACKED_WORKSPACE, Aider
-from harbor.models.agent.context import AgentContext
+from sprint.agents.installed.aider import _SNAPSHOT_UNTRACKED_WORKSPACE, Aider
+from sprint.models.agent.context import AgentContext
 
 requires_posix_git = pytest.mark.skipif(
     os.name == "nt" or shutil.which("git") is None,

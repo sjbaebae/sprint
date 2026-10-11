@@ -7,9 +7,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from harbor.agents.capabilities import AgentCapabilities
-from harbor.models.task.paths import TaskPaths
-from harbor.trial.single_step import SingleStepTrial
+from sprint.agents.capabilities import AgentCapabilities
+from sprint.models.task.paths import TaskPaths
+from sprint.trial.single_step import SingleStepTrial
 
 pytestmark = pytest.mark.unit
 

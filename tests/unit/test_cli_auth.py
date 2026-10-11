@@ -2,14 +2,14 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.auth.flows import AuthStatus
-from harbor.cli.auth import SSH_ENV_VARS, _is_ssh_session, login, status
+from sprint.auth.flows import AuthStatus
+from sprint.cli.auth import SSH_ENV_VARS, _is_ssh_session, login, status
 
 
 class TestAuthStatusCli:
     def test_prints_env_key_mode(self, capsys) -> None:
         with patch(
-            "harbor.auth.flows.auth_status", return_value=AuthStatus(mode="env")
+            "sprint.auth.flows.auth_status", return_value=AuthStatus(mode="env")
         ):
             status()
 
@@ -18,7 +18,7 @@ class TestAuthStatusCli:
 
     def test_prints_not_authenticated_when_logged_out(self, capsys) -> None:
         with patch(
-            "harbor.auth.flows.auth_status", return_value=AuthStatus(mode="none")
+            "sprint.auth.flows.auth_status", return_value=AuthStatus(mode="none")
         ):
             status()
 
@@ -28,7 +28,7 @@ class TestAuthStatusCli:
 
     def test_prints_legacy_hint(self, capsys) -> None:
         with patch(
-            "harbor.auth.flows.auth_status",
+            "sprint.auth.flows.auth_status",
             return_value=AuthStatus(mode="none", legacy_credentials=True),
         ):
             status()
@@ -40,11 +40,11 @@ class TestAuthStatusCli:
     def test_prints_not_authenticated_when_key_rejected(self, capsys) -> None:
         with (
             patch(
-                "harbor.auth.flows.auth_status",
+                "sprint.auth.flows.auth_status",
                 return_value=AuthStatus(mode="file", user_name="alice"),
             ),
             patch(
-                "harbor.auth.flows.verify_credential",
+                "sprint.auth.flows.verify_credential",
                 AsyncMock(return_value=False),
             ),
         ):
@@ -56,7 +56,7 @@ class TestAuthStatusCli:
     def test_prints_logged_in_username_and_prefix(self, capsys) -> None:
         with (
             patch(
-                "harbor.auth.flows.auth_status",
+                "sprint.auth.flows.auth_status",
                 return_value=AuthStatus(
                     mode="file",
                     user_name="alice",
@@ -64,7 +64,7 @@ class TestAuthStatusCli:
                 ),
             ),
             patch(
-                "harbor.auth.flows.verify_credential",
+                "sprint.auth.flows.verify_credential",
                 AsyncMock(return_value=True),
             ),
         ):
@@ -77,11 +77,11 @@ class TestAuthStatusCli:
     def test_prints_unknown_user_when_metadata_missing(self, capsys) -> None:
         with (
             patch(
-                "harbor.auth.flows.auth_status",
+                "sprint.auth.flows.auth_status",
                 return_value=AuthStatus(mode="file"),
             ),
             patch(
-                "harbor.auth.flows.verify_credential",
+                "sprint.auth.flows.verify_credential",
                 AsyncMock(return_value=True),
             ),
         ):
@@ -101,7 +101,7 @@ class TestAuthLoginCli:
         monkeypatch.setenv(ssh_env_var, "present")
 
         with patch(
-            "harbor.auth.flows.login",
+            "sprint.auth.flows.login",
             AsyncMock(return_value="alice"),
         ) as mock_login:
             login()
@@ -118,7 +118,7 @@ class TestAuthLoginCli:
             monkeypatch.delenv(env_var, raising=False)
 
         with patch(
-            "harbor.auth.flows.login",
+            "sprint.auth.flows.login",
             AsyncMock(return_value="alice"),
         ) as mock_login:
             login()
@@ -134,7 +134,7 @@ class TestAuthLoginCli:
             monkeypatch.delenv(env_var, raising=False)
 
         with patch(
-            "harbor.auth.flows.login",
+            "sprint.auth.flows.login",
             AsyncMock(return_value="alice"),
         ) as mock_login:
             login(no_browser=True)

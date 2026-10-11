@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from harbor.analyze.checker import (
+from sprint.analyze.checker import (
     CHECK_TASK_TEMPLATE_DIR,
     _build_file_tree,
     _extract_check_result,
@@ -15,11 +15,11 @@ from harbor.analyze.checker import (
     assemble_check_task,
     run_checks,
 )
-from harbor.analyze.models import (
+from sprint.analyze.models import (
     build_check_response_model,
     load_rubric,
 )
-from harbor.models.task.task import Task
+from sprint.models.task.task import Task
 
 
 def _make_task_dir(tmp_path: Path, name: str = "task") -> Path:

@@ -5,13 +5,13 @@ from uuid import uuid4
 
 import pytest
 
-from harbor.job import Job
-from harbor.models.job.config import JobConfig
-from harbor.models.task.config import TaskConfig as TaskDefinitionConfig
-from harbor.models.trial.config import TaskConfig, TrialConfig
-from harbor.models.trial.paths import TrialPaths
-from harbor.models.trial.result import AgentInfo
-from harbor.trial.trial import Trial
+from sprint.job import Job
+from sprint.models.job.config import JobConfig
+from sprint.models.task.config import TaskConfig as TaskDefinitionConfig
+from sprint.models.trial.config import TaskConfig, TrialConfig
+from sprint.models.trial.paths import TrialPaths
+from sprint.models.trial.result import AgentInfo
+from sprint.trial.trial import Trial
 
 
 pytestmark = pytest.mark.unit

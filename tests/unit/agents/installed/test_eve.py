@@ -5,14 +5,14 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.factory import AgentFactory
-from harbor.agents.installed import eve as eve_module
-from harbor.agents.installed.base import NonZeroAgentExitCodeError
-from harbor.agents.installed.eve import Eve
-from harbor.environments.base import ExecResult
-from harbor.models.agent.context import AgentContext
-from harbor.models.agent.name import AgentName
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.factory import AgentFactory
+from sprint.agents.installed import eve as eve_module
+from sprint.agents.installed.base import NonZeroAgentExitCodeError
+from sprint.agents.installed.eve import Eve
+from sprint.environments.base import ExecResult
+from sprint.models.agent.context import AgentContext
+from sprint.models.agent.name import AgentName
+from sprint.models.task.config import MCPServerConfig
 
 
 def _write_eve_project(path: Path, package_json: dict[str, Any] | None = None) -> Path:

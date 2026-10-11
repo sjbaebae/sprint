@@ -1,5 +1,5 @@
-from harbor.models.trial.config import TrialConfig
-from harbor.viewer.scanner import JobScanner
+from sprint.models.trial.config import TrialConfig
+from sprint.viewer.scanner import JobScanner
 
 
 def _write_trial_config(trial_dir, *, trial_name: str, task_name: str) -> None:

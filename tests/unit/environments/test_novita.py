@@ -5,12 +5,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from harbor.environments.base import ExecResult, ServiceOperationsUnsupportedError
-from harbor.environments.novita import NovitaEnvironment, _NovitaDinD, _NovitaDirect
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.config import ResourceMode
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments.base import ExecResult, ServiceOperationsUnsupportedError
+from sprint.environments.novita import NovitaEnvironment, _NovitaDinD, _NovitaDirect
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.config import ResourceMode
+from sprint.models.trial.paths import TrialPaths
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Use 'memory_mb' instead:DeprecationWarning",
@@ -558,7 +558,7 @@ class TestSandboxLifecycle:
     def env(self, temp_dir):
         return _make_env(temp_dir)
 
-    @patch("harbor.environments.novita.AsyncSandbox")
+    @patch("sprint.environments.novita.AsyncSandbox")
     async def test_create_sandbox(self, mock_sandbox_cls, env):
         mock_sandbox = AsyncMock()
         mock_sandbox_cls.create = AsyncMock(return_value=mock_sandbox)
@@ -578,7 +578,7 @@ class TestSandboxLifecycle:
             allow_internet_access=True,
         )
 
-    @patch("harbor.environments.novita.AsyncSandbox")
+    @patch("sprint.environments.novita.AsyncSandbox")
     async def test_create_sandbox_no_network(self, mock_sandbox_cls, temp_dir):
         env = _make_env(temp_dir, network_mode=NetworkMode.NO_NETWORK)
         mock_sandbox_cls.create = AsyncMock(return_value=AsyncMock())
@@ -589,7 +589,7 @@ class TestSandboxLifecycle:
         assert kwargs["allow_internet_access"] is False
         assert "network" not in kwargs
 
-    @patch("harbor.environments.novita.AsyncSandbox")
+    @patch("sprint.environments.novita.AsyncSandbox")
     async def test_create_sandbox_allowlist(self, mock_sandbox_cls, temp_dir):
         env = _make_env(
             temp_dir,
@@ -607,7 +607,7 @@ class TestSandboxLifecycle:
             "deny_out": ["0.0.0.0/0"],
         }
 
-    @patch("harbor.environments.novita.AsyncSandbox")
+    @patch("sprint.environments.novita.AsyncSandbox")
     async def test_create_sandbox_honors_novita_domain_env(
         self, mock_sandbox_cls, temp_dir
     ):
@@ -631,7 +631,7 @@ class TestSandboxLifecycle:
         )
 
     @patch.object(NovitaEnvironment, "exec", new_callable=AsyncMock)
-    @patch("harbor.environments.novita.AsyncSandbox")
+    @patch("sprint.environments.novita.AsyncSandbox")
     async def test_start_chmod_uses_public_exec(self, mock_sandbox_cls, mock_exec, env):
         """Direct start must chmod via NovitaEnvironment.exec (retry + cwd rules)."""
         mock_exec.return_value = ExecResult(stdout="", stderr="", return_code=0)
@@ -648,7 +648,7 @@ class TestSandboxLifecycle:
         mock_exec.assert_awaited_once()
         assert "chmod 777" in mock_exec.await_args.args[0]
 
-    @patch("harbor.environments.novita.AsyncSandbox")
+    @patch("sprint.environments.novita.AsyncSandbox")
     async def test_start_force_build(self, mock_sandbox_cls, env):
         mock_sandbox = AsyncMock()
         mock_sandbox.files.make_dir = AsyncMock()
@@ -681,7 +681,7 @@ class TestSandboxLifecycle:
         # Should create workdir + agent + verifier dirs
         assert mock_sandbox.files.make_dir.call_count == 3
 
-    @patch("harbor.environments.novita.AsyncSandbox")
+    @patch("sprint.environments.novita.AsyncSandbox")
     async def test_start_reuses_existing_template(self, mock_sandbox_cls, env):
         mock_sandbox = AsyncMock()
         mock_sandbox.files.make_dir = AsyncMock()
@@ -708,7 +708,7 @@ class TestSandboxLifecycle:
         env._build_template.assert_not_called()
         assert env._template_id == "tmpl_existing"
 
-    @patch("harbor.environments.novita.AsyncSandbox")
+    @patch("sprint.environments.novita.AsyncSandbox")
     async def test_start_builds_when_no_existing_template(self, mock_sandbox_cls, env):
         mock_sandbox = AsyncMock()
         mock_sandbox.files.make_dir = AsyncMock()
@@ -734,7 +734,7 @@ class TestSandboxLifecycle:
         env._build_template.assert_called_once()
         assert env._template_id == "tmpl_fresh"
 
-    @patch("harbor.environments.novita.AsyncSandbox")
+    @patch("sprint.environments.novita.AsyncSandbox")
     async def test_start_rebuilds_on_stale_template(self, mock_sandbox_cls, env):
         """When a reused template gives 404 on sandbox creation, delete and rebuild."""
         SandboxException = _FakeSandboxException
@@ -867,7 +867,7 @@ class TestFileOperations:
 
         env._sandbox.files.write.assert_called_once_with("/app/test.txt", b"hello")
 
-    @patch("harbor.environments.novita.WriteEntry", lambda **kwargs: kwargs)
+    @patch("sprint.environments.novita.WriteEntry", lambda **kwargs: kwargs)
     async def test_upload_dir(self, env_with_sandbox, temp_dir):
         env = env_with_sandbox
         src_dir = temp_dir / "mydir"
@@ -918,7 +918,7 @@ class TestExec:
         env._sandbox = AsyncMock()
         return env
 
-    @patch("harbor.environments.novita.CommandExitException", Exception)
+    @patch("sprint.environments.novita.CommandExitException", Exception)
     async def test_exec_success(self, env_with_sandbox):
         env = env_with_sandbox
         mock_result = MagicMock()
@@ -944,7 +944,7 @@ class TestExec:
             timeout=0,
         )
 
-    @patch("harbor.environments.novita.CommandExitException", Exception)
+    @patch("sprint.environments.novita.CommandExitException", Exception)
     async def test_exec_with_custom_cwd(self, env_with_sandbox):
         env = env_with_sandbox
         mock_result = MagicMock(stdout="", stderr="", exit_code=0)
@@ -959,7 +959,7 @@ class TestExec:
         assert call_kwargs["cmd"] == "cd /custom/dir && ls"
         assert "cwd" not in call_kwargs
 
-    @patch("harbor.environments.novita.CommandExitException", Exception)
+    @patch("sprint.environments.novita.CommandExitException", Exception)
     async def test_exec_nonzero_exit(self, env_with_sandbox):
         env = env_with_sandbox
         exc = Exception("command failed")
@@ -1344,7 +1344,7 @@ class TestDynamicNetworkPolicy:
         )
         env._sandbox = sandbox
 
-        with patch("harbor.environments.novita.asyncio.sleep", new=AsyncMock()):
+        with patch("sprint.environments.novita.asyncio.sleep", new=AsyncMock()):
             await env._apply_network_policy(
                 NetworkPolicy(network_mode=NetworkMode.NO_NETWORK)
             )
@@ -1360,7 +1360,7 @@ class TestDynamicNetworkPolicy:
         sandbox.set_network = AsyncMock(side_effect=RuntimeError("persistent 500"))
         env._sandbox = sandbox
 
-        with patch("harbor.environments.novita.asyncio.sleep", new=AsyncMock()):
+        with patch("sprint.environments.novita.asyncio.sleep", new=AsyncMock()):
             with pytest.raises(RuntimeError, match="persistent 500"):
                 await env._apply_network_policy(
                     NetworkPolicy(network_mode=NetworkMode.NO_NETWORK)

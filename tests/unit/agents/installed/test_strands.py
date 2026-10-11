@@ -6,17 +6,17 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.factory import AgentFactory
-from harbor.agents.installed.strands import (
+from sprint.agents.factory import AgentFactory
+from sprint.agents.installed.strands import (
     Strands,
     _strands_requirement,
 )
-from harbor.environments.base import BaseEnvironment, ExecResult
-from harbor.models.agent.context import AgentContext
-from harbor.models.agent.name import AgentName
-from harbor.models.task.config import MCPServerConfig
-from harbor.models.trial.config import AgentConfig
-from harbor.models.trajectories import Trajectory
+from sprint.environments.base import BaseEnvironment, ExecResult
+from sprint.models.agent.context import AgentContext
+from sprint.models.agent.name import AgentName
+from sprint.models.task.config import MCPServerConfig
+from sprint.models.trial.config import AgentConfig
+from sprint.models.trajectories import Trajectory
 
 
 def _environment(*, default_user: str | None = None) -> BaseEnvironment:

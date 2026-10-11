@@ -8,10 +8,10 @@ import shlex
 from pathlib import Path
 from typing import Any
 
-from harbor.agents.installed.base import BaseInstalledAgent
-from harbor.environments.base import BaseEnvironment
-from harbor.models.agent.context import AgentContext
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.base import BaseInstalledAgent
+from sprint.environments.base import BaseEnvironment
+from sprint.models.agent.context import AgentContext
+from sprint.models.task.config import MCPServerConfig
 
 RUNNER_FILENAME = "run_tau3_llm_agent.py"
 RUNNER_TARGET_PATH = f"/{RUNNER_FILENAME}"

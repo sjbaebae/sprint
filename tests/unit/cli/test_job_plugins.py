@@ -1,12 +1,12 @@
 import pytest
 
-from harbor.cli.job_plugins import (
+from sprint.cli.job_plugins import (
     PluginConfig,
     attach_job_plugin,
     attach_job_plugins,
     finalize_job_plugins,
 )
-from harbor.models.job.plugin import BaseJobPlugin
+from sprint.models.job.plugin import BaseJobPlugin
 
 
 class AttachPlugin(BaseJobPlugin):

@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from harbor.models.agent.acp_source import (
+from sprint.models.agent.acp_source import (
     AcpAgentSource,
     AcpSourceManifest,
 )

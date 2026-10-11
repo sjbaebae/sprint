@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.codex import Codex
+from sprint.agents.installed.codex import Codex
 
 
 class TestResolveAuthJsonPath:

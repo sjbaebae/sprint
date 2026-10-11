@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 import pytest
 from rich.console import Console
 
-from harbor.cli.hosted_jobs import (
+from sprint.cli.hosted_jobs import (
     _describe_launch_trials,
     _gather_preflight_warnings,
     _print_launch_summary,
@@ -15,10 +15,10 @@ from harbor.cli.hosted_jobs import (
     _route_sensitive_env_to_credentials,
     run_hosted_launch,
 )
-from harbor.hosted.config import HostedAgentConfig, HostedJobConfig
-from harbor.hosted.preflight import PreflightWarnings
-from harbor.models.job.config import DatasetConfig
-from harbor.models.trial.config import (
+from sprint.hosted.config import HostedAgentConfig, HostedJobConfig
+from sprint.hosted.preflight import PreflightWarnings
+from sprint.models.job.config import DatasetConfig
+from sprint.models.trial.config import (
     EnvironmentConfig,
     TaskConfig,
     VerifierConfig,
@@ -207,14 +207,14 @@ def test_declining_interactive_launch_exits_unsuccessfully(monkeypatch) -> None:
     preflight = AsyncMock(return_value=None)
     submit = AsyncMock()
     monkeypatch.setattr(
-        "harbor.cli.hosted_jobs.sys.stdin",
+        "sprint.cli.hosted_jobs.sys.stdin",
         SimpleNamespace(isatty=lambda: True),
     )
     monkeypatch.setattr(
-        "harbor.cli.hosted_jobs._discard_pending_stdin", lambda console: None
+        "sprint.cli.hosted_jobs._discard_pending_stdin", lambda console: None
     )
-    monkeypatch.setattr("harbor.cli.hosted_jobs._gather_preflight_warnings", preflight)
-    monkeypatch.setattr("harbor.hosted.submit.submit_hosted_job", submit)
+    monkeypatch.setattr("sprint.cli.hosted_jobs._gather_preflight_warnings", preflight)
+    monkeypatch.setattr("sprint.hosted.submit.submit_hosted_job", submit)
     _scripted_input(monkeypatch, ["n"])
 
     with pytest.raises(SystemExit) as exc_info:
@@ -256,7 +256,7 @@ async def test_gather_prefers_api_report(monkeypatch) -> None:
             ]
         }
 
-    monkeypatch.setattr("harbor.hosted.preflight.run_hosted_preflight", fake_preflight)
+    monkeypatch.setattr("sprint.hosted.preflight.run_hosted_preflight", fake_preflight)
 
     warnings = await _gather_preflight_warnings(
         HostedJobConfig(), None, organization="acme"
@@ -271,7 +271,7 @@ async def test_gather_returns_none_when_no_check_ran(monkeypatch) -> None:
     async def failing(*args, **kwargs):
         raise RuntimeError("offline")
 
-    monkeypatch.setattr("harbor.hosted.preflight.run_hosted_preflight", failing)
+    monkeypatch.setattr("sprint.hosted.preflight.run_hosted_preflight", failing)
 
     assert await _gather_preflight_warnings(HostedJobConfig(), None) is None
 
@@ -366,10 +366,10 @@ def test_route_sensitive_env_skips_non_env_var_names() -> None:
 def test_local_launch_publishes_only_after_upload_authorization(
     monkeypatch, tmp_path, dry_run, yes, use_dataset, invalid_remote
 ):
-    from harbor.cli.config_validation import ValidationReport, validate_local_sources
-    from harbor.db.client import TaskVersionNotFoundError
-    from harbor.hosted.submit import HostedSubmitResult
-    from harbor.publisher.publisher import BatchPublishResult, PublishResult
+    from sprint.cli.config_validation import ValidationReport, validate_local_sources
+    from sprint.db.client import TaskVersionNotFoundError
+    from sprint.hosted.submit import HostedSubmitResult
+    from sprint.publisher.publisher import BatchPublishResult, PublishResult
 
     monkeypatch.chdir(tmp_path)
     directory = Path("dataset")
@@ -425,7 +425,7 @@ def test_local_launch_publishes_only_after_upload_authorization(
     resolve = AsyncMock(side_effect=TaskVersionNotFoundError("Missing version"))
     if invalid_remote:
         validate_sources = AsyncMock(wraps=validate_local_sources)
-        monkeypatch.setattr("harbor.db.client.RegistryDB.resolve_task_version", resolve)
+        monkeypatch.setattr("sprint.db.client.RegistryDB.resolve_task_version", resolve)
         monkeypatch.setattr(
             DatasetConfig, "_get_package_task_configs", AsyncMock(return_value=[])
         )
@@ -439,19 +439,19 @@ def test_local_launch_publishes_only_after_upload_authorization(
 
     preflight = AsyncMock(side_effect=check_preflight)
     monkeypatch.setattr(
-        "harbor.cli.hosted_jobs.sys.stdin", SimpleNamespace(isatty=lambda: False)
+        "sprint.cli.hosted_jobs.sys.stdin", SimpleNamespace(isatty=lambda: False)
     )
     monkeypatch.setattr(
-        "harbor.publisher.publisher.Publisher",
+        "sprint.publisher.publisher.Publisher",
         lambda: SimpleNamespace(publish_tasks=publish),
     )
     monkeypatch.setattr(
-        "harbor.cli.config_validation.validate_local_sources", validate_sources
+        "sprint.cli.config_validation.validate_local_sources", validate_sources
     )
-    monkeypatch.setattr("harbor.hosted.submit.submit_hosted_job", submit)
-    monkeypatch.setattr("harbor.cli.hosted_jobs._gather_preflight_warnings", preflight)
+    monkeypatch.setattr("sprint.hosted.submit.submit_hosted_job", submit)
+    monkeypatch.setattr("sprint.cli.hosted_jobs._gather_preflight_warnings", preflight)
     monkeypatch.setattr(
-        "harbor.cli.config_validation.validate_job_config",
+        "sprint.cli.config_validation.validate_job_config",
         AsyncMock(return_value=ValidationReport()),
     )
     kwargs = dict(

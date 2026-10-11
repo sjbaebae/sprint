@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Iterable
 
 if TYPE_CHECKING:
-    from harbor.models.task.paths import TaskPaths
+    from sprint.models.task.paths import TaskPaths
 
 from .agent_constants import (
     AGENT_MD_PARITY,
@@ -130,7 +130,7 @@ class FrontierCSAdapter:
     def generate_task(
         self, problem: FrontierCSProblem, *, overwrite: bool = False
     ) -> Path | None:
-        from harbor.models.task.paths import TaskPaths
+        from sprint.models.task.paths import TaskPaths
 
         task_dir = self.output_dir / f"frontier-cs-algorithm-{problem.problem_id}"
 
@@ -302,7 +302,7 @@ class FrontierCSAdapter:
     def _write_task_config(
         self, task_paths: TaskPaths, problem: FrontierCSProblem
     ) -> None:
-        from harbor.models.task.config import TaskConfig
+        from sprint.models.task.config import TaskConfig
 
         config_template = self.template_dir / "task.toml"
         template_text = config_template.read_text().replace(

@@ -5,17 +5,17 @@ import tempfile
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from harbor.agents.capabilities import AgentCapabilities
-from harbor.environments.base import ExecResult
-from harbor.models.trial.config import TaskConfig as TrialTaskConfig
-from harbor.models.trial.config import (
+from sprint.agents.capabilities import AgentCapabilities
+from sprint.environments.base import ExecResult
+from sprint.models.trial.config import TaskConfig as TrialTaskConfig
+from sprint.models.trial.config import (
     AgentConfig,
     EnvironmentConfig,
     TrialConfig,
     VerifierConfig,
 )
-from harbor.models.trial.result import AgentInfo
-from harbor.trial.trial import Trial
+from sprint.models.trial.result import AgentInfo
+from sprint.trial.trial import Trial
 
 
 def _convention_host_dir(artifacts_dir: Path) -> Path:
@@ -135,11 +135,11 @@ async def _run(task_dir, trials_dir, agent_env, verifier_env):
 
     with (
         patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             side_effect=fake_create,
         ),
         patch(
-            "harbor.trial.trial.AgentFactory.create_agent_from_config",
+            "sprint.trial.trial.AgentFactory.create_agent_from_config",
             return_value=MagicMock(
                 name=lambda: "oracle",
                 version=lambda: "1.0",
@@ -449,11 +449,11 @@ class TestSidecarArtifacts:
 
             with (
                 patch(
-                    "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+                    "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
                     side_effect=fake_create,
                 ),
                 patch(
-                    "harbor.trial.trial.AgentFactory.create_agent_from_config",
+                    "sprint.trial.trial.AgentFactory.create_agent_from_config",
                     return_value=MagicMock(
                         name=lambda: "oracle",
                         version=lambda: "1.0",

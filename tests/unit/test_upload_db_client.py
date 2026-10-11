@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 import pytest
 from postgrest.exceptions import APIError
 
-from harbor.upload.db_client import OwnerOrgError, UploadDB, _serialize_row
+from sprint.upload.db_client import OwnerOrgError, UploadDB, _serialize_row
 
 
 class TestSerializeRow:
@@ -43,7 +43,7 @@ def mock_client(monkeypatch):
     client = MagicMock()
     create_client = AsyncMock(return_value=client)
     monkeypatch.setattr(
-        "harbor.upload.db_client.create_authenticated_client", create_client
+        "sprint.upload.db_client.create_authenticated_client", create_client
     )
     return client
 
@@ -52,7 +52,7 @@ class TestGetUserId:
     @pytest.mark.asyncio
     async def test_returns_user_id(self, monkeypatch) -> None:
         monkeypatch.setattr(
-            "harbor.upload.db_client.require_user_id",
+            "sprint.upload.db_client.require_user_id",
             AsyncMock(return_value="user-abc"),
         )
 
@@ -61,7 +61,7 @@ class TestGetUserId:
     @pytest.mark.asyncio
     async def test_raises_when_not_authenticated(self, monkeypatch) -> None:
         monkeypatch.setattr(
-            "harbor.upload.db_client.require_user_id",
+            "sprint.upload.db_client.require_user_id",
             AsyncMock(
                 side_effect=RuntimeError(
                     "Not authenticated. Please run `harbor auth login` first."

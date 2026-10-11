@@ -8,10 +8,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.agents.installed.antigravity_sdk import AntigravitySDK
-from harbor.models.agent.context import AgentContext
-from harbor.models.agent.name import AgentName
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.antigravity_sdk import AntigravitySDK
+from sprint.models.agent.context import AgentContext
+from sprint.models.agent.name import AgentName
+from sprint.models.task.config import MCPServerConfig
 
 
 class _FakeSDKConfig:
@@ -149,7 +149,7 @@ def _make_fake_agent(updates, *, fail_after=None, enter_error=None):
 
 async def _run_runner(agent_class, tmpdir):
     """Run the runner's run_agent() against a fake SDK; return the ATIF dict."""
-    from harbor.agents.installed.antigravity_sdk_runner import run_agent
+    from sprint.agents.installed.antigravity_sdk_runner import run_agent
 
     trajectory_path = Path(tmpdir) / "trajectory.json"
     args = SimpleNamespace(
@@ -424,8 +424,8 @@ class TestAntigravitySDKAgent:
 
     def test_build_atif_trajectory_validation(self):
         """Test build_atif_trajectory produces a valid Trajectory model."""
-        from harbor.agents.installed.antigravity_sdk_runner import build_atif_trajectory
-        from harbor.models.trajectories.trajectory import Trajectory
+        from sprint.agents.installed.antigravity_sdk_runner import build_atif_trajectory
+        from sprint.models.trajectories.trajectory import Trajectory
 
         steps = [
             {
@@ -485,8 +485,8 @@ class TestAntigravitySDKAgent:
         StepSource = SimpleNamespace(USER="user", MODEL="model", SYSTEM="system")
         StepStatus = SimpleNamespace(ACTIVE="active", DONE="done")
 
-        from harbor.agents.installed.antigravity_sdk_runner import run_agent
-        from harbor.models.trajectories.trajectory import Trajectory
+        from sprint.agents.installed.antigravity_sdk_runner import run_agent
+        from sprint.models.trajectories.trajectory import Trajectory
 
         class FakeAgent:
             def __init__(self, config):
@@ -569,7 +569,7 @@ class TestAntigravitySDKAgent:
 
     def test_mcp_transport_mapping(self):
         """Each Harbor MCP transport keeps its wire semantics."""
-        from harbor.agents.installed import antigravity_sdk_runner
+        from sprint.agents.installed import antigravity_sdk_runner
 
         with patch.dict(sys.modules, _fake_antigravity_modules()):
             stdio = antigravity_sdk_runner.build_mcp_server_config(
@@ -596,7 +596,7 @@ class TestAntigravitySDKAgent:
 
     def test_sse_mcp_uses_stdio_bridge_without_url_in_argv(self):
         """Legacy SSE is bridged without exposing its URL in process arguments."""
-        from harbor.agents.installed import antigravity_sdk_runner
+        from sprint.agents.installed import antigravity_sdk_runner
 
         with patch.dict(sys.modules, _fake_antigravity_modules()):
             config = antigravity_sdk_runner.build_mcp_server_config(
@@ -619,7 +619,7 @@ class TestAntigravitySDKAgent:
         assert "token=secret" not in " ".join(config.args)
 
     def test_mcp_transport_mapping_rejects_invalid_config(self):
-        from harbor.agents.installed.antigravity_sdk_runner import (
+        from sprint.agents.installed.antigravity_sdk_runner import (
             build_mcp_server_config,
         )
 
@@ -641,7 +641,7 @@ class TestAntigravitySDKAgent:
     async def test_relay_messages_forwards_messages_and_skips_errors(self, capsys):
         import anyio
 
-        from harbor.agents.installed.antigravity_sdk_runner import _relay_messages
+        from sprint.agents.installed.antigravity_sdk_runner import _relay_messages
 
         source_send, source_receive = anyio.create_memory_object_stream(3)
         destination_send, destination_receive = anyio.create_memory_object_stream(2)
@@ -658,7 +658,7 @@ class TestAntigravitySDKAgent:
     async def test_sse_proxy_uses_task_timeout_and_closes_destinations(self):
         import anyio
 
-        from harbor.agents.installed.antigravity_sdk_runner import (
+        from sprint.agents.installed.antigravity_sdk_runner import (
             _SSE_READ_TIMEOUT_SECONDS,
             run_sse_proxy,
         )
@@ -713,7 +713,7 @@ class TestAntigravitySDKRunnerAccounting:
     @pytest.mark.asyncio
     async def test_active_update_usage_is_counted_in_totals(self):
         """ACTIVE then DONE usage on the same step both reach final totals."""
-        from harbor.models.trajectories.trajectory import Trajectory
+        from sprint.models.trajectories.trajectory import Trajectory
 
         updates = [
             _update(
@@ -773,7 +773,7 @@ class TestAntigravitySDKRunnerAccounting:
     @pytest.mark.asyncio
     async def test_partial_usage_persisted_when_stream_fails(self):
         """A mid-run failure still writes the usage seen so far, then propagates."""
-        from harbor.models.trajectories.trajectory import Trajectory
+        from sprint.models.trajectories.trajectory import Trajectory
 
         updates = [
             _update(
@@ -809,7 +809,7 @@ class TestAntigravitySDKRunnerAccounting:
     @pytest.mark.asyncio
     async def test_failure_before_agent_starts_writes_unknown_totals(self):
         """No conversation means no usage: totals are None and marked incomplete."""
-        from harbor.models.trajectories.trajectory import Trajectory
+        from sprint.models.trajectories.trajectory import Trajectory
 
         agent_class = _make_fake_agent([], enter_error=RuntimeError("no runtime"))
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -875,7 +875,7 @@ class TestAntigravitySDKIntegration:
 
     def test_agent_in_factory(self):
         """Test agent can be created via factory."""
-        from harbor.agents.factory import AgentFactory
+        from sprint.agents.factory import AgentFactory
 
         with tempfile.TemporaryDirectory() as tmpdir:
             agent = AgentFactory.create_agent_from_name(
@@ -892,7 +892,7 @@ class TestAntigravitySDKIntegration:
 
     def test_runner_lockfile_version(self):
         """Test runner script, lockfile, and fallback specify google-antigravity 0.1.20."""
-        from harbor.agents.installed.antigravity_sdk_runner import build_atif_trajectory
+        from sprint.agents.installed.antigravity_sdk_runner import build_atif_trajectory
 
         runner_dir = (
             Path(__file__).resolve().parents[2]
@@ -906,7 +906,7 @@ class TestAntigravitySDKIntegration:
         assert '"google-antigravity>=0.1.20"' in runner_text
         assert 'name = "google-antigravity"\nversion = "0.1.20"' in lock_text
         with patch(
-            "harbor.agents.installed.antigravity_sdk_runner.version",
+            "sprint.agents.installed.antigravity_sdk_runner.version",
             side_effect=RuntimeError("metadata unavailable"),
         ):
             traj = build_atif_trajectory(steps=[], final_metrics={})
@@ -991,7 +991,7 @@ class TestAntigravitySDKIntegration:
 
     def test_build_atif_trajectory_custom_version_when_wheel_env_var_set(self):
         """build_atif_trajectory logs 'custom' version when ANTIGRAVITY_SDK_WHEEL_PATH is set."""
-        from harbor.agents.installed.antigravity_sdk_runner import build_atif_trajectory
+        from sprint.agents.installed.antigravity_sdk_runner import build_atif_trajectory
 
         with patch.dict(
             "os.environ",

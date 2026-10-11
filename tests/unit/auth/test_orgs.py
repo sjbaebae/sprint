@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from harbor.auth.orgs import (
+from sprint.auth.orgs import (
     ORG_MEMBERSHIP_COLUMNS,
     Organization,
     list_organizations,
@@ -59,11 +59,11 @@ class TestListOrganizations:
             ]
         )
         monkeypatch.setattr(
-            "harbor.auth.orgs.require_user_id",
+            "sprint.auth.orgs.require_user_id",
             AsyncMock(return_value="user-1"),
         )
         monkeypatch.setattr(
-            "harbor.auth.orgs.create_authenticated_client",
+            "sprint.auth.orgs.create_authenticated_client",
             AsyncMock(return_value=client),
         )
 
@@ -114,11 +114,11 @@ class TestListOrganizations:
             ]
         )
         monkeypatch.setattr(
-            "harbor.auth.orgs.require_user_id",
+            "sprint.auth.orgs.require_user_id",
             AsyncMock(return_value="user-1"),
         )
         monkeypatch.setattr(
-            "harbor.auth.orgs.create_authenticated_client",
+            "sprint.auth.orgs.create_authenticated_client",
             AsyncMock(return_value=client),
         )
 
@@ -151,11 +151,11 @@ class TestListOrganizations:
             ]
         )
         monkeypatch.setattr(
-            "harbor.auth.orgs.require_user_id",
+            "sprint.auth.orgs.require_user_id",
             AsyncMock(return_value="user-1"),
         )
         monkeypatch.setattr(
-            "harbor.auth.orgs.create_authenticated_client",
+            "sprint.auth.orgs.create_authenticated_client",
             AsyncMock(return_value=client),
         )
 

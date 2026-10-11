@@ -4,23 +4,23 @@ from uuid import uuid4
 
 import pytest
 
-from harbor.job_diff import (
+from sprint.job_diff import (
     DiffAction,
     SourceTrial,
     compare_job_trials,
     load_source_trials,
     resolve_diff_sources,
 )
-from harbor.job_plan import JobPlan
-from harbor.metrics.mean import Mean
-from harbor.models.job.config import JobConfig, SourceJobConfig
-from harbor.models.job.lock import TrialLock
-from harbor.models.trial.config import TaskConfig, TrialConfig, VerifierConfig
-from harbor.models.trial.paths import TrialPaths
-from harbor.models.trial.result import AgentInfo, ExceptionInfo, StepResult, TrialResult
-from harbor.models.verifier.result import VerifierResult
-from harbor.tasks.client import TaskDownloadResult
-from harbor.trial.regrade import RegradeError
+from sprint.job_plan import JobPlan
+from sprint.metrics.mean import Mean
+from sprint.models.job.config import JobConfig, SourceJobConfig
+from sprint.models.job.lock import TrialLock
+from sprint.models.trial.config import TaskConfig, TrialConfig, VerifierConfig
+from sprint.models.trial.paths import TrialPaths
+from sprint.models.trial.result import AgentInfo, ExceptionInfo, StepResult, TrialResult
+from sprint.models.verifier.result import VerifierResult
+from sprint.tasks.client import TaskDownloadResult
+from sprint.trial.regrade import RegradeError
 
 
 def _make_plan(
@@ -318,7 +318,7 @@ async def test_resolve_diff_sources_keeps_readable_alternatives(
             raise RuntimeError("Job not found or not accessible.")
 
         monkeypatch.setattr(
-            "harbor.download.downloader.Downloader.download_job", fail_download
+            "sprint.download.downloader.Downloader.download_job", fail_download
         )
 
     sources: list[str | SourceJobConfig] = (
@@ -387,7 +387,7 @@ def test_invalid_non_null_version_is_an_error(tmp_path: Path) -> None:
 async def test_job_derives_only_regrade_and_rerun_trials(
     tmp_path: Path, missing_source: bool
 ) -> None:
-    from harbor.job import Job
+    from sprint.job import Job
 
     versions = {
         "patch-task": "1.0.1",

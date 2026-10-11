@@ -17,7 +17,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from harbor.cli.job_plugins import PluginConfig
+from sprint.cli.job_plugins import PluginConfig
 
 
 def _write_minimal_resumable_job(tmp_path: Path) -> Path:
@@ -33,9 +33,9 @@ def _write_trial_result(
     *,
     exception_type: str,
 ) -> Path:
-    from harbor.models.trial.config import TaskConfig, TrialConfig
-    from harbor.models.trial.result import AgentInfo, ExceptionInfo, TrialResult
-    from harbor.models.verifier.result import VerifierResult
+    from sprint.models.trial.config import TaskConfig, TrialConfig
+    from sprint.models.trial.result import AgentInfo, ExceptionInfo, TrialResult
+    from sprint.models.verifier.result import VerifierResult
 
     trial_dir = job_dir / trial_name
     trial_dir.mkdir()
@@ -69,12 +69,12 @@ def _patch_resume_job_run(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     job_instance.run = AsyncMock(return_value=MagicMock(stats=MagicMock(evals={})))
 
     job_create = AsyncMock(return_value=job_instance)
-    monkeypatch.setattr("harbor.job.Job.create", job_create)
+    monkeypatch.setattr("sprint.job.Job.create", job_create)
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight",
+        "sprint.environments.factory.EnvironmentFactory.run_preflight",
         lambda **_: None,
     )
-    monkeypatch.setattr("harbor.cli.jobs.print_job_results_tables", lambda _: None)
+    monkeypatch.setattr("sprint.cli.jobs.print_job_results_tables", lambda _: None)
     return job_instance
 
 
@@ -82,18 +82,18 @@ class TestResumeFlagValidation:
     def test_public_without_upload_errors(
         self, tmp_path: Path, monkeypatch, capsys
     ) -> None:
-        from harbor.cli.jobs import resume
+        from sprint.cli.jobs import resume
 
         job_dir = _write_minimal_resumable_job(tmp_path)
 
         with (
             patch(
-                "harbor.job.Job.create",
+                "sprint.job.Job.create",
                 side_effect=AssertionError(
                     "Job.create should not be invoked when flag validation fails"
                 ),
             ),
-            patch("harbor.environments.factory.EnvironmentFactory.run_preflight"),
+            patch("sprint.environments.factory.EnvironmentFactory.run_preflight"),
         ):
             with pytest.raises(SystemExit) as exc:
                 resume(job_path=job_dir, public=True)
@@ -104,18 +104,18 @@ class TestResumeFlagValidation:
     def test_private_without_upload_errors(
         self, tmp_path: Path, monkeypatch, capsys
     ) -> None:
-        from harbor.cli.jobs import resume
+        from sprint.cli.jobs import resume
 
         job_dir = _write_minimal_resumable_job(tmp_path)
 
         with (
             patch(
-                "harbor.job.Job.create",
+                "sprint.job.Job.create",
                 side_effect=AssertionError(
                     "Job.create should not be invoked when flag validation fails"
                 ),
             ),
-            patch("harbor.environments.factory.EnvironmentFactory.run_preflight"),
+            patch("sprint.environments.factory.EnvironmentFactory.run_preflight"),
         ):
             with pytest.raises(SystemExit) as exc:
                 resume(job_path=job_dir, public=False)
@@ -131,18 +131,18 @@ class TestResumeUploadWiring:
         job_instance.job_dir = Path("/tmp/stub-job-dir")
 
         job_create = AsyncMock(return_value=job_instance)
-        monkeypatch.setattr("harbor.job.Job.create", job_create)
+        monkeypatch.setattr("sprint.job.Job.create", job_create)
         monkeypatch.setattr(
-            "harbor.environments.factory.EnvironmentFactory.run_preflight",
+            "sprint.environments.factory.EnvironmentFactory.run_preflight",
             lambda **_: None,
         )
-        monkeypatch.setattr("harbor.cli.jobs.print_job_results_tables", lambda _: None)
+        monkeypatch.setattr("sprint.cli.jobs.print_job_results_tables", lambda _: None)
         return job_instance
 
     def test_no_upload_flag_skips_harbor_hub_plugin(
         self, tmp_path: Path, monkeypatch
     ) -> None:
-        from harbor.cli.jobs import resume
+        from sprint.cli.jobs import resume
 
         job_dir = _write_minimal_resumable_job(tmp_path)
         self._patch_job_run(monkeypatch)
@@ -152,7 +152,7 @@ class TestResumeUploadWiring:
         plugin.on_job_end = AsyncMock()
         plugin_cls = MagicMock(return_value=plugin)
         monkeypatch.setattr(
-            "harbor.cli.plugins.harbor_hub.HarborHubUploadPlugin", plugin_cls
+            "sprint.cli.plugins.harbor_hub.HarborHubUploadPlugin", plugin_cls
         )
 
         resume(job_path=job_dir)
@@ -162,7 +162,7 @@ class TestResumeUploadWiring:
     def test_upload_flag_invokes_streaming_and_finalize(
         self, tmp_path: Path, monkeypatch
     ) -> None:
-        from harbor.cli.jobs import resume
+        from sprint.cli.jobs import resume
 
         job_dir = _write_minimal_resumable_job(tmp_path)
         self._patch_job_run(monkeypatch)
@@ -172,7 +172,7 @@ class TestResumeUploadWiring:
         plugin.on_job_end = AsyncMock()
         plugin_cls = MagicMock(return_value=plugin)
         monkeypatch.setattr(
-            "harbor.cli.plugins.harbor_hub.HarborHubUploadPlugin", plugin_cls
+            "sprint.cli.plugins.harbor_hub.HarborHubUploadPlugin", plugin_cls
         )
 
         resume(job_path=job_dir, upload=True)
@@ -185,7 +185,7 @@ class TestResumeUploadWiring:
     def test_upload_with_public_forwards_true(
         self, tmp_path: Path, monkeypatch
     ) -> None:
-        from harbor.cli.jobs import resume
+        from sprint.cli.jobs import resume
 
         job_dir = _write_minimal_resumable_job(tmp_path)
         self._patch_job_run(monkeypatch)
@@ -195,7 +195,7 @@ class TestResumeUploadWiring:
         plugin.on_job_end = AsyncMock()
         plugin_cls = MagicMock(return_value=plugin)
         monkeypatch.setattr(
-            "harbor.cli.plugins.harbor_hub.HarborHubUploadPlugin", plugin_cls
+            "sprint.cli.plugins.harbor_hub.HarborHubUploadPlugin", plugin_cls
         )
 
         resume(job_path=job_dir, upload=True, public=True)
@@ -205,7 +205,7 @@ class TestResumeUploadWiring:
     def test_upload_with_private_forwards_false(
         self, tmp_path: Path, monkeypatch
     ) -> None:
-        from harbor.cli.jobs import resume
+        from sprint.cli.jobs import resume
 
         job_dir = _write_minimal_resumable_job(tmp_path)
         self._patch_job_run(monkeypatch)
@@ -215,7 +215,7 @@ class TestResumeUploadWiring:
         plugin.on_job_end = AsyncMock()
         plugin_cls = MagicMock(return_value=plugin)
         monkeypatch.setattr(
-            "harbor.cli.plugins.harbor_hub.HarborHubUploadPlugin", plugin_cls
+            "sprint.cli.plugins.harbor_hub.HarborHubUploadPlugin", plugin_cls
         )
 
         resume(job_path=job_dir, upload=True, public=False)
@@ -225,7 +225,7 @@ class TestResumeUploadWiring:
 
 class TestResumePluginWiring:
     def test_resume_attaches_cli_plugins(self, tmp_path: Path, monkeypatch) -> None:
-        from harbor.cli.jobs import resume
+        from sprint.cli.jobs import resume
 
         job_dir = _write_minimal_resumable_job(tmp_path)
         job_instance = _patch_resume_job_run(monkeypatch)
@@ -234,10 +234,10 @@ class TestResumePluginWiring:
         attach_job_plugins = AsyncMock(return_value=attached_plugins)
         finalize_job_plugins = AsyncMock()
         monkeypatch.setattr(
-            "harbor.cli.job_plugins.attach_job_plugins", attach_job_plugins
+            "sprint.cli.job_plugins.attach_job_plugins", attach_job_plugins
         )
         monkeypatch.setattr(
-            "harbor.cli.job_plugins.finalize_job_plugins", finalize_job_plugins
+            "sprint.cli.job_plugins.finalize_job_plugins", finalize_job_plugins
         )
 
         resume(
@@ -263,16 +263,16 @@ class TestResumePluginWiring:
     def test_resume_binds_prefixed_plugin_kwargs(
         self, tmp_path: Path, monkeypatch
     ) -> None:
-        from harbor.cli.jobs import resume
+        from sprint.cli.jobs import resume
 
         job_dir = _write_minimal_resumable_job(tmp_path)
         job_instance = _patch_resume_job_run(monkeypatch)
 
         attach_job_plugins = AsyncMock(return_value=[])
         monkeypatch.setattr(
-            "harbor.cli.job_plugins.attach_job_plugins", attach_job_plugins
+            "sprint.cli.job_plugins.attach_job_plugins", attach_job_plugins
         )
-        monkeypatch.setattr("harbor.cli.job_plugins.finalize_job_plugins", AsyncMock())
+        monkeypatch.setattr("sprint.cli.job_plugins.finalize_job_plugins", AsyncMock())
 
         resume(
             job_path=job_dir,
@@ -289,7 +289,7 @@ class TestResumePluginWiring:
         )
 
     def test_resume_rejects_plugin_kwargs_without_plugin(self, tmp_path: Path) -> None:
-        from harbor.cli.jobs import resume
+        from sprint.cli.jobs import resume
 
         job_dir = _write_minimal_resumable_job(tmp_path)
 
@@ -301,7 +301,7 @@ class TestResumePluginWiring:
     def test_resume_rejects_plugin_kwargs_with_multiple_plugins(
         self, tmp_path: Path
     ) -> None:
-        from harbor.cli.jobs import resume
+        from sprint.cli.jobs import resume
 
         job_dir = _write_minimal_resumable_job(tmp_path)
 
@@ -322,7 +322,7 @@ class TestResumeFilterErrorTypes:
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
-        from harbor.cli.jobs import resume
+        from sprint.cli.jobs import resume
 
         job_dir = _write_minimal_resumable_job(tmp_path)
         filtered_trial_dir = _write_trial_result(
@@ -337,7 +337,7 @@ class TestResumeFilterErrorTypes:
         truncated_trial_dir.mkdir()
         (truncated_trial_dir / "result.json").write_text('{"task_name":')
         job_instance = _patch_resume_job_run(monkeypatch)
-        caplog.set_level(logging.WARNING, logger="harbor.cli.jobs")
+        caplog.set_level(logging.WARNING, logger="sprint.cli.jobs")
 
         resume(job_path=job_dir, filter_error_types=["RetryableError"])
 
@@ -359,12 +359,12 @@ class TestResumeJobDirectory:
         monkeypatch: pytest.MonkeyPatch,
         absolute_job_path: bool,
     ) -> None:
-        from harbor.cli.jobs import resume
-        from harbor.job import Job
-        from harbor.models.job.config import JobConfig
-        from harbor.models.trial.config import TaskConfig, TrialConfig
-        from harbor.models.trial.result import AgentInfo, TrialResult
-        from harbor.models.verifier.result import VerifierResult
+        from sprint.cli.jobs import resume
+        from sprint.job import Job
+        from sprint.models.job.config import JobConfig
+        from sprint.models.trial.config import TaskConfig, TrialConfig
+        from sprint.models.trial.result import AgentInfo, TrialResult
+        from sprint.models.verifier.result import VerifierResult
 
         monkeypatch.chdir(tmp_path)
         relative_job_dir = Path("jobs/benchmark/2026-09-13__19-18-29")
@@ -423,12 +423,12 @@ class TestResumeJobDirectory:
             )
             return created_job
 
-        monkeypatch.setattr("harbor.job.Job.create", create_job)
+        monkeypatch.setattr("sprint.job.Job.create", create_job)
         monkeypatch.setattr(
-            "harbor.environments.factory.EnvironmentFactory.run_preflight",
+            "sprint.environments.factory.EnvironmentFactory.run_preflight",
             lambda **_: None,
         )
-        monkeypatch.setattr("harbor.cli.jobs.print_job_results_tables", lambda _: None)
+        monkeypatch.setattr("sprint.cli.jobs.print_job_results_tables", lambda _: None)
 
         try:
             resume(job_path=job_path, filter_error_types=[])

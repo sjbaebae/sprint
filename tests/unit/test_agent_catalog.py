@@ -1,8 +1,8 @@
 import httpx
 import pytest
 
-from harbor.hub import agent_catalog
-from harbor.hub.agent_catalog import (
+from sprint.hub import agent_catalog
+from sprint.hub.agent_catalog import (
     HarborHubAgentCatalogError,
     fetch_harbor_hub_agent_catalog,
 )

@@ -2,9 +2,9 @@ import os
 import shlex
 from pathlib import Path
 
-from harbor.agents.installed.base import BaseInstalledAgent, ExecInput
-from harbor.environments.base import BaseEnvironment
-from harbor.models.agent.context import AgentContext
+from sprint.agents.installed.base import BaseInstalledAgent, ExecInput
+from sprint.environments.base import BaseEnvironment
+from sprint.models.agent.context import AgentContext
 
 
 class DAAgent(BaseInstalledAgent):

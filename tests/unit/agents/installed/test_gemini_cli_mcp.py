@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.gemini_cli import GeminiCli
-from harbor.models.agent.context import AgentContext
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.gemini_cli import GeminiCli
+from sprint.models.agent.context import AgentContext
+from sprint.models.task.config import MCPServerConfig
 
 
 class TestRegisterMcpServers:

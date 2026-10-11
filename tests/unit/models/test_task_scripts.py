@@ -1,11 +1,11 @@
-"""Tests for harbor.utils.scripts — script discovery and execution utilities."""
+"""Tests for sprint.utils.scripts — script discovery and execution utilities."""
 
 from pathlib import PurePosixPath
 
 import pytest
 
-from harbor.models.task.config import TaskOS
-from harbor.utils.scripts import (
+from sprint.models.task.config import TaskOS
+from sprint.utils.scripts import (
     LINUX_EXTENSIONS,
     SUPPORTED_EXTENSIONS,
     WINDOWS_EXTENSIONS,

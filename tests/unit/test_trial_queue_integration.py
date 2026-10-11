@@ -9,18 +9,18 @@ from pathlib import Path
 
 import pytest
 
-from harbor import TrialEvent as PublicTrialEvent
-from harbor import TrialHookEvent as PublicTrialHookEvent
-from harbor import TrialQueue as PublicTrialQueue
-from harbor.job import Job
-from harbor.models.job.config import JobConfig, RetryConfig
-from harbor.models.job.result import JobResult, JobStats
-from harbor.models.trial.config import AgentConfig, TaskConfig
-from harbor.models.trial.result import AgentInfo, TrialResult
-from harbor.publisher.packager import Packager
-from harbor.tasks.client import BatchDownloadResult, TaskDownloadResult
-from harbor.trial.hooks import TrialEvent, TrialHookEvent
-from harbor.trial.queue import TrialQueue
+from sprint import TrialEvent as PublicTrialEvent
+from sprint import TrialHookEvent as PublicTrialHookEvent
+from sprint import TrialQueue as PublicTrialQueue
+from sprint.job import Job
+from sprint.models.job.config import JobConfig, RetryConfig
+from sprint.models.job.result import JobResult, JobStats
+from sprint.models.trial.config import AgentConfig, TaskConfig
+from sprint.models.trial.result import AgentInfo, TrialResult
+from sprint.publisher.packager import Packager
+from sprint.tasks.client import BatchDownloadResult, TaskDownloadResult
+from sprint.trial.hooks import TrialEvent, TrialHookEvent
+from sprint.trial.queue import TrialQueue
 
 
 TASK_TOML = """\
@@ -573,7 +573,7 @@ class TestTrialQueueIntegration:
                     total_time_sec=0.0,
                 )
 
-        monkeypatch.setattr("harbor.job.TaskClient", FakeTaskClient)
+        monkeypatch.setattr("sprint.job.TaskClient", FakeTaskClient)
 
         results = await Job._cache_tasks([package_task, git_task])
 
@@ -620,7 +620,7 @@ class TestTrialQueueIntegration:
                     total_time_sec=0.0,
                 )
 
-        monkeypatch.setattr("harbor.job.TaskClient", FakeTaskClient)
+        monkeypatch.setattr("sprint.job.TaskClient", FakeTaskClient)
 
         results = await Job._cache_tasks([local_task, package_task])
 

@@ -31,14 +31,14 @@ def _import_module_from_file(module_name: str, file_path: Path):
 
 # Import models directly from their files
 task_config_module = _import_module_from_file(
-    "harbor.models.task.config", src_path / "harbor" / "models" / "task" / "config.py"
+    "sprint.models.task.config", src_path / "harbor" / "models" / "task" / "config.py"
 )
 AgentConfig = task_config_module.AgentConfig
 TaskConfig = task_config_module.TaskConfig
 VerifierConfig = task_config_module.VerifierConfig
 
 task_paths_module = _import_module_from_file(
-    "harbor.models.task.paths", src_path / "harbor" / "models" / "task" / "paths.py"
+    "sprint.models.task.paths", src_path / "harbor" / "models" / "task" / "paths.py"
 )
 TaskPaths = task_paths_module.TaskPaths
 

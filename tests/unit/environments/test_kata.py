@@ -7,16 +7,16 @@ from unittest.mock import patch
 
 import pytest
 
-from harbor.environments.docker.docker import DockerEnvironment
-from harbor.environments.factory import (
+from sprint.environments.docker.docker import DockerEnvironment
+from sprint.environments.factory import (
     EnvironmentFactory,
     _ENVIRONMENT_REGISTRY,
     _load_environment_class,
 )
-from harbor.environments.kata import DEFAULT_KATA_RUNTIME, KataEnvironment
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments.kata import DEFAULT_KATA_RUNTIME, KataEnvironment
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.paths import TrialPaths
 
 
 def _make_env(temp_dir, *, kata_runtime=None, compose_yaml=None, **env_kwargs):
@@ -218,13 +218,13 @@ def test_registered_kata_runtimes_parses_docker_info() -> None:
     completed = subprocess.CompletedProcess(
         args=[], returncode=0, stdout=json.dumps(runtimes).encode()
     )
-    with patch("harbor.environments.kata.subprocess.run", return_value=completed):
+    with patch("sprint.environments.kata.subprocess.run", return_value=completed):
         assert KataEnvironment._registered_kata_runtimes() == ["kata-clh", "kata-qemu"]
 
 
 def test_registered_kata_runtimes_handles_docker_failure() -> None:
     with patch(
-        "harbor.environments.kata.subprocess.run",
+        "sprint.environments.kata.subprocess.run",
         side_effect=OSError("docker missing"),
     ):
         assert KataEnvironment._registered_kata_runtimes() == []

@@ -1,5 +1,5 @@
 [project]
-name = "research-sprint"
+name = "sprint"
 version = "0.24.0"
 description = "Sprint: simple agent environments with attached resources and private evaluation."
 readme = "README.md"
@@ -38,17 +38,17 @@ Repository = "https://github.com/sjbaebae/sprint"
 Documentation = "https://github.com/sjbaebae/sprint/blob/worlds/README.md"
 
 [project.scripts]
-sprint = "harbor.cli.main:app"
-harbor = "harbor.cli.main:app"
-hr = "harbor.cli.main:app"
-hb = "harbor.cli.main:app"
+sprint = "sprint.cli.main:app"
+harbor = "sprint.cli.main:app"
+hr = "sprint.cli.main:app"
+hb = "sprint.cli.main:app"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/sprint", "src/harbor"]
+packages = ["src/sprint"]
 
 [tool.uv.workspace]
 members = ["packages/*"]
@@ -100,31 +100,31 @@ smol = [
 ]
 sail = ["sail>=0.12.6"]
 cloud = [
-    "research-sprint[cwsandbox]",
-    "research-sprint[e2b]",
-    "research-sprint[daytona]",
-    "research-sprint[islo]",
-    "research-sprint[modal]",
-    "research-sprint[runloop]",
-    "research-sprint[langsmith]",
-    "research-sprint[gke]",
-    "research-sprint[ec2]",
-    "research-sprint[tensorlake]",
-    "research-sprint[novita]",
-    "research-sprint[use-computer]",
-    "research-sprint[blaxel]",
-    "research-sprint[cua]",
-    "research-sprint[opensandbox]",
-    "research-sprint[beam]",
-    "research-sprint[hyperbrowser]",
-    "research-sprint[hf-sandbox]",
-    "research-sprint[vercel]",
-    "research-sprint[runta]",
-    "research-sprint[prime]",
-    "research-sprint[sail]",
+    "sprint[cwsandbox]",
+    "sprint[e2b]",
+    "sprint[daytona]",
+    "sprint[islo]",
+    "sprint[modal]",
+    "sprint[runloop]",
+    "sprint[langsmith]",
+    "sprint[gke]",
+    "sprint[ec2]",
+    "sprint[tensorlake]",
+    "sprint[novita]",
+    "sprint[use-computer]",
+    "sprint[blaxel]",
+    "sprint[cua]",
+    "sprint[opensandbox]",
+    "sprint[beam]",
+    "sprint[hyperbrowser]",
+    "sprint[hf-sandbox]",
+    "sprint[vercel]",
+    "sprint[runta]",
+    "sprint[prime]",
+    "sprint[sail]",
 ]
 
-all = ["research-sprint[cloud]", "research-sprint[tinker]", "research-sprint[computer-1]", "research-sprint[dspy]", "research-sprint[adapter]"]
+all = ["sprint[cloud]", "sprint[tinker]", "sprint[computer-1]", "sprint[dspy]", "sprint[adapter]"]
 tinker = [
     "tinker>=0.14.0",
     "tinker-cookbook>=0.1.0",
@@ -144,12 +144,12 @@ prime = [
 
 [dependency-groups]
 dev = [
-    "research-sprint[cloud]",
-    "research-sprint[huggingface]",
-    "research-sprint[tinker]",
-    "research-sprint[computer-1]",
-    "research-sprint[dspy]",
-    "research-sprint[adapter]",
+    "sprint[cloud]",
+    "sprint[huggingface]",
+    "sprint[tinker]",
+    "sprint[computer-1]",
+    "sprint[dspy]",
+    "sprint[adapter]",
     "harbor-rewardkit[all]",
     "harbor-langsmith",
     "ipykernel>=6.30.1",
@@ -163,7 +163,7 @@ dev = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["harbor", "harbor_langsmith", "rewardkit"]
+known-first-party = ["sprint", "harbor_langsmith", "rewardkit"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "packages/rewardkit/tests", "packages/harbor-langsmith/tests"]
@@ -181,7 +181,7 @@ markers = [
 asyncio_mode = "auto"
 
 [tool.coverage.run]
-source = ["src/harbor", "packages/rewardkit/src/rewardkit", "packages/harbor-langsmith/src/harbor_langsmith"]
+source = ["src/sprint", "packages/rewardkit/src/rewardkit", "packages/harbor-langsmith/src/harbor_langsmith"]
 omit = ["*/tests/*", "*/__pycache__/*", "*/migrations/*"]
 
 [tool.coverage.report]
@@ -202,5 +202,5 @@ python = ".venv"
 [tool.ty.rules]
 all = "error"
 [tool.ty.src]
-include = ["src/harbor", "packages/rewardkit/src", "packages/harbor-langsmith/src", "src/sprint"]
-exclude = ["src/harbor/cli/template-adapter", "src/harbor/cli/template-task", "src/harbor/agents/installed/openhands_sdk_runner.py", "src/harbor/agents/installed/acp_runner.py", "src/harbor/agents/installed/nemo_agent_run_wrapper.py", "src/harbor/agents/installed/deerflow_runner.py", "src/harbor/agents/installed/strands_runner.py"]
+include = ["src/sprint", "packages/rewardkit/src", "packages/harbor-langsmith/src"]
+exclude = ["src/sprint/cli/template-adapter", "src/sprint/cli/template-task", "src/sprint/agents/installed/openhands_sdk_runner.py", "src/sprint/agents/installed/acp_runner.py", "src/sprint/agents/installed/nemo_agent_run_wrapper.py", "src/sprint/agents/installed/deerflow_runner.py", "src/sprint/agents/installed/strands_runner.py"]

@@ -2,7 +2,7 @@
 
 import pytest
 
-from harbor.agents.installed.cortex_code import CortexCode
+from sprint.agents.installed.cortex_code import CortexCode
 
 
 def _agent(temp_dir, **env):

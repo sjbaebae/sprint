@@ -19,15 +19,15 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.computer_1.computer_1 import (
+from sprint.agents.computer_1.computer_1 import (
     Computer1,
     Computer1Chat,
     Computer1Recorder,
     FINAL_ANSWER_FILENAME,
     _to_viewer_relative_path,
 )
-from harbor.llms.base import LLMResponse
-from harbor.models.trial.paths import EnvironmentPaths
+from sprint.llms.base import LLMResponse
+from sprint.models.trial.paths import EnvironmentPaths
 
 
 def _make_recorder(tmp_path: Path) -> Computer1Recorder:
@@ -113,7 +113,7 @@ def test_viewer_relative_path_strips_custom_env_io_dir():
 
 
 def test_recorder_records_relative_screenshot_path_for_custom_env_io_dir(tmp_path):
-    from harbor.models.trajectories import Metrics
+    from sprint.models.trajectories import Metrics
 
     rec = Computer1Recorder(
         logs_dir=tmp_path,

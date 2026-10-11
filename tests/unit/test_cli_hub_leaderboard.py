@@ -10,8 +10,8 @@ import yaml
 from postgrest import CountMethod
 from typer.testing import CliRunner
 
-from harbor.cli.hub import hub_app
-from harbor.hub.leaderboards import (
+from sprint.cli.hub import hub_app
+from sprint.hub.leaderboards import (
     Leaderboard,
     LeaderboardDefinitionUpdateConfig,
     LeaderboardRow,
@@ -21,7 +21,7 @@ from harbor.hub.leaderboards import (
     LeaderboardSummary,
     sort_rows,
 )
-from harbor.hub.models import Page
+from sprint.hub.models import Page
 
 runner = CliRunner()
 
@@ -106,7 +106,7 @@ def _patched_client(monkeypatch, **methods) -> MagicMock:
         else:
             setattr(instance, method_name, AsyncMock(return_value=return_value))
     monkeypatch.setattr(
-        "harbor.hub.leaderboards.LeaderboardClient",
+        "sprint.hub.leaderboards.LeaderboardClient",
         MagicMock(return_value=instance),
     )
     return instance
@@ -307,7 +307,7 @@ class TestListCommand:
         instance.list_leaderboards.assert_awaited_once_with(package=package_id)
 
     async def test_list_client_rejects_malformed_package(self) -> None:
-        from harbor.hub.leaderboards import LeaderboardAPIError, LeaderboardClient
+        from sprint.hub.leaderboards import LeaderboardAPIError, LeaderboardClient
 
         with pytest.raises(LeaderboardAPIError, match="UUID or look like org/name"):
             await LeaderboardClient().list_leaderboards(package="not-a-package")
@@ -962,7 +962,7 @@ class TestUpdateCommand:
         instance.update.assert_not_awaited()
 
     def test_renders_invalid_row_details(self, monkeypatch, tmp_path: Path) -> None:
-        from harbor.hub.leaderboards import LeaderboardAPIError
+        from sprint.hub.leaderboards import LeaderboardAPIError
 
         invalid_row_id = str(uuid4())
         board = Leaderboard.from_payload(_board_payload())
@@ -1536,7 +1536,7 @@ class TestClientRows:
     async def test_get_row_uses_row_id_as_standalone_selector(
         self, monkeypatch
     ) -> None:
-        from harbor.hub import leaderboards as module
+        from sprint.hub import leaderboards as module
 
         row_id = str(uuid4())
         payload = {"row": _row(row_id, {"reward": 1.0})}
@@ -1553,7 +1553,7 @@ class TestClientRows:
     async def test_list_row_trials_uses_counted_postgrest_page(
         self, monkeypatch
     ) -> None:
-        from harbor.hub import leaderboards as module
+        from sprint.hub import leaderboards as module
 
         row_id = str(uuid4())
         trial_id = str(uuid4())
@@ -1588,7 +1588,7 @@ class TestClientRows:
         assert page.total_pages == 2
 
     async def test_list_rows_requests_ranked_page(self, monkeypatch) -> None:
-        from harbor.hub import leaderboards as module
+        from sprint.hub import leaderboards as module
 
         row_id = str(uuid4())
         payload = _board_payload(

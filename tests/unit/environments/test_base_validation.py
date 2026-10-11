@@ -4,22 +4,22 @@ from pathlib import Path
 
 import pytest
 
-from harbor.environments.base import BaseEnvironment
-from harbor.environments.capabilities import (
+from sprint.environments.base import BaseEnvironment
+from sprint.environments.capabilities import (
     EnvironmentCapabilities,
     EnvironmentResourceCapabilities,
 )
-from harbor.models.environment_type import EnvironmentType
-from harbor.environments.factory import EnvironmentFactory
-from harbor.models.trial.config import EnvironmentConfig as TrialEnvironmentConfig
-from harbor.models.task.config import (
+from sprint.models.environment_type import EnvironmentType
+from sprint.environments.factory import EnvironmentFactory
+from sprint.models.trial.config import EnvironmentConfig as TrialEnvironmentConfig
+from sprint.models.task.config import (
     EnvironmentConfig,
     NetworkMode,
     NetworkPolicy,
     TaskOS,
 )
-from harbor.models.trial.config import ResourceMode
-from harbor.models.trial.paths import TrialPaths
+from sprint.models.trial.config import ResourceMode
+from sprint.models.trial.paths import TrialPaths
 
 
 class _StubEnvironment(BaseEnvironment):
@@ -202,7 +202,7 @@ def test_stream_request_rejected_without_provider_support(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setattr(
-        "harbor.environments.factory._load_environment_class",
+        "sprint.environments.factory._load_environment_class",
         lambda _: _StubEnvironment,
     )
     with pytest.raises(ValueError, match="does not support stream mode"):

@@ -9,25 +9,25 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from harbor.models.agent.context import AgentContext
-from harbor.models.job.config import JobConfig
-from harbor.models.job.lock import VerifierLock, TaskLock, TrialLock
-from harbor.models.job.result import JobResult, JobStats
-from harbor.models.trial.config import (
+from sprint.models.agent.context import AgentContext
+from sprint.models.job.config import JobConfig
+from sprint.models.job.lock import VerifierLock, TaskLock, TrialLock
+from sprint.models.job.result import JobResult, JobStats
+from sprint.models.trial.config import (
     AgentConfig,
     EnvironmentConfig,
     TaskConfig,
     TrialConfig,
 )
-from harbor.models.trial.result import (
+from sprint.models.trial.result import (
     AgentInfo,
     ModelInfo,
     TimingInfo,
     TrialResult,
 )
-from harbor.models.verifier.result import VerifierResult
-from harbor.upload.db_client import OwnerOrgError
-from harbor.upload.uploader import (
+from sprint.models.verifier.result import VerifierResult
+from sprint.upload.db_client import OwnerOrgError
+from sprint.upload.uploader import (
     Uploader,
     _create_job_archive_file,
     _create_trial_archive,
@@ -437,8 +437,8 @@ class TestTrialLockForUpload:
 @pytest.fixture
 def mock_uploader() -> Uploader:
     with (
-        patch("harbor.upload.uploader.UploadDB") as mock_db_cls,
-        patch("harbor.upload.uploader.UploadStorage") as mock_storage_cls,
+        patch("sprint.upload.uploader.UploadDB") as mock_db_cls,
+        patch("sprint.upload.uploader.UploadStorage") as mock_storage_cls,
     ):
         db = AsyncMock()
         db.get_user_id.return_value = "user-123"
@@ -969,7 +969,7 @@ class TestUploadJob:
             "https://uploads.example/upload-id"
         )
 
-        with patch("harbor.upload.uploader._create_job_archive_file") as create_archive:
+        with patch("sprint.upload.uploader._create_job_archive_file") as create_archive:
             await mock_uploader.finalize_job(
                 job_dir,
                 job_result=job_result,
@@ -1186,7 +1186,7 @@ class TestUploadJob:
         mock_uploader.storage.upload_resumable_file.side_effect = _fail_trajectory
 
         with patch(
-            "harbor.upload.uploader._create_job_archive_file",
+            "sprint.upload.uploader._create_job_archive_file",
             side_effect=_capture_job_archive,
         ):
             result = await mock_uploader.upload_job(job_dir)

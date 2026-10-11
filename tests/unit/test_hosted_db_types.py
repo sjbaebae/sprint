@@ -1,6 +1,6 @@
 import uuid
 
-from harbor.db.types import (
+from sprint.db.types import (
     PublicJob,
     PublicJobInsert,
     PublicJobUpdate,

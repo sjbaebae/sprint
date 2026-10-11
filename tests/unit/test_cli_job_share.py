@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import pytest
 
-from harbor.cli.jobs import share as job_share
+from sprint.cli.jobs import share as job_share
 
 
 def _patched_upload_db(monkeypatch) -> MagicMock:
@@ -13,7 +13,7 @@ def _patched_upload_db(monkeypatch) -> MagicMock:
     instance.get_user_id = AsyncMock(return_value="user-id")
     instance.add_job_shares = AsyncMock(return_value={"orgs": [], "users": []})
     cls = MagicMock(return_value=instance)
-    monkeypatch.setattr("harbor.upload.db_client.UploadDB", cls)
+    monkeypatch.setattr("sprint.upload.db_client.UploadDB", cls)
     return instance
 
 

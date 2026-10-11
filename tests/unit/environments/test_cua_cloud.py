@@ -7,10 +7,10 @@ from typing import Any
 import httpx
 import pytest
 
-from harbor.environments import cua_cloud as cc
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import EnvironmentConfig, TaskOS
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments import cua_cloud as cc
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import EnvironmentConfig, TaskOS
+from sprint.models.trial.paths import TrialPaths
 
 CLAIM_PATH = cc._CLAIM_API.format(namespace="harbor-ubuntu")
 CLAIM_PATH_WIN = cc._CLAIM_API.format(namespace="harbor-windows")
@@ -162,7 +162,7 @@ def _make_env(
 
 
 def test_type_and_registry() -> None:
-    from harbor.environments.factory import _ENVIRONMENT_REGISTRY
+    from sprint.environments.factory import _ENVIRONMENT_REGISTRY
 
     assert cc.CuaCloudEnvironment.type() == EnvironmentType.CUA_CLOUD
     assert EnvironmentType.CUA_CLOUD in _ENVIRONMENT_REGISTRY

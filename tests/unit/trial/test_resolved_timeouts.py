@@ -2,13 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from harbor.models.trial.config import (
+from sprint.models.trial.config import (
     AgentConfig,
     TaskConfig,
     TrialConfig,
     VerifierConfig,
 )
-from harbor.trial.trial import Trial
+from sprint.trial.trial import Trial
 
 
 def _make_task(tmp_path: Path, toml: str) -> Path:

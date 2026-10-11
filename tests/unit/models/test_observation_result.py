@@ -1,6 +1,6 @@
 """Tests for the ObservationResult model's ATIF-v1.7 additions."""
 
-from harbor.models.trajectories import ObservationResult
+from sprint.models.trajectories import ObservationResult
 
 
 class TestObservationResultExtra:

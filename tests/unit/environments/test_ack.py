@@ -3,7 +3,7 @@ import tempfile
 
 import pytest
 
-from harbor.environments.ack import ACKEnvironment
+from sprint.environments.ack import ACKEnvironment
 
 
 @pytest.mark.asyncio

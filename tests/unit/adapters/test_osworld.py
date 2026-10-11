@@ -16,10 +16,10 @@ import pytest
 import httpx
 import yaml
 
-from harbor.models.agent.context import AgentContext
-from harbor.models.job.config import JobConfig
-from harbor.models.task.task import Task
-from harbor.utils.trajectory_validator import TrajectoryValidator
+from sprint.models.agent.context import AgentContext
+from sprint.models.job.config import JobConfig
+from sprint.models.task.task import Task
+from sprint.utils.trajectory_validator import TrajectoryValidator
 
 ADAPTER_SRC = Path(__file__).parents[3] / "adapters/osworld/src"
 TEMPLATE_TESTS = ADAPTER_SRC / "osworld/task-template/tests"
@@ -149,7 +149,7 @@ import sys
 
 class BlockHarbor(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
-        if fullname == "harbor" or fullname.startswith("harbor."):
+        if fullname == "harbor" or fullname.startswith("sprint."):
             raise ImportError(f"blocked host-only import: {fullname}")
         return None
 

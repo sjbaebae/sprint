@@ -14,18 +14,18 @@ import pytest
 
 pytest.importorskip("hyperbrowser")
 
-from harbor.environments.hyperbrowser import HyperbrowserEnvironment
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import EnvironmentConfig
-from harbor.models.trial.config import (
+from sprint.environments.hyperbrowser import HyperbrowserEnvironment
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import EnvironmentConfig
+from sprint.models.trial.config import (
     AgentConfig,
     EnvironmentConfig as TrialEnvironmentConfig,
     SourceTrialConfig,
     TaskConfig,
     TrialConfig,
 )
-from harbor.models.trial.paths import TrialPaths
-from harbor.trial.trial import Trial
+from sprint.models.trial.paths import TrialPaths
+from sprint.trial.trial import Trial
 
 pytestmark = pytest.mark.integration
 

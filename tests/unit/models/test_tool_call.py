@@ -7,7 +7,7 @@ Covers:
 import pytest
 from pydantic import ValidationError
 
-from harbor.models.trajectories import ToolCall
+from sprint.models.trajectories import ToolCall
 
 
 class TestToolCallV17Fields:

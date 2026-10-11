@@ -18,9 +18,9 @@ from typing import Any, Optional
 
 import pandas as pd
 
-from harbor.agents.base import BaseAgent
-from harbor.environments.base import BaseEnvironment
-from harbor.models.agent.context import AgentContext
+from sprint.agents.base import BaseAgent
+from sprint.environments.base import BaseEnvironment
+from sprint.models.agent.context import AgentContext
 import threading
 import logging
 

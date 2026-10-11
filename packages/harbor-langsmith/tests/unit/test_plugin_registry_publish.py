@@ -6,15 +6,15 @@ from uuid import uuid4
 
 import pytest
 
-from harbor.models.job.lock import TaskLock, TrialLock, VerifierLock
-from harbor.models.trial.config import (
+from sprint.models.job.lock import TaskLock, TrialLock, VerifierLock
+from sprint.models.trial.config import (
     AgentConfig,
     EnvironmentConfig,
     TaskConfig,
     TrialConfig,
 )
-from harbor.models.trial.result import AgentInfo, TrialResult
-from harbor.trial.hooks import TrialEvent, TrialHookEvent
+from sprint.models.trial.result import AgentInfo, TrialResult
+from sprint.trial.hooks import TrialEvent, TrialHookEvent
 from harbor_langsmith import nesting, parent_context
 from harbor_langsmith.plugin import LangSmithPlugin
 

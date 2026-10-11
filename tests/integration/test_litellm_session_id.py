@@ -1,7 +1,7 @@
 import pytest
 from aiohttp import web
 
-from harbor.llms.lite_llm import LiteLLM
+from sprint.llms.lite_llm import LiteLLM
 
 
 @pytest.fixture

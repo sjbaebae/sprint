@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from storage3.exceptions import StorageApiError
 
-from harbor.storage.supabase import PACKAGE_STORAGE_TIMEOUT_SEC, SupabaseStorage
+from sprint.storage.supabase import PACKAGE_STORAGE_TIMEOUT_SEC, SupabaseStorage
 
 
 @pytest.mark.asyncio
@@ -28,9 +28,9 @@ async def test_upload_file_retries_transient_ssl_errors(monkeypatch, tmp_path: P
     sleep = AsyncMock()
 
     monkeypatch.setattr(
-        "harbor.storage.supabase.create_authenticated_client", create_client
+        "sprint.storage.supabase.create_authenticated_client", create_client
     )
-    monkeypatch.setattr("harbor.storage.supabase.reset_client", reset_client)
+    monkeypatch.setattr("sprint.storage.supabase.reset_client", reset_client)
     monkeypatch.setattr(SupabaseStorage.upload_file.retry, "sleep", sleep)
 
     await SupabaseStorage().upload_file(file_path, "packages/org/task/hash/dist.tar.gz")
@@ -56,9 +56,9 @@ async def test_upload_file_raises_after_max_retries(monkeypatch, tmp_path: Path)
     sleep = AsyncMock()
 
     monkeypatch.setattr(
-        "harbor.storage.supabase.create_authenticated_client", create_client
+        "sprint.storage.supabase.create_authenticated_client", create_client
     )
-    monkeypatch.setattr("harbor.storage.supabase.reset_client", reset_client)
+    monkeypatch.setattr("sprint.storage.supabase.reset_client", reset_client)
     monkeypatch.setattr(SupabaseStorage.upload_file.retry, "sleep", sleep)
 
     with pytest.raises(ssl.SSLError):
@@ -77,9 +77,9 @@ async def test_upload_file_uses_resumable_above_threshold(monkeypatch, tmp_path:
     file_path.write_bytes(b"test-data")
     upload_resumable = AsyncMock(return_value=True)
 
-    monkeypatch.setattr("harbor.storage.resumable.RESUMABLE_UPLOAD_THRESHOLD_BYTES", 3)
+    monkeypatch.setattr("sprint.storage.resumable.RESUMABLE_UPLOAD_THRESHOLD_BYTES", 3)
     monkeypatch.setattr(
-        "harbor.storage.supabase.resumable.upload_resumable_file",
+        "sprint.storage.supabase.resumable.upload_resumable_file",
         upload_resumable,
     )
 
@@ -100,9 +100,9 @@ async def test_upload_file_preserves_conflict_for_resumable_already_exists(
     file_path.write_bytes(b"test-data")
     upload_resumable = AsyncMock(return_value=False)
 
-    monkeypatch.setattr("harbor.storage.resumable.RESUMABLE_UPLOAD_THRESHOLD_BYTES", 3)
+    monkeypatch.setattr("sprint.storage.resumable.RESUMABLE_UPLOAD_THRESHOLD_BYTES", 3)
     monkeypatch.setattr(
-        "harbor.storage.supabase.resumable.upload_resumable_file",
+        "sprint.storage.supabase.resumable.upload_resumable_file",
         upload_resumable,
     )
 
@@ -124,7 +124,7 @@ async def test_download_file_uses_package_storage_timeout(monkeypatch, tmp_path:
     create_client = AsyncMock(return_value=client)
 
     monkeypatch.setattr(
-        "harbor.storage.supabase.create_authenticated_client", create_client
+        "sprint.storage.supabase.create_authenticated_client", create_client
     )
 
     file_path = tmp_path / "download" / "archive.tar.gz"

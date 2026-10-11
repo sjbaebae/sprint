@@ -3,14 +3,14 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from harbor.models.compile import (
+from sprint.models.compile import (
     CompileAutoVerifierConfig,
     CompileConfig,
     CompileEnvironment,
     CompileInstruction,
     CompileVerifier,
 )
-from harbor.models.exec import (
+from sprint.models.exec import (
     ExecConfig,
     ExecJobConfig,
     ExecMapConfig,
@@ -18,8 +18,8 @@ from harbor.models.exec import (
     ExecReduceEnvironment,
     ExecReduceTaskConfig,
 )
-from harbor.models.task.config import ArtifactConfig
-from harbor.models.trial.config import AgentConfig, EnvironmentConfig
+from sprint.models.task.config import ArtifactConfig
+from sprint.models.trial.config import AgentConfig, EnvironmentConfig
 
 
 def test_exec_job_config_reuses_job_execution_configs():

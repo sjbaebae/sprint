@@ -699,7 +699,7 @@ def summarize(result: dict[str, Any], metadata: dict[str, Any]) -> dict[str, Any
     n_tests = len(scored)
     pass_rate = n_passed / n_tests if n_tests else 0.0
     # Multi-key reward: Harbor's default Mean aggregates each key independently
-    # (see harbor.metrics.base.aggregate_reward_dicts), so mean("resolved") is
+    # (see sprint.metrics.base.aggregate_reward_dicts), so mean("resolved") is
     # the proportion of tasks scoring a perfect pass-rate and mean of
     # "almost_resolved" is the proportion scoring >= 0.95. "reward" stays the
     # per-task pass-rate whose mean is the overall mean reward.

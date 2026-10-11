@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 
-from harbor.cli.trials import download as trial_download
+from sprint.cli.trials import download as trial_download
 
 
 def _patched_downloader(monkeypatch, *, result: MagicMock) -> MagicMock:
@@ -13,7 +13,7 @@ def _patched_downloader(monkeypatch, *, result: MagicMock) -> MagicMock:
     instance.db.get_user_id = AsyncMock(return_value="user-id")
     instance.download_trial = AsyncMock(return_value=result)
     cls = MagicMock(return_value=instance)
-    monkeypatch.setattr("harbor.download.downloader.Downloader", cls)
+    monkeypatch.setattr("sprint.download.downloader.Downloader", cls)
     return instance
 
 

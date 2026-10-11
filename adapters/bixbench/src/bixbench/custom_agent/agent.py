@@ -38,9 +38,9 @@ from ldp.agent.simple_agent import SimpleAgent, SimpleAgentState
 from ldp.graph import CallID, OpResult
 from pydantic import BaseModel
 
-from harbor.agents.base import BaseAgent
-from harbor.environments.base import BaseEnvironment
-from harbor.models.agent.context import AgentContext
+from sprint.agents.base import BaseAgent
+from sprint.environments.base import BaseEnvironment
+from sprint.models.agent.context import AgentContext
 
 # Copied from: data-analysis-crow/src/fhda/prompts.py
 CAPSULE_SYSTEM_PROMPT_OPEN = """

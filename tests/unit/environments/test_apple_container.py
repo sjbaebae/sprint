@@ -7,12 +7,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from harbor.environments.apple_container import AppleContainerEnvironment
-from harbor.environments.base import ExecResult
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.config import ResourceMode, ServiceVolumeConfig
-from harbor.models.trial.paths import EnvironmentPaths, TrialPaths
+from sprint.environments.apple_container import AppleContainerEnvironment
+from sprint.environments.base import ExecResult
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.config import ResourceMode, ServiceVolumeConfig
+from sprint.models.trial.paths import EnvironmentPaths, TrialPaths
 
 
 def _make_env(temp_dir, **kwargs):
@@ -271,7 +271,7 @@ class TestContainerCommand:
         process = _FakeCommandProcess()
 
         with patch(
-            "harbor.environments.apple_container.asyncio.create_subprocess_exec",
+            "sprint.environments.apple_container.asyncio.create_subprocess_exec",
             return_value=process,
         ):
             task = asyncio.create_task(apple_env._run_container_command(["build", "."]))
@@ -289,12 +289,12 @@ class TestContainerCommand:
     ):
         process = _FakeCommandProcess(ignore_terminate=True)
         monkeypatch.setattr(
-            "harbor.environments.apple_container._PROCESS_TERMINATION_TIMEOUT_SEC",
+            "sprint.environments.apple_container._PROCESS_TERMINATION_TIMEOUT_SEC",
             0,
         )
 
         with patch(
-            "harbor.environments.apple_container.asyncio.create_subprocess_exec",
+            "sprint.environments.apple_container.asyncio.create_subprocess_exec",
             return_value=process,
         ):
             task = asyncio.create_task(apple_env._run_container_command(["build", "."]))
@@ -311,7 +311,7 @@ class TestContainerCommand:
         process = _FakeCommandProcess()
 
         with patch(
-            "harbor.environments.apple_container.asyncio.create_subprocess_exec",
+            "sprint.environments.apple_container.asyncio.create_subprocess_exec",
             return_value=process,
         ):
             with pytest.raises(RuntimeError, match="timed out after 0.01 seconds"):
@@ -445,12 +445,12 @@ class TestStart:
 
 class TestStop:
     @patch(
-        "harbor.environments.apple_container.os.getuid",
+        "sprint.environments.apple_container.os.getuid",
         create=True,
         return_value=1000,
     )
     @patch(
-        "harbor.environments.apple_container.os.getgid",
+        "sprint.environments.apple_container.os.getgid",
         create=True,
         return_value=1000,
     )
@@ -594,12 +594,12 @@ def _make_streaming_process(tar_data: bytes, returncode: int = 0, stderr: bytes 
 
 class TestDownload:
     @patch(
-        "harbor.environments.apple_container.os.getuid",
+        "sprint.environments.apple_container.os.getuid",
         create=True,
         return_value=1000,
     )
     @patch(
-        "harbor.environments.apple_container.os.getgid",
+        "sprint.environments.apple_container.os.getgid",
         create=True,
         return_value=1000,
     )
@@ -617,7 +617,7 @@ class TestDownload:
         mock_process = _make_streaming_process(_make_tar({"result.txt": b"hello"}))
 
         with patch(
-            "harbor.environments.apple_container.asyncio.create_subprocess_exec",
+            "sprint.environments.apple_container.asyncio.create_subprocess_exec",
             return_value=mock_process,
         ):
             await apple_env.download_file("/app/result.txt", temp_dir / "result.txt")
@@ -626,12 +626,12 @@ class TestDownload:
         assert (temp_dir / "result.txt").exists()
 
     @patch(
-        "harbor.environments.apple_container.os.getuid",
+        "sprint.environments.apple_container.os.getuid",
         create=True,
         return_value=501,
     )
     @patch(
-        "harbor.environments.apple_container.os.getgid",
+        "sprint.environments.apple_container.os.getgid",
         create=True,
         return_value=20,
     )
@@ -649,7 +649,7 @@ class TestDownload:
         mock_process = _make_streaming_process(_make_tar({"./file.txt": b"content"}))
 
         with patch(
-            "harbor.environments.apple_container.asyncio.create_subprocess_exec",
+            "sprint.environments.apple_container.asyncio.create_subprocess_exec",
             return_value=mock_process,
         ):
             target = temp_dir / "output"
@@ -659,12 +659,12 @@ class TestDownload:
         assert (target / "file.txt").exists()
 
     @patch(
-        "harbor.environments.apple_container.os.getuid",
+        "sprint.environments.apple_container.os.getuid",
         create=True,
         return_value=1000,
     )
     @patch(
-        "harbor.environments.apple_container.os.getgid",
+        "sprint.environments.apple_container.os.getgid",
         create=True,
         return_value=1000,
     )
@@ -676,7 +676,7 @@ class TestDownload:
         mock_process = _make_streaming_process(_make_tar({"result.txt": b"hello"}))
 
         with patch(
-            "harbor.environments.apple_container.asyncio.create_subprocess_exec",
+            "sprint.environments.apple_container.asyncio.create_subprocess_exec",
             return_value=mock_process,
         ):
             await apple_env.download_file("/app/result.txt", temp_dir / "output.txt")
@@ -691,7 +691,7 @@ class TestDownload:
         mock_process = _make_streaming_process(b"", returncode=1, stderr=b"tar: error")
 
         with patch(
-            "harbor.environments.apple_container.asyncio.create_subprocess_exec",
+            "sprint.environments.apple_container.asyncio.create_subprocess_exec",
             return_value=mock_process,
         ):
             with pytest.raises(RuntimeError, match="Failed to download"):
@@ -707,7 +707,7 @@ class TestDownload:
         )
 
         with patch(
-            "harbor.environments.apple_container.asyncio.create_subprocess_exec",
+            "sprint.environments.apple_container.asyncio.create_subprocess_exec",
             return_value=mock_process,
         ):
             with pytest.raises(RuntimeError, match="No such file"):

@@ -3,9 +3,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.base import BaseInstalledAgent
-from harbor.environments.base import BaseEnvironment
-from harbor.models.agent.context import AgentContext
+from sprint.agents.installed.base import BaseInstalledAgent
+from sprint.environments.base import BaseEnvironment
+from sprint.models.agent.context import AgentContext
 
 
 class DummySuccessAgent(BaseInstalledAgent):

@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from harbor.agents.terminus_2.terminus_2 import Terminus2
+from sprint.agents.terminus_2.terminus_2 import Terminus2
 
 
 def _create_agent(
@@ -49,7 +49,7 @@ def test_reset_uses_orchestration_session_id_without_constructor_id(
 
 def test_reset_generates_session_id_without_configured_id(temp_dir, monkeypatch):
     monkeypatch.setattr(
-        "harbor.agents.terminus_2.terminus_2.uuid.uuid4",
+        "sprint.agents.terminus_2.terminus_2.uuid.uuid4",
         lambda: "generated-session",
     )
     agent = _create_agent(temp_dir, monkeypatch)

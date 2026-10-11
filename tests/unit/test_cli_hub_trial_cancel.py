@@ -3,8 +3,8 @@ from uuid import uuid4
 
 from typer.testing import CliRunner
 
-from harbor.cli.hub import hub_app
-from harbor.hub.models import Page
+from sprint.cli.hub import hub_app
+from sprint.hub.models import Page
 
 runner = CliRunner()
 
@@ -34,7 +34,7 @@ def _patched_hub_client(
         hub.cancel_trials = AsyncMock(
             return_value={"canceled": canceled, "jobs": canceled_jobs or {}}
         )
-    monkeypatch.setattr("harbor.hub.client.HubClient", MagicMock(return_value=hub))
+    monkeypatch.setattr("sprint.hub.client.HubClient", MagicMock(return_value=hub))
     return hub
 
 

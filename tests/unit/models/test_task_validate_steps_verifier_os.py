@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from harbor.models.task.task import Task
+from sprint.models.task.task import Task
 
 
 def _write_step_dir(task_dir: Path, step_name: str) -> Path:

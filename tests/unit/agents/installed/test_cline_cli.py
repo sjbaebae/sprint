@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.agents.installed.cline import ClineCli
-from harbor.models.agent.context import AgentContext
+from sprint.agents.installed.cline import ClineCli
+from sprint.models.agent.context import AgentContext
 
 
 class TestClineCli:

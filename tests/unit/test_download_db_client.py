@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from harbor.upload.db_client import TrialDownloadRow, UploadDB
+from sprint.upload.db_client import TrialDownloadRow, UploadDB
 
 
 @pytest.fixture
@@ -12,7 +12,7 @@ def mock_client(monkeypatch):
     client = MagicMock()
     create_client = AsyncMock(return_value=client)
     monkeypatch.setattr(
-        "harbor.upload.db_client.create_authenticated_client", create_client
+        "sprint.upload.db_client.create_authenticated_client", create_client
     )
     return client
 

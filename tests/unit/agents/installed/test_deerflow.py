@@ -8,12 +8,12 @@ from unittest.mock import AsyncMock
 import pytest
 import yaml
 
-from harbor.agents.factory import AgentFactory
-from harbor.agents.installed.base import ApiRateLimitError, ApiUsageLimitError
-from harbor.agents.installed.deerflow import DeerFlow, _RuntimeContext
-from harbor.environments.base import ExecResult
-from harbor.models.agent.context import AgentContext
-from harbor.models.agent.name import AgentName
+from sprint.agents.factory import AgentFactory
+from sprint.agents.installed.base import ApiRateLimitError, ApiUsageLimitError
+from sprint.agents.installed.deerflow import DeerFlow, _RuntimeContext
+from sprint.environments.base import ExecResult
+from sprint.models.agent.context import AgentContext
+from sprint.models.agent.name import AgentName
 
 
 class TestDeerFlowRegistration:
@@ -693,7 +693,7 @@ class TestDeerFlowFeatureToggles:
         assert off.subagent is False
 
     def test_bool_env_serialization(self) -> None:
-        from harbor.agents.installed.deerflow import _bool_env
+        from sprint.agents.installed.deerflow import _bool_env
 
         assert _bool_env(True) == "true"
         assert _bool_env(False) == "false"

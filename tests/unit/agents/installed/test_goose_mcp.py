@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock
 import pytest
 import yaml
 
-from harbor.agents.installed.goose import Goose
-from harbor.models.agent.context import AgentContext
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.goose import Goose
+from sprint.models.agent.context import AgentContext
+from sprint.models.task.config import MCPServerConfig
 
 
 class TestBuildMcpExtensions:

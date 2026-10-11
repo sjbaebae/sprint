@@ -5,14 +5,14 @@ from uuid import uuid4
 
 import pytest
 
-from harbor.environments.base import ExecResult
-from harbor.models.task.config import StepConfig
-from harbor.models.task.task import Task
-from harbor.models.trial.config import AgentConfig, EnvironmentConfig, VerifierConfig
-from harbor.models.trial.paths import EnvironmentPaths, TrialPaths
-from harbor.models.trial.result import StepResult
-from harbor.models.verifier.result import VerifierResult
-from harbor.trial.multi_step import MultiStepTrial
+from sprint.environments.base import ExecResult
+from sprint.models.task.config import StepConfig
+from sprint.models.task.task import Task
+from sprint.models.trial.config import AgentConfig, EnvironmentConfig, VerifierConfig
+from sprint.models.trial.paths import EnvironmentPaths, TrialPaths
+from sprint.models.trial.result import StepResult
+from sprint.models.verifier.result import VerifierResult
+from sprint.trial.multi_step import MultiStepTrial
 
 
 def _make_windows_multi_step_task(tmp_path: Path, *, step_test: bool) -> Path:
@@ -91,7 +91,7 @@ async def test_verify_step_uses_windows_paths_and_step_test(tmp_path: Path) -> N
     trial, environment = _make_trial_for_step_verification(tmp_path, task_dir)
 
     with patch(
-        "harbor.trial.trial.VerifierFactory.create_verifier_from_config"
+        "sprint.trial.trial.VerifierFactory.create_verifier_from_config"
     ) as create_verifier:
         verifier = MagicMock()
         verifier.verify = AsyncMock(
@@ -128,7 +128,7 @@ async def test_verify_step_falls_back_to_shared_windows_test(tmp_path: Path) -> 
     trial, _environment = _make_trial_for_step_verification(tmp_path, task_dir)
 
     with patch(
-        "harbor.trial.trial.VerifierFactory.create_verifier_from_config"
+        "sprint.trial.trial.VerifierFactory.create_verifier_from_config"
     ) as create_verifier:
         verifier = MagicMock()
         verifier.verify = AsyncMock(
@@ -161,7 +161,7 @@ async def test_verify_step_scopes_log_callback_and_keeps_real_environment(
     trial._log_callbacks = [capture]
 
     with patch(
-        "harbor.trial.trial.VerifierFactory.create_verifier_from_config"
+        "sprint.trial.trial.VerifierFactory.create_verifier_from_config"
     ) as create_verifier:
 
         async def verify() -> VerifierResult:

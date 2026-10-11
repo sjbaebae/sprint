@@ -4,13 +4,13 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.environments.base import (
+from sprint.environments.base import (
     ExecResult,
     ServiceOperationsUnsupportedError,
 )
-from harbor.environments.docker.docker import DockerEnvironment
-from harbor.models.task.config import EnvironmentConfig
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments.docker.docker import DockerEnvironment
+from sprint.models.task.config import EnvironmentConfig
+from sprint.models.trial.paths import TrialPaths
 
 
 @pytest.fixture

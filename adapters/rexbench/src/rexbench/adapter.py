@@ -13,7 +13,7 @@ from typing import Iterable
 logger = logging.getLogger(__name__)
 
 ADAPTER_NAME = "REXBENCH"
-REXBENCH_REPO_URL = "https://github.com/nedwards99/rexbench-harbor.git"
+REXBENCH_REPO_URL = "https://github.com/nedwards99/rexbench-sprint.git"
 TEMPLATE_DIR = Path(__file__).parent / "task-template"
 
 

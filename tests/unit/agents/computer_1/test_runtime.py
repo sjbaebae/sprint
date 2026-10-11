@@ -19,12 +19,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.computer_1.computer_1 import (
+from sprint.agents.computer_1.computer_1 import (
     Computer1,
     _to_viewer_relative_path,
 )
-from harbor.agents.computer_1.providers.generic import parse_computer_1_response
-from harbor.agents.computer_1.runtime import (
+from sprint.agents.computer_1.providers.generic import parse_computer_1_response
+from sprint.agents.computer_1.runtime import (
     BLOCKED_KEY_COMBOS,
     BLOCKED_URL_SCHEMES,
     ComputerAction,
@@ -187,7 +187,7 @@ async def test_position_window_skips_maximize_for_partial_window(tmp_path):
 
 def test_session_warns_on_geometry_mismatch(tmp_path, caplog):
     env = AsyncMock()
-    with caplog.at_level("WARNING", logger="harbor.agents.computer_1.runtime"):
+    with caplog.at_level("WARNING", logger="sprint.agents.computer_1.runtime"):
         Computer1Session(
             environment=env,
             agent_dir=tmp_path,

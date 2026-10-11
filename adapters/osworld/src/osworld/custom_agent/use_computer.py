@@ -8,8 +8,8 @@ from pathlib import Path
 
 import httpx
 
-from harbor.environments.base import BaseEnvironment
-from harbor.models.agent.context import AgentContext
+from sprint.environments.base import BaseEnvironment
+from sprint.models.agent.context import AgentContext
 from osworld.custom_agent.agent import (
     CONTAINER_REQUEST_PATH,
     CONTAINER_RESPONSE_PATH,

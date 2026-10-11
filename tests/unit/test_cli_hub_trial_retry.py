@@ -3,8 +3,8 @@ from uuid import uuid4
 
 from typer.testing import CliRunner
 
-from harbor.cli.hub import hub_app
-from harbor.hub.models import Page
+from sprint.cli.hub import hub_app
+from sprint.hub.models import Page
 
 runner = CliRunner()
 
@@ -34,7 +34,7 @@ def _patched_hub_client(
         hub.relaunch_trials = AsyncMock(
             return_value={"relaunched": relaunched, "jobs": relaunched_jobs or {}}
         )
-    monkeypatch.setattr("harbor.hub.client.HubClient", MagicMock(return_value=hub))
+    monkeypatch.setattr("sprint.hub.client.HubClient", MagicMock(return_value=hub))
     return hub
 
 
@@ -216,7 +216,7 @@ class TestNonInteractiveRerunHint:
     preview lookup — so the error hands back the command instead of the flag."""
 
     def test_rerun_line_appends_yes_and_quotes_arguments(self, monkeypatch) -> None:
-        from harbor.cli.hub import _rerun_with_yes
+        from sprint.cli.hub import _rerun_with_yes
 
         monkeypatch.setattr(
             "sys.argv",
@@ -230,7 +230,7 @@ class TestNonInteractiveRerunHint:
     ) -> None:
         """Under an embedded runner argv describes the host process, so the
         caller falls back to naming the flag rather than printing a lie."""
-        from harbor.cli.hub import _rerun_with_yes
+        from sprint.cli.hub import _rerun_with_yes
 
         monkeypatch.setattr("sys.argv", ["/usr/bin/pytest"])
 

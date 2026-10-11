@@ -9,19 +9,19 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-import harbor.environments.vercel.environment as vercel_module
-from harbor.environments.base import ExecResult, ServiceOperationsUnsupportedError
-from harbor.environments.vercel import VercelSandboxEnvironment
-from harbor.environments.vercel.vcr import VcrScope
-from harbor.models.task.config import (
+import sprint.environments.vercel.environment as vercel_module
+from sprint.environments.base import ExecResult, ServiceOperationsUnsupportedError
+from sprint.environments.vercel import VercelSandboxEnvironment
+from sprint.environments.vercel.vcr import VcrScope
+from sprint.models.task.config import (
     EnvironmentConfig,
     HealthcheckConfig,
     NetworkMode,
     NetworkPolicy,
 )
-from harbor.models.trial.config import ResourceMode, ServiceVolumeConfig
-from harbor.models.trial.paths import EnvironmentPaths, TrialPaths
-from harbor.utils.optional_import import MissingExtraError
+from sprint.models.trial.config import ResourceMode, ServiceVolumeConfig
+from sprint.models.trial.paths import EnvironmentPaths, TrialPaths
+from sprint.utils.optional_import import MissingExtraError
 
 
 @dataclass

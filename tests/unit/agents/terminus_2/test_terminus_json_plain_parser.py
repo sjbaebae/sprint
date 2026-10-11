@@ -1,4 +1,4 @@
-from harbor.agents.terminus_2.terminus_json_plain_parser import (
+from sprint.agents.terminus_2.terminus_json_plain_parser import (
     TerminusJSONPlainParser,
 )
 

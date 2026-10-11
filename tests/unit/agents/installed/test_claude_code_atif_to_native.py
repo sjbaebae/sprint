@@ -3,8 +3,8 @@
 import json
 from pathlib import Path
 
-from harbor.agents.installed.claude_code import ClaudeCode
-from harbor.models.trajectories import (
+from sprint.agents.installed.claude_code import ClaudeCode
+from sprint.models.trajectories import (
     Agent,
     Observation,
     ObservationResult,

@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from harbor.agents.nop import NopAgent
-from harbor.models.trial.config import AgentConfig, TaskConfig, TrialConfig
-from harbor.trial.single_step import SingleStepTrial
+from sprint.agents.nop import NopAgent
+from sprint.models.trial.config import AgentConfig, TaskConfig, TrialConfig
+from sprint.trial.single_step import SingleStepTrial
 
 
 @pytest.mark.parametrize(

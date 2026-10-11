@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from harbor.cli.annotator.annotator import (
+from sprint.cli.annotator.annotator import (
     ANNOTATE_TASK_TEMPLATE_DIR,
     AnnotateOutput,
     _build_file_tree,
@@ -14,7 +14,7 @@ from harbor.cli.annotator.annotator import (
     _write_results,
     assemble_annotate_task,
 )
-from harbor.models.task.task import Task
+from sprint.models.task.task import Task
 
 
 def _make_task_dir(tmp_path: Path, name: str = "task") -> Path:

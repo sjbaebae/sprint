@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from harbor.models.task.task import Task
+from sprint.models.task.task import Task
 
 
 def test_short_name_with_registry_task_section(temp_dir: Path) -> None:

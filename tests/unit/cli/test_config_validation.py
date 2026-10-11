@@ -5,15 +5,15 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from typer.testing import CliRunner
 
-from harbor.cli.config_validation import (
+from sprint.cli.config_validation import (
     ValidationReport,
     validate_job_config,
     validate_local_sources,
 )
-from harbor.cli.main import app
-from harbor.hosted.config import CredentialMode, HostedAgentConfig, HostedJobConfig
-from harbor.models.job.config import DatasetConfig, JobConfig
-from harbor.models.trial.config import (
+from sprint.cli.main import app
+from sprint.hosted.config import CredentialMode, HostedAgentConfig, HostedJobConfig
+from sprint.models.job.config import DatasetConfig, JobConfig
+from sprint.models.trial.config import (
     AgentConfig,
     EnvironmentConfig,
     TaskConfig,
@@ -36,7 +36,7 @@ def _hub_catalog(monkeypatch, schema, modes=("direct", "gateway")):
         )
     )
     monkeypatch.setattr(
-        "harbor.hub.agent_catalog.fetch_harbor_hub_agent_catalog", fetch
+        "sprint.hub.agent_catalog.fetch_harbor_hub_agent_catalog", fetch
     )
     return fetch
 
@@ -114,10 +114,10 @@ def test_local_dry_run_preflights_without_creating_job(tmp_path, monkeypatch):
     agent = Mock()
     create = AsyncMock(side_effect=AssertionError("Must not create a Job"))
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight", environment
+        "sprint.environments.factory.EnvironmentFactory.run_preflight", environment
     )
-    monkeypatch.setattr("harbor.agents.factory.AgentFactory.run_preflight", agent)
-    monkeypatch.setattr("harbor.job.Job.create", create)
+    monkeypatch.setattr("sprint.agents.factory.AgentFactory.run_preflight", agent)
+    monkeypatch.setattr("sprint.job.Job.create", create)
     result = CliRunner().invoke(
         app, ["run", "--dry-run", "-p", str(task.parent), "-a", "nop", "-k", "5"]
     )
@@ -188,7 +188,7 @@ async def test_source_validation_checks_hub_dataset_access(monkeypatch):
 def test_hub_dry_run_stops_before_submit_on_invalid_kwargs(monkeypatch):
     _hub_catalog(monkeypatch, {"type": "object", "additionalProperties": False})
     submit = AsyncMock()
-    monkeypatch.setattr("harbor.hosted.submit.submit_hosted_job", submit)
+    monkeypatch.setattr("sprint.hosted.submit.submit_hosted_job", submit)
     result = CliRunner().invoke(
         app,
         [
@@ -209,8 +209,8 @@ def test_hub_dry_run_stops_before_submit_on_invalid_kwargs(monkeypatch):
 def test_local_dry_run_stops_before_sources_on_preflight_failure(monkeypatch):
     preflight = Mock(side_effect=ValueError("environment unavailable"))
     sources = AsyncMock()
-    monkeypatch.setattr("harbor.cli.jobs._run_preflight", preflight)
-    monkeypatch.setattr("harbor.cli.config_validation.validate_local_sources", sources)
+    monkeypatch.setattr("sprint.cli.jobs._run_preflight", preflight)
+    monkeypatch.setattr("sprint.cli.config_validation.validate_local_sources", sources)
     result = CliRunner().invoke(app, ["run", "--dry-run", "-a", "nop"])
     assert result.exit_code == 1
     sources.assert_not_awaited()
@@ -218,10 +218,10 @@ def test_local_dry_run_stops_before_sources_on_preflight_failure(monkeypatch):
 
 def test_run_invalid_agent_kwargs_exits_cleanly_before_job_creation(monkeypatch):
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight", Mock()
+        "sprint.environments.factory.EnvironmentFactory.run_preflight", Mock()
     )
     create = AsyncMock()
-    monkeypatch.setattr("harbor.job.Job.create", create)
+    monkeypatch.setattr("sprint.job.Job.create", create)
     result = CliRunner().invoke(
         app, ["run", "-a", "codex", "--ak", "reasoning_effort=invalid"]
     )
@@ -249,7 +249,7 @@ def test_strict_validation_rejects_invalid_fields_before_preflight(
     source = tmp_path / "job.json"
     source.write_text(json.dumps(data))
     preflight = Mock(side_effect=AssertionError("Must not run preflight"))
-    monkeypatch.setattr("harbor.cli.jobs._run_preflight", preflight)
+    monkeypatch.setattr("sprint.cli.jobs._run_preflight", preflight)
     result = CliRunner().invoke(app, ["run", "--dry-run", "-c", str(source)])
     assert result.exit_code != 0
     preflight.assert_not_called()
@@ -266,7 +266,7 @@ def test_strict_validation_rejects_invalid_fields_before_preflight(
 )
 def test_conflicting_modes_fail_before_loading_config(tmp_path, monkeypatch, args):
     load = Mock(side_effect=AssertionError("Must not load config"))
-    monkeypatch.setattr("harbor.cli.jobs.load_config_source", load)
+    monkeypatch.setattr("sprint.cli.jobs.load_config_source", load)
     monkeypatch.chdir(tmp_path)
     result = CliRunner().invoke(app, [*args, "-c", "remote-config.yaml"])
     assert result.exit_code != 0
@@ -275,9 +275,9 @@ def test_conflicting_modes_fail_before_loading_config(tmp_path, monkeypatch, arg
 
 
 def test_strict_validation_preserves_legacy_migrations(tmp_path, monkeypatch):
-    monkeypatch.setattr("harbor.cli.jobs._run_preflight", Mock())
+    monkeypatch.setattr("sprint.cli.jobs._run_preflight", Mock())
     monkeypatch.setattr(
-        "harbor.cli.config_validation.validate_local_sources",
+        "sprint.cli.config_validation.validate_local_sources",
         AsyncMock(return_value=ValidationReport()),
     )
     source = tmp_path / "job.yaml"
@@ -293,7 +293,7 @@ def test_strict_validation_preserves_legacy_migrations(tmp_path, monkeypatch):
 
 def test_build_preserves_literal_credentials_and_opaque_kwargs(monkeypatch):
     from pydantic import BaseModel
-    from harbor.cli.jobs import build_job_config
+    from sprint.cli.jobs import build_job_config
 
     class CustomValue(BaseModel):
         value: int
@@ -309,7 +309,7 @@ def test_build_preserves_literal_credentials_and_opaque_kwargs(monkeypatch):
         ],
         "environment": {"kwargs": {"pair": (3, 4)}},
     }
-    monkeypatch.setattr("harbor.cli.jobs.load_config_source", lambda _: source)
+    monkeypatch.setattr("sprint.cli.jobs.load_config_source", lambda _: source)
     import typer
 
     builder = typer.Typer()
@@ -327,17 +327,17 @@ def test_build_preserves_literal_credentials_and_opaque_kwargs(monkeypatch):
 async def test_remote_source_validation_never_downloads_or_clones(
     tmp_path, monkeypatch
 ):
-    from harbor.tasks.client import TaskClient
+    from sprint.tasks.client import TaskClient
 
     forbidden = AsyncMock(side_effect=AssertionError("Must not fetch objects"))
     monkeypatch.setattr(TaskClient, "download_tasks", forbidden)
     monkeypatch.setattr(DatasetConfig, "_get_repo_task_configs", forbidden)
     metadata = AsyncMock()
-    monkeypatch.setattr("harbor.db.client.RegistryDB.resolve_task_version", metadata)
+    monkeypatch.setattr("sprint.db.client.RegistryDB.resolve_task_version", metadata)
     git = Mock(
         return_value=SimpleNamespace(returncode=0, stdout="abc\trefs/heads/main\n")
     )
-    monkeypatch.setattr("harbor.cli.config_validation.subprocess.run", git)
+    monkeypatch.setattr("sprint.cli.config_validation.subprocess.run", git)
     config = JobConfig(
         datasets=[DatasetConfig(repo="org/repo@main")],
         tasks=[
@@ -364,10 +364,10 @@ async def test_remote_source_validation_never_downloads_or_clones(
 
 @pytest.mark.asyncio
 async def test_git_metadata_missing_ref_fails(monkeypatch):
-    from harbor.cli.config_validation import _check_git_metadata
+    from sprint.cli.config_validation import _check_git_metadata
 
     monkeypatch.setattr(
-        "harbor.cli.config_validation.subprocess.run",
+        "sprint.cli.config_validation.subprocess.run",
         Mock(return_value=SimpleNamespace(returncode=2, stdout="")),
     )
     with pytest.raises(ValueError, match="Cannot access Git"):
@@ -376,10 +376,10 @@ async def test_git_metadata_missing_ref_fails(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_git_pinned_commit_is_explicitly_unverified(monkeypatch):
-    from harbor.cli.config_validation import _check_git_metadata
+    from sprint.cli.config_validation import _check_git_metadata
 
     git = Mock(return_value=SimpleNamespace(returncode=0, stdout="abc\tHEAD\n"))
-    monkeypatch.setattr("harbor.cli.config_validation.subprocess.run", git)
+    monkeypatch.setattr("sprint.cli.config_validation.subprocess.run", git)
     skipped = await _check_git_metadata("https://github.com/org/repo.git", "a" * 40)
     assert any("commit existence" in message for message in skipped)
     assert git.call_args.args[0][-1] == "HEAD"
@@ -394,7 +394,7 @@ async def test_hub_dataset_metadata_is_not_resolved_again_per_task(monkeypatch):
     resolve = AsyncMock(
         side_effect=AssertionError("Dataset metadata already resolved tasks")
     )
-    monkeypatch.setattr("harbor.db.client.RegistryDB.resolve_task_version", resolve)
+    monkeypatch.setattr("sprint.db.client.RegistryDB.resolve_task_version", resolve)
     config = JobConfig(datasets=[DatasetConfig(name="org/dataset")], n_attempts=5)
     report = await validate_local_sources(config)
     assert report.n_trials == 5
@@ -402,9 +402,9 @@ async def test_hub_dataset_metadata_is_not_resolved_again_per_task(monkeypatch):
 
 
 def test_dry_run_checks_final_overrides_after_merging(tmp_path, monkeypatch):
-    monkeypatch.setattr("harbor.cli.jobs._run_preflight", Mock())
+    monkeypatch.setattr("sprint.cli.jobs._run_preflight", Mock())
     monkeypatch.setattr(
-        "harbor.cli.config_validation.validate_local_sources",
+        "sprint.cli.config_validation.validate_local_sources",
         AsyncMock(return_value=ValidationReport()),
     )
     base = tmp_path / "base.yaml"
@@ -414,7 +414,7 @@ def test_dry_run_checks_final_overrides_after_merging(tmp_path, monkeypatch):
     override = tmp_path / "override.yaml"
     override.write_text("n_concurrent_trials: 3\n")
     validate = AsyncMock(return_value=ValidationReport())
-    monkeypatch.setattr("harbor.cli.config_validation.validate_job_config", validate)
+    monkeypatch.setattr("sprint.cli.config_validation.validate_job_config", validate)
     result = CliRunner().invoke(
         app,
         ["run", "--dry-run", "-c", str(base), "-c", str(override), "-k", "5"],
@@ -439,10 +439,10 @@ def test_normal_run_retains_unknown_field_compatibility(tmp_path):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("refname", ["refs/heads/feature/release", "refs/for/release"])
 async def test_git_metadata_rejects_suffix_matches(monkeypatch, refname):
-    from harbor.cli.config_validation import _check_git_metadata
+    from sprint.cli.config_validation import _check_git_metadata
 
     monkeypatch.setattr(
-        "harbor.cli.config_validation.subprocess.run",
+        "sprint.cli.config_validation.subprocess.run",
         Mock(return_value=SimpleNamespace(returncode=0, stdout=f"abc\t{refname}\n")),
     )
     with pytest.raises(ValueError, match="No exact matching Git ref"):
@@ -459,10 +459,10 @@ async def test_git_metadata_rejects_suffix_matches(monkeypatch, refname):
     ],
 )
 async def test_git_metadata_accepts_exact_refs(monkeypatch, ref, refname):
-    from harbor.cli.config_validation import _check_git_metadata
+    from sprint.cli.config_validation import _check_git_metadata
 
     monkeypatch.setattr(
-        "harbor.cli.config_validation.subprocess.run",
+        "sprint.cli.config_validation.subprocess.run",
         Mock(return_value=SimpleNamespace(returncode=0, stdout=f"abc\t{refname}\n")),
     )
     assert await _check_git_metadata("https://github.com/org/repo.git", ref)
@@ -471,9 +471,9 @@ async def test_git_metadata_accepts_exact_refs(monkeypatch, ref, refname):
 def test_git_timeout_exits_cleanly(monkeypatch):
     import subprocess
 
-    monkeypatch.setattr("harbor.cli.jobs._run_preflight", Mock())
+    monkeypatch.setattr("sprint.cli.jobs._run_preflight", Mock())
     monkeypatch.setattr(
-        "harbor.cli.config_validation.subprocess.run",
+        "sprint.cli.config_validation.subprocess.run",
         Mock(side_effect=subprocess.TimeoutExpired("git", 30)),
     )
     result = CliRunner().invoke(
@@ -503,9 +503,9 @@ def test_git_timeout_exits_cleanly(monkeypatch):
 )
 def test_overrides_precede_model_validation(monkeypatch, source, args, field, expected):
     import typer
-    from harbor.cli.jobs import build_job_config
+    from sprint.cli.jobs import build_job_config
 
-    monkeypatch.setattr("harbor.cli.jobs.load_config_source", lambda _: source)
+    monkeypatch.setattr("sprint.cli.jobs.load_config_source", lambda _: source)
     builder = typer.Typer()
     builder.command()(build_job_config)
     config = typer.main.get_command(builder).main(
@@ -521,7 +521,7 @@ def test_overrides_precede_model_validation(monkeypatch, source, args, field, ex
 
 def test_executor_requires_explicit_option_wiring():
     from inspect import Parameter, signature
-    from harbor.cli.jobs import _execute_job
+    from sprint.cli.jobs import _execute_job
 
     params = signature(_execute_job).parameters.values()
     assert all(param.kind != Parameter.VAR_KEYWORD for param in params)

@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from harbor.environments.gke import KubernetesClientManager
+from sprint.environments.gke import KubernetesClientManager
 
 
 @pytest.fixture(autouse=True)
@@ -39,10 +39,10 @@ def mock_k8s(monkeypatch):
         name=f"ApiClient-{api_client_cls.call_count}"
     )
 
-    monkeypatch.setattr("harbor.environments.gke.k8s_client.CoreV1Api", core_v1_cls)
-    monkeypatch.setattr("harbor.environments.gke.k8s_client.ApiClient", api_client_cls)
+    monkeypatch.setattr("sprint.environments.gke.k8s_client.CoreV1Api", core_v1_cls)
+    monkeypatch.setattr("sprint.environments.gke.k8s_client.ApiClient", api_client_cls)
     monkeypatch.setattr(
-        "harbor.environments.gke.k8s_config.load_kube_config", MagicMock()
+        "sprint.environments.gke.k8s_config.load_kube_config", MagicMock()
     )
 
     return {"CoreV1Api": core_v1_cls, "ApiClient": api_client_cls}

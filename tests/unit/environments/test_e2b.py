@@ -11,9 +11,9 @@ import httpcore
 from e2b import ALL_TRAFFIC
 from e2b.sandbox.commands.command_handle import CommandExitException
 
-from harbor.environments.e2b import E2BEnvironment
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments.e2b import E2BEnvironment
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.paths import TrialPaths
 
 
 def _make_env(
@@ -108,7 +108,7 @@ async def test_create_sandbox_passes_network_for_allowlist(temp_dir):
     )
 
     with patch(
-        "harbor.environments.e2b.AsyncSandbox.create", new=AsyncMock()
+        "sprint.environments.e2b.AsyncSandbox.create", new=AsyncMock()
     ) as create:
         await env._create_sandbox()
 
@@ -128,7 +128,7 @@ async def test_create_sandbox_passes_startup_environment(temp_dir):
     )
 
     with patch(
-        "harbor.environments.e2b.AsyncSandbox.create", new=AsyncMock()
+        "sprint.environments.e2b.AsyncSandbox.create", new=AsyncMock()
     ) as create:
         await env._create_sandbox()
 
@@ -145,7 +145,7 @@ async def test_create_sandbox_disables_internet_for_no_network(temp_dir):
     )
 
     with patch(
-        "harbor.environments.e2b.AsyncSandbox.create", new=AsyncMock()
+        "sprint.environments.e2b.AsyncSandbox.create", new=AsyncMock()
     ) as create:
         await env._create_sandbox()
 
@@ -288,7 +288,7 @@ async def test_exec_retries_connection_error_then_succeeds(temp_dir, monkeypatch
 
 def test_dispatch_retry_allowlist_excludes_post_dispatch_errors():
     # Ambiguous errors must not be retryable, even via a shared base class.
-    from harbor.environments import e2b as e2b_module
+    from sprint.environments import e2b as e2b_module
 
     safe = e2b_module._DISPATCH_RETRYABLE
     assert httpcore.ConnectError in safe

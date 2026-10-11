@@ -9,12 +9,12 @@ import httpx
 import pytest
 from runloop_api_client._exceptions import ConflictError
 
-from harbor.environments import runloop
-from harbor.environments.base import ExecResult
-from harbor.environments.runloop import RunloopEnvironment
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.config import ServiceVolumeConfig
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments import runloop
+from sprint.environments.base import ExecResult
+from sprint.environments.runloop import RunloopEnvironment
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.config import ServiceVolumeConfig
+from sprint.models.trial.paths import TrialPaths
 
 
 class _AsyncPolicyIterator:

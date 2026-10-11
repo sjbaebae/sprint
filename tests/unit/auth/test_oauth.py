@@ -12,8 +12,8 @@ from urllib.parse import parse_qs, urlparse
 import httpx
 import pytest
 
-from harbor.auth.errors import AuthenticationError
-from harbor.auth.oauth import (
+from sprint.auth.errors import AuthenticationError
+from sprint.auth.oauth import (
     build_authorize_url,
     exchange_code,
     extract_auth_code,

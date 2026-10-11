@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from harbor.environments.docker import utils as docker_utils
+from sprint.environments.docker import utils as docker_utils
 
 
 def _write_context(tmp_path: Path) -> tuple[Path, Path]:

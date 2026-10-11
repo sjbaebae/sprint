@@ -7,12 +7,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.environments.base import ExecResult
-from harbor.environments.docker import ssh
-from harbor.environments.docker.docker import DockerEnvironment
-from harbor.environments.ssh import SSHAccess, SSHAccessError, StreamHandle
-from harbor.models.task.config import EnvironmentConfig, TaskOS
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments.base import ExecResult
+from sprint.environments.docker import ssh
+from sprint.environments.docker.docker import DockerEnvironment
+from sprint.environments.ssh import SSHAccess, SSHAccessError, StreamHandle
+from sprint.models.task.config import EnvironmentConfig, TaskOS
+from sprint.models.trial.paths import TrialPaths
 
 
 @pytest.fixture

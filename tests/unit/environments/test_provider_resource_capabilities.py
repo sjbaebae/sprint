@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from harbor.models.task.config import EnvironmentConfig
-from harbor.models.trial.config import ResourceMode
-from harbor.models.trial.paths import TrialPaths
+from sprint.models.task.config import EnvironmentConfig
+from sprint.models.trial.config import ResourceMode
+from sprint.models.trial.paths import TrialPaths
 
 
 def _trial_paths(root: Path) -> TrialPaths:
@@ -22,7 +22,7 @@ def _dockerfile_dir(root: Path) -> Path:
 
 
 def _import_provider(module_name: str, has_flag: str):
-    module = importlib.import_module(f"harbor.environments.{module_name}")
+    module = importlib.import_module(f"sprint.environments.{module_name}")
     if not getattr(module, has_flag):
         pytest.skip(f"{module_name} extra is not installed")
     return module

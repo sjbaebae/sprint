@@ -6,8 +6,8 @@ from uuid import uuid4
 import pytest
 from typer.testing import CliRunner
 
-from harbor.cli.hub import hub_app
-from harbor.cli.main import app
+from sprint.cli.hub import hub_app
+from sprint.cli.main import app
 
 runner = CliRunner()
 
@@ -18,7 +18,7 @@ def _patched_downloader(monkeypatch, *, result: MagicMock) -> MagicMock:
     instance.db.get_user_id = AsyncMock(return_value="user-id")
     instance.download_trial = AsyncMock(return_value=result)
     cls = MagicMock(return_value=instance)
-    monkeypatch.setattr("harbor.download.downloader.Downloader", cls)
+    monkeypatch.setattr("sprint.download.downloader.Downloader", cls)
     return instance
 
 
@@ -28,9 +28,9 @@ def _patched_trajectory_download(monkeypatch, *, detail):
     storage = MagicMock()
     storage.download_file = AsyncMock(return_value=None)
 
-    monkeypatch.setattr("harbor.hub.client.HubClient", MagicMock(return_value=hub))
+    monkeypatch.setattr("sprint.hub.client.HubClient", MagicMock(return_value=hub))
     monkeypatch.setattr(
-        "harbor.upload.storage.UploadStorage", MagicMock(return_value=storage)
+        "sprint.upload.storage.UploadStorage", MagicMock(return_value=storage)
     )
     return hub, storage
 

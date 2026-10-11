@@ -6,15 +6,15 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from harbor.agents.computer_1.computer_1 import Computer1
-from harbor.agents.computer_1.providers import anthropic as anthropic_module
-from harbor.agents.computer_1.providers.anthropic import (
+from sprint.agents.computer_1.computer_1 import Computer1
+from sprint.agents.computer_1.providers import anthropic as anthropic_module
+from sprint.agents.computer_1.providers.anthropic import (
     AnthropicProvider,
     BedrockProvider,
 )
-from harbor.agents.computer_1.providers.base import ToolExecutionResult
-from harbor.agents.computer_1.runtime import Computer1Session, ComputerAction
-from harbor.models.agent.context import AgentContext
+from sprint.agents.computer_1.providers.base import ToolExecutionResult
+from sprint.agents.computer_1.runtime import Computer1Session, ComputerAction
+from sprint.models.agent.context import AgentContext
 
 
 def response(actions, *, stop_reason="tool_use"):
@@ -364,7 +364,7 @@ async def test_result_ids_must_match(provider):
 
 async def test_runtime_cursor_position():
     session = object.__new__(Computer1Session)
-    from harbor.agents.computer_1.runtime import DisplayGeometry
+    from sprint.agents.computer_1.runtime import DisplayGeometry
 
     session.geometry = DisplayGeometry(desktop_width=1024, desktop_height=900)
     session._request_timeout_sec = 10
@@ -438,7 +438,7 @@ async def test_assistant_content_preserved_and_results_follow_immediately(
 
 
 async def test_gemini_singleton_adapter_keeps_call_id_and_error():
-    from harbor.agents.computer_1.providers.gemini import GeminiProvider
+    from sprint.agents.computer_1.providers.gemini import GeminiProvider
 
     provider = object.__new__(GeminiProvider)
     provider.model_name = "gemini-3.7-flash"

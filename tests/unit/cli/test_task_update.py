@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from harbor.cli.tasks import _parse_authors, _update_single_task, update
-from harbor.models.task.config import Author
+from sprint.cli.tasks import _parse_authors, _update_single_task, update
+from sprint.models.task.config import Author
 
 
 def _make_task_dir(parent: Path, name: str, *, with_task_section: bool = False) -> Path:

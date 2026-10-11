@@ -4,7 +4,7 @@ Terminus 2 doesn't have native MCP support — it injects MCP server info
 into the instruction prompt so the agent knows what servers are available.
 """
 
-from harbor.models.task.config import MCPServerConfig
+from sprint.models.task.config import MCPServerConfig
 
 
 class TestMcpPromptInjection:

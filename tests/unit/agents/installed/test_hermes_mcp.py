@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 import yaml
 
-from harbor.agents.installed.hermes import Hermes
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.hermes import Hermes
+from sprint.models.task.config import MCPServerConfig
 
 
 class TestRegisterMcpServers:

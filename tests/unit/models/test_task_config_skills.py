@@ -1,6 +1,6 @@
 """Unit tests for skills_dir in TaskConfig."""
 
-from harbor.models.task.config import TaskConfig
+from sprint.models.task.config import TaskConfig
 
 
 class TestTaskConfigSkillsDir:

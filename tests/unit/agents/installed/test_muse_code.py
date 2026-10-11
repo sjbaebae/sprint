@@ -6,13 +6,13 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.agents.factory import AgentFactory
-from harbor.agents.installed.base import BaseInstalledAgent, NonZeroAgentExitCodeError
-from harbor.agents.installed.muse_code import MuseCode
-from harbor.models.agent.context import AgentContext
-from harbor.models.agent.name import AgentName
-from harbor.models.task.config import MCPServerConfig
-from harbor.models.trajectories import Agent, Step, Trajectory
+from sprint.agents.factory import AgentFactory
+from sprint.agents.installed.base import BaseInstalledAgent, NonZeroAgentExitCodeError
+from sprint.agents.installed.muse_code import MuseCode
+from sprint.models.agent.context import AgentContext
+from sprint.models.agent.name import AgentName
+from sprint.models.task.config import MCPServerConfig
+from sprint.models.trajectories import Agent, Step, Trajectory
 
 SID = "00000000-0000-4000-8000-000000000001"
 CHILD = "00000000-0000-4000-8000-000000000002"

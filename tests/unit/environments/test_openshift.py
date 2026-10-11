@@ -11,14 +11,14 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from harbor.environments.base import ExecResult
-from harbor.environments.openshift import (
+from sprint.environments.base import ExecResult
+from sprint.environments.openshift import (
     OpenshiftEnvironment,
     _sanitize_k8s_name,
 )
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import EnvironmentConfig
-from harbor.models.trial.paths import TrialPaths
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import EnvironmentConfig
+from sprint.models.trial.paths import TrialPaths
 
 
 # ── helpers ──────────────────────────────────────────────────────────────
@@ -784,9 +784,9 @@ class TestOpenshiftFactoryRegistration:
         assert EnvironmentType.OPENSHIFT == "openshift"
 
     def test_factory_registry_has_openshift(self):
-        from harbor.environments.factory import _ENVIRONMENT_REGISTRY
+        from sprint.environments.factory import _ENVIRONMENT_REGISTRY
 
         assert EnvironmentType.OPENSHIFT in _ENVIRONMENT_REGISTRY
         entry = _ENVIRONMENT_REGISTRY[EnvironmentType.OPENSHIFT]
         assert entry.class_name == "OpenshiftEnvironment"
-        assert entry.module == "harbor.environments.openshift"
+        assert entry.module == "sprint.environments.openshift"

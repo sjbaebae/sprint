@@ -3,12 +3,12 @@ from pathlib import Path
 import pytest
 from rich.console import Console
 
-from harbor.cli.hosted_jobs import (
+from sprint.cli.hosted_jobs import (
     _collect_launch_job_secrets,
     _parse_launch_secrets,
     _resolve_config_job_secrets,
 )
-from harbor.hosted.config import HostedJobConfig
+from sprint.hosted.config import HostedJobConfig
 
 
 def _env_file(tmp_path: Path, content: str) -> Path:

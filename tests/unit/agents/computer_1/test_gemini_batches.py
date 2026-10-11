@@ -7,10 +7,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from harbor.agents.computer_1.computer_1 import Computer1
-from harbor.agents.computer_1.providers.base import ToolExecutionResult
-from harbor.agents.computer_1.providers.gemini import GeminiProvider
-from harbor.models.agent.context import AgentContext
+from sprint.agents.computer_1.computer_1 import Computer1
+from sprint.agents.computer_1.providers.base import ToolExecutionResult
+from sprint.agents.computer_1.providers.gemini import GeminiProvider
+from sprint.models.agent.context import AgentContext
 
 FINAL_IMAGE = "data:image/png;base64,ZmluYWw="
 

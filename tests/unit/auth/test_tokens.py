@@ -9,18 +9,18 @@ from pathlib import Path
 import httpx
 import pytest
 
-from harbor.auth import tokens as tokens_mod
-from harbor.auth.credentials import (
+from sprint.auth import tokens as tokens_mod
+from sprint.auth.credentials import (
     API_KEY_ENV_VAR,
     StoredCredentials,
     write_stored_credentials,
 )
-from harbor.auth.errors import (
+from sprint.auth.errors import (
     ApiKeyRejectedError,
     AuthenticationError,
     NotAuthenticatedError,
 )
-from harbor.auth.tokens import (
+from sprint.auth.tokens import (
     STORED_KEY_REJECTED_MESSAGE,
     exchange_api_key,
     get_access_token,

@@ -9,7 +9,7 @@ Covers:
 import pytest
 from pydantic import ValidationError
 
-from harbor.models.trajectories import (
+from sprint.models.trajectories import (
     Agent,
     Observation,
     ObservationResult,

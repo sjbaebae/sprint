@@ -12,15 +12,15 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from harbor.environments.base import ExecResult
-from harbor.environments.docker import (
+from sprint.environments.base import ExecResult
+from sprint.environments.docker import (
     RESOURCES_COMPOSE_NAME,
     write_resources_compose_file,
 )
-from harbor.environments.docker.docker import DockerEnvironment
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.config import ResourceMode
-from harbor.models.trial.paths import EnvironmentPaths, TrialPaths
+from sprint.environments.docker.docker import DockerEnvironment
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.config import ResourceMode
+from sprint.models.trial.paths import EnvironmentPaths, TrialPaths
 
 
 def _standard_mounts(trial_paths: TrialPaths):
@@ -52,7 +52,7 @@ def _skip_docker_egress_control_kernel_probe():
     """Keep unit tests from launching the real Docker kernel probe by default."""
     _reset_egress_control_kernel_support_cache()
     with patch(
-        "harbor.environments.docker.docker.subprocess.run",
+        "sprint.environments.docker.docker.subprocess.run",
         return_value=subprocess.CompletedProcess(args=[], returncode=0),
     ):
         DockerEnvironment._egress_control_kernel_support()
@@ -823,17 +823,17 @@ class TestDownloadOwnership:
         docker_env.exec = AsyncMock(return_value=ExecResult(return_code=0))
 
         # Simulate Windows by making hasattr(os, "getuid") return False
-        with patch("harbor.environments.docker.docker.os") as mock_os:
+        with patch("sprint.environments.docker.docker.os") as mock_os:
             del mock_os.getuid
             await docker_env._chown_to_host_user("/some/path")
 
         docker_env.exec.assert_not_called()
 
     @patch(
-        "harbor.environments.docker.docker.os.getuid", create=True, return_value=1000
+        "sprint.environments.docker.docker.os.getuid", create=True, return_value=1000
     )
     @patch(
-        "harbor.environments.docker.docker.os.getgid", create=True, return_value=1000
+        "sprint.environments.docker.docker.os.getgid", create=True, return_value=1000
     )
     async def test_chown_uses_uid_zero_in_rootless_docker(
         self, _getgid, _getuid, docker_env
@@ -848,10 +848,10 @@ class TestDownloadOwnership:
         assert "chown 0:0" in docker_env.exec.call_args.args[0]
 
     @patch(
-        "harbor.environments.docker.docker.os.getuid", create=True, return_value=1000
+        "sprint.environments.docker.docker.os.getuid", create=True, return_value=1000
     )
     @patch(
-        "harbor.environments.docker.docker.os.getgid", create=True, return_value=1000
+        "sprint.environments.docker.docker.os.getgid", create=True, return_value=1000
     )
     async def test_chown_uses_host_uid_in_rooted_docker(
         self, _getgid, _getuid, docker_env
@@ -877,7 +877,7 @@ class TestIsRootlessDocker:
         )
         mock_proc.returncode = 0
         with patch(
-            "harbor.environments.docker.docker.asyncio.create_subprocess_exec",
+            "sprint.environments.docker.docker.asyncio.create_subprocess_exec",
             return_value=mock_proc,
         ):
             assert await docker_env._is_rootless_docker() is True
@@ -890,7 +890,7 @@ class TestIsRootlessDocker:
         )
         mock_proc.returncode = 0
         with patch(
-            "harbor.environments.docker.docker.asyncio.create_subprocess_exec",
+            "sprint.environments.docker.docker.asyncio.create_subprocess_exec",
             return_value=mock_proc,
         ):
             assert await docker_env._is_rootless_docker() is False
@@ -898,7 +898,7 @@ class TestIsRootlessDocker:
     async def test_returns_false_on_docker_info_error(self, docker_env):
         """Should return False (safe default) when docker info fails."""
         with patch(
-            "harbor.environments.docker.docker.asyncio.create_subprocess_exec",
+            "sprint.environments.docker.docker.asyncio.create_subprocess_exec",
             side_effect=OSError("docker not found"),
         ):
             assert await docker_env._is_rootless_docker() is False
@@ -908,7 +908,7 @@ class TestIsRootlessDocker:
         mock_proc = AsyncMock()
         mock_proc.communicate = AsyncMock(return_value=(b"rootless", b""))
         with patch(
-            "harbor.environments.docker.docker.asyncio.create_subprocess_exec",
+            "sprint.environments.docker.docker.asyncio.create_subprocess_exec",
             return_value=mock_proc,
         ) as mock_exec:
             await docker_env._is_rootless_docker()
@@ -1052,10 +1052,10 @@ class TestStopChownBindMounts:
     """Tests for best-effort chown of bind-mounted /logs before stop."""
 
     @patch(
-        "harbor.environments.docker.docker.os.getuid", create=True, return_value=1000
+        "sprint.environments.docker.docker.os.getuid", create=True, return_value=1000
     )
     @patch(
-        "harbor.environments.docker.docker.os.getgid", create=True, return_value=1000
+        "sprint.environments.docker.docker.os.getgid", create=True, return_value=1000
     )
     async def test_stop_runs_chown_before_down(self, _getgid, _getuid, docker_env):
         """stop() should chown writable mount targets before docker compose down."""
@@ -1084,10 +1084,10 @@ class TestStopChownBindMounts:
         assert any("compose:['down']" in c for c in calls[3:])
 
     @patch(
-        "harbor.environments.docker.docker.os.getuid", create=True, return_value=1000
+        "sprint.environments.docker.docker.os.getuid", create=True, return_value=1000
     )
     @patch(
-        "harbor.environments.docker.docker.os.getgid", create=True, return_value=1000
+        "sprint.environments.docker.docker.os.getgid", create=True, return_value=1000
     )
     async def test_stop_proceeds_when_chown_fails(self, _getgid, _getuid, docker_env):
         """stop() should still run docker compose down even if chown exec fails."""
@@ -1120,10 +1120,10 @@ class TestPrepareLogsForHost:
     """Tests for prepare_logs_for_host() and its use by stop()."""
 
     @patch(
-        "harbor.environments.docker.docker.os.getuid", create=True, return_value=1000
+        "sprint.environments.docker.docker.os.getuid", create=True, return_value=1000
     )
     @patch(
-        "harbor.environments.docker.docker.os.getgid", create=True, return_value=1000
+        "sprint.environments.docker.docker.os.getgid", create=True, return_value=1000
     )
     async def test_prepare_logs_for_host_runs_chown(self, _getgid, _getuid, docker_env):
         """prepare_logs_for_host() should exec chown -R on writable mount targets."""
@@ -1145,10 +1145,10 @@ class TestPrepareLogsForHost:
         ]
 
     @patch(
-        "harbor.environments.docker.docker.os.getuid", create=True, return_value=1000
+        "sprint.environments.docker.docker.os.getuid", create=True, return_value=1000
     )
     @patch(
-        "harbor.environments.docker.docker.os.getgid", create=True, return_value=1000
+        "sprint.environments.docker.docker.os.getgid", create=True, return_value=1000
     )
     async def test_prepare_logs_for_host_tolerates_failure(
         self, _getgid, _getuid, docker_env
@@ -1160,10 +1160,10 @@ class TestPrepareLogsForHost:
         await docker_env.prepare_logs_for_host()  # must not raise
 
     @patch(
-        "harbor.environments.docker.docker.os.getuid", create=True, return_value=1000
+        "sprint.environments.docker.docker.os.getuid", create=True, return_value=1000
     )
     @patch(
-        "harbor.environments.docker.docker.os.getgid", create=True, return_value=1000
+        "sprint.environments.docker.docker.os.getgid", create=True, return_value=1000
     )
     async def test_stop_delegates_chown_to_prepare_logs_for_host(
         self, _getgid, _getuid, docker_env
@@ -1359,7 +1359,7 @@ class TestComposeEnvVars:
         with (
             patch.object(Path, "home", return_value=host_home),
             patch(
-                "harbor.environments.docker.docker.asyncio.create_subprocess_exec",
+                "sprint.environments.docker.docker.asyncio.create_subprocess_exec",
                 new_callable=AsyncMock,
             ) as create_process,
             patch.object(
@@ -1590,7 +1590,7 @@ class TestDockerNetworkPolicy:
     def test_kernel_support_probe_uses_pinned_alpine_and_accepts_missing_config(self):
         _reset_egress_control_kernel_support_cache()
         with patch(
-            "harbor.environments.docker.docker.subprocess.run",
+            "sprint.environments.docker.docker.subprocess.run",
             return_value=subprocess.CompletedProcess(
                 args=[], returncode=0, stdout="", stderr=""
             ),
@@ -1628,7 +1628,7 @@ class TestDockerNetworkPolicy:
     def test_kernel_support_probe_failure_is_cached(self):
         _reset_egress_control_kernel_support_cache()
         with patch(
-            "harbor.environments.docker.docker.subprocess.run",
+            "sprint.environments.docker.docker.subprocess.run",
             return_value=subprocess.CompletedProcess(
                 args=[], returncode=1, stdout="", stderr="missing fib"
             ),
@@ -1742,11 +1742,11 @@ class TestDockerNetworkPolicy:
     ):
         with (
             patch(
-                "harbor.environments.docker.docker.ensure_docker_image_built",
+                "sprint.environments.docker.docker.ensure_docker_image_built",
                 new=AsyncMock(return_value="harbor-docker-egress-control-sidecar:test"),
             ) as ensure_image,
             patch(
-                "harbor.environments.docker.docker.default_docker_platform",
+                "sprint.environments.docker.docker.default_docker_platform",
                 new=AsyncMock(return_value="linux/amd64"),
             ) as default_platform,
         ):
@@ -1983,7 +1983,7 @@ class TestDockerComposeCommand:
             return proc
 
         with patch(
-            "harbor.environments.docker.docker.asyncio.create_subprocess_exec",
+            "sprint.environments.docker.docker.asyncio.create_subprocess_exec",
             side_effect=fake_exec,
         ):
             result = await docker_env._run_docker_compose_command(
@@ -2082,7 +2082,7 @@ class TestValidateImageOS:
             return proc
 
         with patch(
-            "harbor.environments.docker.docker.asyncio.create_subprocess_exec",
+            "sprint.environments.docker.docker.asyncio.create_subprocess_exec",
             side_effect=fake_exec,
         ):
             with pytest.raises(RuntimeError, match="reports OS 'windows'"):
@@ -2098,7 +2098,7 @@ class TestValidateImageOS:
             return proc
 
         with patch(
-            "harbor.environments.docker.docker.asyncio.create_subprocess_exec",
+            "sprint.environments.docker.docker.asyncio.create_subprocess_exec",
             side_effect=fake_exec,
         ):
             await env._validate_image_os("some-image:latest")  # no raise
@@ -2113,7 +2113,7 @@ class TestValidateImageOS:
             return proc
 
         with patch(
-            "harbor.environments.docker.docker.asyncio.create_subprocess_exec",
+            "sprint.environments.docker.docker.asyncio.create_subprocess_exec",
             side_effect=fake_exec,
         ):
             await env._validate_image_os("missing-image:latest")  # no raise
@@ -2131,7 +2131,7 @@ class TestDockerComposePaths:
         network_mode=NetworkMode.PUBLIC,
         extra_docker_compose: list[Path] | None = None,
     ):
-        from harbor.models.task.config import TaskOS
+        from sprint.models.task.config import TaskOS
 
         env_dir = temp_dir / "environment"
         env_dir.mkdir()
@@ -2581,7 +2581,7 @@ class TestWindowsPlatformSelection:
     """Tests for Windows-specific platform ops wiring."""
 
     def _make_windows_env(self, temp_dir):
-        from harbor.models.task.config import TaskOS
+        from sprint.models.task.config import TaskOS
 
         env_dir = temp_dir / "environment"
         env_dir.mkdir()
@@ -2612,13 +2612,13 @@ class TestWindowsPlatformSelection:
         return env
 
     def test_windows_selects_windows_ops(self, temp_dir):
-        from harbor.environments.docker.docker_windows import WindowsOps
+        from sprint.environments.docker.docker_windows import WindowsOps
 
         env = self._make_windows_env(temp_dir)
         assert isinstance(env._platform, WindowsOps)
 
     def test_linux_selects_unix_ops(self, docker_env):
-        from harbor.environments.docker.docker_unix import UnixOps
+        from sprint.environments.docker.docker_unix import UnixOps
 
         assert isinstance(docker_env._platform, UnixOps)
 
@@ -2639,7 +2639,7 @@ class TestWindowsPlatformSelection:
 
     def test_container_name_cannot_be_overridden_by_task_env(self, temp_dir):
         """HARBOR_CONTAINER_NAME injected after user env cannot be clobbered."""
-        from harbor.models.task.config import TaskOS
+        from sprint.models.task.config import TaskOS
 
         env_dir = temp_dir / "environment"
         env_dir.mkdir()

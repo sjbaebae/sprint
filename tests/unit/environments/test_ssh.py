@@ -9,9 +9,9 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from harbor.environments import ssh
-from harbor.environments.ssh import SSHAccess, SSHAccessError, StreamHandle
-from harbor.models.asp import ASPConfig, ASPConnection, ASPIdentityEnv
+from sprint.environments import ssh
+from sprint.environments.ssh import SSHAccess, SSHAccessError, StreamHandle
+from sprint.models.asp import ASPConfig, ASPConnection, ASPIdentityEnv
 
 
 def test_stream_handle_preserves_provider_specific_reference():

@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from typer.testing import CliRunner
 
-from harbor.cli.hub import hub_app
+from sprint.cli.hub import hub_app
 
 runner = CliRunner()
 
@@ -15,7 +15,7 @@ def _patched_downloader(monkeypatch, *, result: MagicMock) -> MagicMock:
     instance.db.get_user_id = AsyncMock(return_value="user-id")
     instance.download_job = AsyncMock(return_value=result)
     cls = MagicMock(return_value=instance)
-    monkeypatch.setattr("harbor.download.downloader.Downloader", cls)
+    monkeypatch.setattr("sprint.download.downloader.Downloader", cls)
     return instance
 
 

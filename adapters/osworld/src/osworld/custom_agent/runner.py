@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 from osworld.custom_agent.core import OSWorldPromptRunner, OSWorldRunnerConfig
 
 if TYPE_CHECKING:
-    from harbor.environments.base import BaseEnvironment
+    from sprint.environments.base import BaseEnvironment
 
 
 class OSWorldContainerCommandError(RuntimeError):

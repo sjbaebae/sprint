@@ -1,6 +1,6 @@
 """Unit tests for Cursor CLI ATIF trajectory conversion (v1.7 semantics)."""
 
-from harbor.agents.installed.cursor_cli import CursorCli
+from sprint.agents.installed.cursor_cli import CursorCli
 
 MODEL = "anthropic/claude-sonnet-4-5"
 

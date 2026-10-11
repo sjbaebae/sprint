@@ -1,4 +1,4 @@
-from harbor.models.task.task import strip_canary
+from sprint.models.task.task import strip_canary
 
 
 def test_strip_html_comment_canary():

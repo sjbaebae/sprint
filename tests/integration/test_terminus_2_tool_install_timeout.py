@@ -18,8 +18,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.terminus_2.tmux_session import TmuxSession
-from harbor.environments.base import ExecResult
+from sprint.agents.terminus_2.tmux_session import TmuxSession
+from sprint.environments.base import ExecResult
 
 # Commands the install path issues that reach the network and can therefore
 # black-hole on a closed-internet sandbox.

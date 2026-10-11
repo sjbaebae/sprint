@@ -8,11 +8,11 @@ from unittest.mock import AsyncMock, PropertyMock, patch
 
 import pytest
 
-from harbor.agents.installed.pi import Pi
-from harbor.agents.model_connection import ResolvedModelConnection
-from harbor.models.agent.context import AgentContext
-from harbor.models.task.config import MCPServerConfig
-from harbor.utils.trajectory_validator import TrajectoryValidator
+from sprint.agents.installed.pi import Pi
+from sprint.agents.model_connection import ResolvedModelConnection
+from sprint.models.agent.context import AgentContext
+from sprint.models.task.config import MCPServerConfig
+from sprint.utils.trajectory_validator import TrajectoryValidator
 
 
 @pytest.fixture

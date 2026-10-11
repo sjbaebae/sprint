@@ -11,15 +11,15 @@ from pathlib import Path
 import pytest
 from aiohttp import web
 
-from harbor.models.agent.name import AgentName
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.trial.config import (
+from sprint.models.agent.name import AgentName
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.trial.config import (
     AgentConfig,
     EnvironmentConfig,
     TaskConfig,
     TrialConfig,
 )
-from harbor.trial.trial import Trial
+from sprint.trial.trial import Trial
 from tests.integration.test_utils import (
     export_and_compare_traces,
     file_uri_to_path,

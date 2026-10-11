@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 
-from harbor.agents.installed import deerflow_runner
+from sprint.agents.installed import deerflow_runner
 
 
 class FakeGraphRecursionError(Exception):

@@ -3,8 +3,8 @@
 import json
 from pathlib import Path
 
-from harbor.agents.installed.codex import Codex
-from harbor.models.trajectories import (
+from sprint.agents.installed.codex import Codex
+from sprint.models.trajectories import (
     Agent,
     ContentPart,
     ImageSource,

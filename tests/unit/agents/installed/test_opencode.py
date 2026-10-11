@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.base import NonZeroAgentExitCodeError
-from harbor.agents.installed.opencode import OpenCode
-from harbor.models.agent.context import AgentContext
+from sprint.agents.installed.base import NonZeroAgentExitCodeError
+from sprint.agents.installed.opencode import OpenCode
+from sprint.models.agent.context import AgentContext
 
 
 def _write_events(logs_dir, events):

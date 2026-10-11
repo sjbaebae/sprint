@@ -6,9 +6,9 @@ from typing import Any
 
 import pytest
 
-from harbor.environments.base import ExecResult, ServiceOperationsUnsupportedError
-from harbor.environments.factory import EnvironmentFactory
-from harbor.environments.langsmith import (
+from sprint.environments.base import ExecResult, ServiceOperationsUnsupportedError
+from sprint.environments.factory import EnvironmentFactory
+from sprint.environments.langsmith import (
     LangSmithEnvironment,
     _DEFAULT_EXEC_TIMEOUT_SECONDS,
     _DEFAULT_IDLE_TTL_SECONDS,
@@ -17,9 +17,9 @@ from harbor.environments.langsmith import (
     _snapshot_name,
     _validate_ttl_seconds,
 )
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
-from harbor.models.trial.paths import TrialPaths
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import EnvironmentConfig, NetworkMode, NetworkPolicy
+from sprint.models.trial.paths import TrialPaths
 
 
 class FakeSnapshot:
@@ -936,7 +936,7 @@ async def test_upload_dir_creates_archive_at_closed_temp_path(
         _create_archive(source, archive_path)
 
     monkeypatch.setattr(
-        "harbor.environments.langsmith._create_archive",
+        "sprint.environments.langsmith._create_archive",
         capture_archive_path,
     )
     environment = _make_environment(
@@ -1090,7 +1090,7 @@ async def test_exec_non_positive_timeout_has_no_local_deadline(
     monkeypatch: pytest.MonkeyPatch,
     timeout_sec: int,
 ) -> None:
-    monkeypatch.setattr("harbor.environments.langsmith._EXEC_TIMEOUT_GRACE_SECONDS", 0)
+    monkeypatch.setattr("sprint.environments.langsmith._EXEC_TIMEOUT_GRACE_SECONDS", 0)
     environment = _make_environment(
         tmp_path,
         environment_class=CapturingLangSmithEnvironment,
@@ -1181,7 +1181,7 @@ async def test_exec_cleanup_error_does_not_mask_timeout(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr("harbor.environments.langsmith._EXEC_TIMEOUT_GRACE_SECONDS", 0)
+    monkeypatch.setattr("sprint.environments.langsmith._EXEC_TIMEOUT_GRACE_SECONDS", 0)
     environment = _make_environment(
         tmp_path,
         environment_class=CapturingLangSmithEnvironment,

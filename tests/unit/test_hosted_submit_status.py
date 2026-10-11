@@ -5,15 +5,15 @@ from uuid import UUID, uuid4
 import httpx
 import pytest
 
-from harbor.hosted.cancel import cancel_hosted_job
-from harbor.hosted.config import (
+from sprint.hosted.cancel import cancel_hosted_job
+from sprint.hosted.config import (
     CredentialMode,
     HostedAgentConfig,
     HostedJobConfig,
     HostedRetryConfig,
 )
-from harbor.hosted.status import HostedJobTrialStatus, get_job_trial_status
-from harbor.hosted.submit import (
+from sprint.hosted.status import HostedJobTrialStatus, get_job_trial_status
+from sprint.hosted.submit import (
     HOSTED_ACCESS_FORM_BASE,
     HostedNotApprovedError,
     HostedQuotaExceededError,
@@ -21,8 +21,8 @@ from harbor.hosted.submit import (
     hosted_access_request_url,
     submit_hosted_job,
 )
-from harbor.models.job.config import DatasetConfig, JobConfig
-from harbor.models.trial.config import TaskConfig
+from sprint.models.job.config import DatasetConfig, JobConfig
+from sprint.models.trial.config import TaskConfig
 
 
 def _rpc_execute(data):
@@ -33,10 +33,10 @@ def _rpc_execute(data):
 
 def _patch_submit_auth(monkeypatch) -> None:
     monkeypatch.setattr(
-        "harbor.hosted.submit.require_user_id", AsyncMock(return_value="user-1")
+        "sprint.hosted.submit.require_user_id", AsyncMock(return_value="user-1")
     )
     monkeypatch.setattr(
-        "harbor.hosted.submit.get_access_token",
+        "sprint.hosted.submit.get_access_token",
         AsyncMock(return_value="access-token"),
     )
 
@@ -84,15 +84,15 @@ async def test_submit_hosted_job_calls_api(monkeypatch) -> None:
     )
     _patch_submit_auth(monkeypatch)
     monkeypatch.setattr(
-        "harbor.hosted.submit.httpx.AsyncClient",
+        "sprint.hosted.submit.httpx.AsyncClient",
         FakeSubmitHttpClient,
     )
     monkeypatch.setattr(
-        "harbor.hosted.submit.hosted_submit_url",
+        "sprint.hosted.submit.hosted_submit_url",
         lambda: "https://example.invalid/functions/v1/job-submit",
     )
     monkeypatch.setattr(
-        "harbor.hosted.submit.uuid4",
+        "sprint.hosted.submit.uuid4",
         lambda: UUID("11111111-1111-4111-8111-111111111111"),
     )
     config = HostedJobConfig(
@@ -137,7 +137,7 @@ async def test_submit_hosted_job_sends_job_secrets_as_config_sibling(
     )
     _patch_submit_auth(monkeypatch)
     monkeypatch.setattr(
-        "harbor.hosted.submit.httpx.AsyncClient",
+        "sprint.hosted.submit.httpx.AsyncClient",
         FakeSubmitHttpClient,
     )
     config = HostedJobConfig(
@@ -170,7 +170,7 @@ async def test_submit_hosted_job_sends_registry_credentials_as_config_sibling(
     )
     _patch_submit_auth(monkeypatch)
     monkeypatch.setattr(
-        "harbor.hosted.submit.httpx.AsyncClient",
+        "sprint.hosted.submit.httpx.AsyncClient",
         FakeSubmitHttpClient,
     )
     config = HostedJobConfig(
@@ -209,7 +209,7 @@ async def test_submit_hosted_job_sends_owner_organization_as_config_sibling(
     )
     _patch_submit_auth(monkeypatch)
     monkeypatch.setattr(
-        "harbor.hosted.submit.httpx.AsyncClient",
+        "sprint.hosted.submit.httpx.AsyncClient",
         FakeSubmitHttpClient,
     )
     config = HostedJobConfig(
@@ -241,7 +241,7 @@ async def test_submit_hosted_job_omits_job_secrets_when_absent(
     )
     _patch_submit_auth(monkeypatch)
     monkeypatch.setattr(
-        "harbor.hosted.submit.httpx.AsyncClient",
+        "sprint.hosted.submit.httpx.AsyncClient",
         FakeSubmitHttpClient,
     )
     config = HostedJobConfig(
@@ -281,7 +281,7 @@ async def test_submit_hosted_job_dry_run_accepts_null_job_id(monkeypatch) -> Non
     )
     _patch_submit_auth(monkeypatch)
     monkeypatch.setattr(
-        "harbor.hosted.submit.httpx.AsyncClient",
+        "sprint.hosted.submit.httpx.AsyncClient",
         FakeSubmitHttpClient,
     )
     config = HostedJobConfig(
@@ -317,7 +317,7 @@ async def test_submit_hosted_job_still_requires_job_id_when_not_dry_run(
     )
     _patch_submit_auth(monkeypatch)
     monkeypatch.setattr(
-        "harbor.hosted.submit.httpx.AsyncClient",
+        "sprint.hosted.submit.httpx.AsyncClient",
         FakeSubmitHttpClient,
     )
     config = HostedJobConfig(
@@ -410,7 +410,7 @@ async def test_submit_hosted_job_maps_quota_api_error(monkeypatch) -> None:
     )
     _patch_submit_auth(monkeypatch)
     monkeypatch.setattr(
-        "harbor.hosted.submit.httpx.AsyncClient",
+        "sprint.hosted.submit.httpx.AsyncClient",
         FakeSubmitHttpClient,
     )
     config = HostedJobConfig(
@@ -439,7 +439,7 @@ async def test_submit_hosted_job_maps_quota_error_without_code(monkeypatch) -> N
     )
     _patch_submit_auth(monkeypatch)
     monkeypatch.setattr(
-        "harbor.hosted.submit.httpx.AsyncClient",
+        "sprint.hosted.submit.httpx.AsyncClient",
         FakeSubmitHttpClient,
     )
     config = HostedJobConfig(
@@ -460,13 +460,13 @@ async def test_submit_hosted_job_retries_after_stale_token_401(monkeypatch) -> N
     submit_url = "https://example.invalid/functions/v1/job-submit"
     invalidations: list[bool] = []
     monkeypatch.setattr(
-        "harbor.hosted.api.invalidate_token", lambda: invalidations.append(True)
+        "sprint.hosted.api.invalidate_token", lambda: invalidations.append(True)
     )
     monkeypatch.setattr(
-        "harbor.hosted.submit.require_user_id", AsyncMock(return_value="user-1")
+        "sprint.hosted.submit.require_user_id", AsyncMock(return_value="user-1")
     )
     monkeypatch.setattr(
-        "harbor.hosted.submit.get_access_token",
+        "sprint.hosted.submit.get_access_token",
         AsyncMock(side_effect=["stale-token", "fresh-token"]),
     )
     FakeSubmitHttpClient.requests = []
@@ -483,7 +483,7 @@ async def test_submit_hosted_job_retries_after_stale_token_401(monkeypatch) -> N
         ),
     ]
     monkeypatch.setattr(
-        "harbor.hosted.submit.httpx.AsyncClient",
+        "sprint.hosted.submit.httpx.AsyncClient",
         FakeSubmitHttpClient,
     )
     config = HostedJobConfig(
@@ -519,7 +519,7 @@ async def test_submit_hosted_job_omits_missing_trial_count(monkeypatch) -> None:
     )
     _patch_submit_auth(monkeypatch)
     monkeypatch.setattr(
-        "harbor.hosted.submit.httpx.AsyncClient",
+        "sprint.hosted.submit.httpx.AsyncClient",
         FakeSubmitHttpClient,
     )
     config = HostedJobConfig(
@@ -551,7 +551,7 @@ async def test_submit_hosted_job_maps_not_approved_api_error(monkeypatch) -> Non
     )
     _patch_submit_auth(monkeypatch)
     monkeypatch.setattr(
-        "harbor.hosted.submit.httpx.AsyncClient",
+        "sprint.hosted.submit.httpx.AsyncClient",
         FakeSubmitHttpClient,
     )
     config = HostedJobConfig(
@@ -600,15 +600,15 @@ async def test_submit_hosted_job_retries_with_same_idempotency_key(monkeypatch) 
     ]
     _patch_submit_auth(monkeypatch)
     monkeypatch.setattr(
-        "harbor.hosted.submit.httpx.AsyncClient",
+        "sprint.hosted.submit.httpx.AsyncClient",
         FakeSubmitHttpClient,
     )
     monkeypatch.setattr(
-        "harbor.hosted.submit.hosted_submit_url",
+        "sprint.hosted.submit.hosted_submit_url",
         lambda: submit_url,
     )
     monkeypatch.setattr(
-        "harbor.hosted.submit.uuid4",
+        "sprint.hosted.submit.uuid4",
         lambda: UUID("11111111-1111-4111-8111-111111111111"),
     )
     config = HostedJobConfig(
@@ -643,11 +643,11 @@ async def test_get_job_trial_status_calls_rpc(monkeypatch) -> None:
         ]
     )
     monkeypatch.setattr(
-        "harbor.hosted.status.create_authenticated_client",
+        "sprint.hosted.status.create_authenticated_client",
         AsyncMock(return_value=client),
     )
     monkeypatch.setattr(
-        "harbor.hosted.status.require_user_id", AsyncMock(return_value="user-1")
+        "sprint.hosted.status.require_user_id", AsyncMock(return_value="user-1")
     )
 
     result = await get_job_trial_status(job_id)
@@ -697,14 +697,14 @@ async def test_cancel_hosted_job_calls_rpc_and_fetches_status(monkeypatch) -> No
     client = MagicMock()
     client.rpc.return_value = _rpc_execute(None)
     monkeypatch.setattr(
-        "harbor.hosted.cancel.create_authenticated_client",
+        "sprint.hosted.cancel.create_authenticated_client",
         AsyncMock(return_value=client),
     )
     monkeypatch.setattr(
-        "harbor.hosted.cancel.require_user_id", AsyncMock(return_value="user-1")
+        "sprint.hosted.cancel.require_user_id", AsyncMock(return_value="user-1")
     )
     monkeypatch.setattr(
-        "harbor.hosted.cancel.get_job_trial_status",
+        "sprint.hosted.cancel.get_job_trial_status",
         AsyncMock(return_value=status),
     )
 

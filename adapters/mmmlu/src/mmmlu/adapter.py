@@ -38,7 +38,7 @@ def _import_module_from_file(module_name: str, file_path: Path):
 
 # Import models directly from their files
 task_paths_module = _import_module_from_file(
-    "harbor.models.task.paths", src_path / "harbor" / "models" / "task" / "paths.py"
+    "sprint.models.task.paths", src_path / "harbor" / "models" / "task" / "paths.py"
 )
 TaskPaths = task_paths_module.TaskPaths
 

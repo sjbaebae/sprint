@@ -8,11 +8,11 @@ from typing import Any
 import httpx
 import pytest
 
-from harbor.environments import use_computer as uc
-from harbor.models.environment_type import EnvironmentType
-from harbor.models.task.config import EnvironmentConfig, TaskOS
-from harbor.models.trial.config import ResourceMode
-from harbor.models.trial.paths import TrialPaths
+from sprint.environments import use_computer as uc
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.task.config import EnvironmentConfig, TaskOS
+from sprint.models.trial.config import ResourceMode
+from sprint.models.trial.paths import TrialPaths
 
 
 @dataclass
@@ -135,7 +135,7 @@ def _make_env(
 
 
 def test_type_and_registry() -> None:
-    from harbor.environments.factory import _ENVIRONMENT_REGISTRY
+    from sprint.environments.factory import _ENVIRONMENT_REGISTRY
 
     assert uc.UseComputerEnvironment.type() == EnvironmentType.USE_COMPUTER
     assert EnvironmentType.USE_COMPUTER in _ENVIRONMENT_REGISTRY

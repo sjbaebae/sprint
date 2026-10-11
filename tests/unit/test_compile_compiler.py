@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from harbor.compile import Compiler
-from harbor.compile.compiler import (
+from sprint.compile import Compiler
+from sprint.compile.compiler import (
     ARTIFACT_SCHEMA_CHECKS_FILENAME,
     PROMOTE_REWARD_ARTIFACT_FILENAME,
     REQUIRED_ARTIFACTS_FILENAME,
@@ -15,15 +15,15 @@ from harbor.compile.compiler import (
     SCHEMAS_DIRNAME,
     TESTS_CONTAINER_DIR,
 )
-from harbor.models.compile import (
+from sprint.models.compile import (
     CompileAutoVerifierConfig,
     CompileConfig,
     CompileEnvironment,
     CompileInstruction,
     CompileVerifier,
 )
-from harbor.models.task.config import TaskConfig
-from harbor.models.task.task import Task
+from sprint.models.task.config import TaskConfig
+from sprint.models.task.task import Task
 
 
 def test_compiler_writes_generated_task_cross_product(

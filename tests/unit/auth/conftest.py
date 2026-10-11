@@ -8,8 +8,8 @@ from pathlib import Path
 import httpx
 import pytest
 
-from harbor.auth import credentials as creds_mod
-from harbor.auth import tokens as tokens_mod
+from sprint.auth import credentials as creds_mod
+from sprint.auth import tokens as tokens_mod
 
 
 @pytest.fixture

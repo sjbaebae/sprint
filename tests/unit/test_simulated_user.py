@@ -10,13 +10,13 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from harbor.agents.installed.gemini_cli import GeminiCli
-from harbor.agents.installed.claude_code import ClaudeCode
-from harbor.agents.installed.codex import Codex
-from harbor.agents.installed.opencode import OpenCode
-from harbor.agents.protocols import ACPAgentMixin
-from harbor.agents.nop import NopAgent
-from harbor.bridges.acp import (
+from sprint.agents.installed.gemini_cli import GeminiCli
+from sprint.agents.installed.claude_code import ClaudeCode
+from sprint.agents.installed.codex import Codex
+from sprint.agents.installed.opencode import OpenCode
+from sprint.agents.protocols import ACPAgentMixin
+from sprint.agents.nop import NopAgent
+from sprint.bridges.acp import (
     ACP_TARGET_AGENT_KEY,
     DEFAULT_ACP_PROMPT,
     ACPBridge,
@@ -24,24 +24,24 @@ from harbor.bridges.acp import (
     extract_target_usage,
     install_acpx,
 )
-from harbor.bridges.base import BaseBridge
-from harbor.job import Job
-from harbor.models.agent.context import AgentContext
-from harbor.models.bridge import BridgeConfig, BridgeKind
-from harbor.models.job.config import JobConfig
-from harbor.models.trial.config import (
+from sprint.bridges.base import BaseBridge
+from sprint.job import Job
+from sprint.models.agent.context import AgentContext
+from sprint.models.bridge import BridgeConfig, BridgeKind
+from sprint.models.job.config import JobConfig
+from sprint.models.trial.config import (
     AgentConfig,
     TaskConfig,
     TrialConfig,
     UserAgentConfig,
 )
-from harbor.trial.simulated_user import (
+from sprint.trial.simulated_user import (
     DEFAULT_USER_PERSONA,
     render_user_prompt,
     validate_user_agent_version_pin,
     validate_user_prompt_template,
 )
-from harbor.trial.trial import Trial
+from sprint.trial.trial import Trial
 
 
 def _write_task(tmp_path: Path) -> Path:
@@ -434,8 +434,8 @@ class TestACPExportAndUsage:
         agent.acp_command = MagicMock(return_value=["gemini", "--acp"])
         install = AsyncMock()
         write_config = AsyncMock()
-        monkeypatch.setattr("harbor.bridges.acp.install_acpx", install)
-        monkeypatch.setattr("harbor.bridges.acp.write_acpx_config", write_config)
+        monkeypatch.setattr("sprint.bridges.acp.install_acpx", install)
+        monkeypatch.setattr("sprint.bridges.acp.write_acpx_config", write_config)
         environment = MagicMock()
         environment.exec = AsyncMock(
             return_value=SimpleNamespace(return_code=0, stderr="")
@@ -515,7 +515,7 @@ class TestTrialBridgeLifecycle:
         return trial
 
     def test_claude_code_acp_command_honors_extra_env_routing(self, tmp_path: Path):
-        from harbor.agents.installed.claude_code import ClaudeCode
+        from sprint.agents.installed.claude_code import ClaudeCode
 
         agent = ClaudeCode(
             logs_dir=tmp_path,

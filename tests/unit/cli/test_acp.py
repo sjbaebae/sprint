@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 from typer.testing import CliRunner
 
-from harbor.cli.main import app
+from sprint.cli.main import app
 
 runner = CliRunner()
 
@@ -36,7 +36,7 @@ def test_trial_start_preserves_acp_agent_shorthand(tmp_path: Path, monkeypatch):
 
         return _DummyTrial()
 
-    monkeypatch.setattr("harbor.trial.trial.Trial.create", _fake_create)
+    monkeypatch.setattr("sprint.trial.trial.Trial.create", _fake_create)
 
     result = runner.invoke(
         app,
@@ -77,19 +77,19 @@ def test_run_preserves_acp_agent_shorthand(tmp_path: Path, monkeypatch):
 
         return _DummyJob(config)
 
-    monkeypatch.setattr("harbor.job.Job.create", _fake_create)
+    monkeypatch.setattr("sprint.job.Job.create", _fake_create)
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight",
+        "sprint.environments.factory.EnvironmentFactory.run_preflight",
         lambda **kwargs: None,
     )
     monkeypatch.setattr(
-        "harbor.cli.jobs._confirm_host_env_access", lambda *a, **k: None
+        "sprint.cli.jobs._confirm_host_env_access", lambda *a, **k: None
     )
     monkeypatch.setattr(
-        "harbor.cli.jobs.show_registry_hint_if_first_run",
+        "sprint.cli.jobs.show_registry_hint_if_first_run",
         lambda console: None,
     )
-    monkeypatch.setattr("harbor.cli.jobs.print_job_results_tables", lambda result: None)
+    monkeypatch.setattr("sprint.cli.jobs.print_job_results_tables", lambda result: None)
 
     result = runner.invoke(
         app,

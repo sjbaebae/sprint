@@ -5,13 +5,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from harbor.agents.installed.base import (
+from sprint.agents.installed.base import (
     AgentAuthenticationError,
     ApiRateLimitError,
     NonZeroAgentExitCodeError,
 )
-from harbor.agents.installed.claude_code import ClaudeCode
-from harbor.agents.installed.codex import Codex
+from sprint.agents.installed.claude_code import ClaudeCode
+from sprint.agents.installed.codex import Codex
 
 CODEX_LAUNCH = "codex exec --json -- fix it 2>&1 | tee /logs/agent/codex.txt"
 CLAUDE_LAUNCH = "claude --verbose --output-format=stream-json --print 2>&1 | tee x"

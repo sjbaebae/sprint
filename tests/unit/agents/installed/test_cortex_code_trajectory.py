@@ -2,7 +2,7 @@
 
 import json
 
-from harbor.agents.installed.cortex_code import (
+from sprint.agents.installed.cortex_code import (
     CortexCode,
     _convert_conversation_to_trajectory,
     _get_session_id_from_output,
@@ -272,7 +272,7 @@ class TestOutputStreamParsing:
     def test_load_main_conversation_skips_non_object_files(self, temp_dir):
         """A conversations log that decodes to a list/scalar must be skipped, not
         crash the .get() lookups (this runs outside the trajectory try/except)."""
-        from harbor.agents.installed.cortex_code import _load_main_conversation
+        from sprint.agents.installed.cortex_code import _load_main_conversation
 
         conv_dir = temp_dir / "cortex-code-snapshot" / "conversations"
         conv_dir.mkdir(parents=True)
@@ -344,7 +344,7 @@ class TestPopulateContext:
             + "\n"
         )
 
-        from harbor.models.agent.context import AgentContext
+        from sprint.models.agent.context import AgentContext
 
         context = AgentContext()
         agent.populate_context_post_run(context)
@@ -370,7 +370,7 @@ class TestPopulateContext:
             + "\n"
         )
 
-        from harbor.models.agent.context import AgentContext
+        from sprint.models.agent.context import AgentContext
 
         context = AgentContext()
         agent.populate_context_post_run(context)

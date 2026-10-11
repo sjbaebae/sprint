@@ -3,9 +3,9 @@ from types import SimpleNamespace
 
 from typer.testing import CliRunner
 
-from harbor.cli.main import app
-from harbor.models.job.config import JobConfig
-from harbor.models.trial.config import TrialConfig
+from sprint.cli.main import app
+from sprint.models.job.config import JobConfig
+from sprint.models.trial.config import TrialConfig
 
 runner = CliRunner()
 
@@ -34,18 +34,18 @@ def _capture_job_config(monkeypatch, tmp_path: Path) -> list[JobConfig]:
         captured.append(config)
         return FakeJob(config)
 
-    monkeypatch.setattr("harbor.job.Job.create", create)
+    monkeypatch.setattr("sprint.job.Job.create", create)
     monkeypatch.setattr(
-        "harbor.environments.factory.EnvironmentFactory.run_preflight",
+        "sprint.environments.factory.EnvironmentFactory.run_preflight",
         lambda **_: None,
     )
     monkeypatch.setattr(
-        "harbor.cli.jobs.show_registry_hint_if_first_run", lambda _: None
+        "sprint.cli.jobs.show_registry_hint_if_first_run", lambda _: None
     )
     monkeypatch.setattr(
-        "harbor.cli.jobs._confirm_host_env_access", lambda *_, **__: None
+        "sprint.cli.jobs._confirm_host_env_access", lambda *_, **__: None
     )
-    monkeypatch.setattr("harbor.cli.jobs.print_job_results_tables", lambda _: None)
+    monkeypatch.setattr("sprint.cli.jobs.print_job_results_tables", lambda _: None)
     return captured
 
 
@@ -115,7 +115,7 @@ def test_trial_start_skill_flags_are_repeatable(tmp_path: Path, monkeypatch) -> 
         captured.append(config)
         return FakeTrial()
 
-    monkeypatch.setattr("harbor.trial.trial.Trial.create", create)
+    monkeypatch.setattr("sprint.trial.trial.Trial.create", create)
 
     result = runner.invoke(
         app,

@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from harbor.environments.vercel import scope as vercel_scope
+from sprint.environments.vercel import scope as vercel_scope
 
 
 @pytest.fixture(autouse=True)

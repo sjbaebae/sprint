@@ -6,7 +6,7 @@ Regression test for: https://github.com/laude-institute/harbor/issues/261
 import pytest
 from typer.testing import CliRunner
 
-from harbor.cli.main import app
+from sprint.cli.main import app
 
 runner = CliRunner()
 

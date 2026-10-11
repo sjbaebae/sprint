@@ -20,8 +20,8 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from harbor.cli.main import app
-from harbor.models.job.config import JobConfig
+from sprint.cli.main import app
+from sprint.models.job.config import JobConfig
 
 
 runner = CliRunner()
@@ -59,7 +59,7 @@ def _stub_job_create(monkeypatch) -> None:
     async def create(_config: JobConfig):
         raise AssertionError("Job.create should not be called")
 
-    monkeypatch.setattr("harbor.job.Job.create", create)
+    monkeypatch.setattr("sprint.job.Job.create", create)
 
 
 def _clean_env(monkeypatch, *names: str) -> None:

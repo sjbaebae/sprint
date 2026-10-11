@@ -46,7 +46,7 @@ importlib_metadata.version = _safe_version
 if str(HARBOR_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(HARBOR_ROOT / "src"))
 
-from harbor.mappers.terminal_bench import TerminalBenchMapper  # noqa: E402
+from sprint.mappers.terminal_bench import TerminalBenchMapper  # noqa: E402
 
 
 # Matches a `cat > Dockerfile << 'ENDOFFILE' ... ENDOFFILE` block inside solve.sh.

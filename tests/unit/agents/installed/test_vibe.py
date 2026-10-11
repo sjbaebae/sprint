@@ -5,8 +5,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from harbor.agents.installed.base import ApiRateLimitError, NonZeroAgentExitCodeError
-from harbor.agents.installed.vibe import ApiConnectionError, Vibe, _to_toml
+from sprint.agents.installed.base import ApiRateLimitError, NonZeroAgentExitCodeError
+from sprint.agents.installed.vibe import ApiConnectionError, Vibe, _to_toml
 
 
 class TestVibeConfig:
@@ -353,7 +353,7 @@ class TestVibeErrorClassification:
         # Classification scans the whole teed transcript: a session that logged
         # a stray ReadTimeout but died on a usage limit is a limit failure and
         # must not be retried as a transient connection error.
-        from harbor.agents.installed.base import ApiUsageLimitError
+        from sprint.agents.installed.base import ApiUsageLimitError
 
         out = (
             "reason: ReadTimeout('')\n"
@@ -380,7 +380,7 @@ class TestVibeErrorClassification:
         # Vibe exits 1 when a configured --max-price/--max-turns/--max-tokens
         # budget trips; classify as ApiUsageLimitError (default retry-excluded)
         # so retries don't rerun the trial and re-spend the exhausted budget.
-        from harbor.agents.installed.base import ApiUsageLimitError
+        from sprint.agents.installed.base import ApiUsageLimitError
 
         exc = self._classify(temp_dir, output)
         assert isinstance(exc, ApiUsageLimitError)
@@ -396,7 +396,7 @@ class TestVibeErrorClassification:
         ],
     )
     def test_limit_phrases_in_prose_not_misclassified(self, temp_dir, output):
-        from harbor.agents.installed.base import ApiUsageLimitError
+        from sprint.agents.installed.base import ApiUsageLimitError
 
         exc = self._classify(temp_dir, output)
         assert not isinstance(exc, ApiUsageLimitError)
@@ -409,7 +409,7 @@ class TestVibeErrorClassification:
 
 class TestVibeMcp:
     def test_streamable_http_includes_transport(self, temp_dir):
-        from harbor.models.task.config import MCPServerConfig
+        from sprint.models.task.config import MCPServerConfig
 
         agent = Vibe(
             logs_dir=temp_dir,
@@ -432,7 +432,7 @@ class TestVibeMcp:
         assert 'url = "http://mcp-server:8000/mcp"' in cmd
 
     def test_stdio_includes_command(self, temp_dir):
-        from harbor.models.task.config import MCPServerConfig
+        from sprint.models.task.config import MCPServerConfig
 
         agent = Vibe(
             logs_dir=temp_dir,
@@ -454,7 +454,7 @@ class TestVibeMcp:
         # Vibe has no SSE MCP client; reject rather than silently mis-map to
         # streamable-http (which would fail discovery/calls at runtime).
         # Notably 'sse' is MCPServerConfig's default when transport is omitted.
-        from harbor.models.task.config import MCPServerConfig
+        from sprint.models.task.config import MCPServerConfig
 
         agent = Vibe(
             logs_dir=temp_dir,
@@ -472,7 +472,7 @@ class TestVibeMcp:
     def test_default_transport_rejected_with_guidance(self, temp_dir):
         # A task that omits transport gets MCPServerConfig's 'sse' default;
         # the error must say so.
-        from harbor.models.task.config import MCPServerConfig
+        from sprint.models.task.config import MCPServerConfig
 
         agent = Vibe(
             logs_dir=temp_dir,
@@ -719,7 +719,7 @@ class TestVibeTrajectory:
         }
         self._write_session(temp_dir, messages, metadata)
 
-        from harbor.models.agent.context import AgentContext
+        from sprint.models.agent.context import AgentContext
 
         context = AgentContext()
         agent.populate_context_post_run(context)
@@ -831,7 +831,7 @@ class TestVibeTrajectory:
         ]
         self._write_session(temp_dir, messages, metadata={})
 
-        from harbor.models.agent.context import AgentContext
+        from sprint.models.agent.context import AgentContext
 
         context = AgentContext()
         agent.populate_context_post_run(context)

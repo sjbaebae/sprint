@@ -3,15 +3,15 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from harbor.hosted.config import (
+from sprint.hosted.config import (
     CredentialMode,
     HostedAgentConfig,
     HostedJobConfig,
     HostedRetryConfig,
     HostedTrialConfig,
 )
-from harbor.models.job.config import JobConfig, RetryConfig
-from harbor.models.trial.config import TaskConfig
+from sprint.models.job.config import JobConfig, RetryConfig
+from sprint.models.trial.config import TaskConfig
 
 
 def test_portable_configs_ignore_hosted_fields() -> None:

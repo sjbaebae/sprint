@@ -11,9 +11,9 @@ from typing import Any
 
 import requests
 
-from harbor.agents.base import BaseAgent
-from harbor.environments.base import BaseEnvironment
-from harbor.models.agent.context import AgentContext
+from sprint.agents.base import BaseAgent
+from sprint.environments.base import BaseEnvironment
+from sprint.models.agent.context import AgentContext
 
 
 MEDAGENTBENCH_PROMPT = """You are an expert in using FHIR functions to assist medical professionals. You are given a question and a set of possible functions. Based on the question, you will need to make one or more function/tool calls to achieve the purpose.

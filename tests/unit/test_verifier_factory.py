@@ -2,11 +2,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from harbor.models.trial.config import VerifierConfig
-from harbor.models.verifier.result import VerifierResult
-from harbor.verifier.base import BaseVerifier
-from harbor.verifier.factory import VerifierFactory
-from harbor.verifier.verifier import Verifier
+from sprint.models.trial.config import VerifierConfig
+from sprint.models.verifier.result import VerifierResult
+from sprint.verifier.base import BaseVerifier
+from sprint.verifier.factory import VerifierFactory
+from sprint.verifier.verifier import Verifier
 
 
 class CustomVerifier(BaseVerifier):

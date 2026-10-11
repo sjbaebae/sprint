@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.claude_code import ClaudeCode
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.claude_code import ClaudeCode
+from sprint.models.task.config import MCPServerConfig
 
 
 class TestRegisterMcpServers:

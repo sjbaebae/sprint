@@ -5,15 +5,15 @@ from pathlib import Path
 
 import pytest
 
-from harbor.agents.factory import AgentFactory
-from harbor.agents.installed.openclaw import (
+from sprint.agents.factory import AgentFactory
+from sprint.agents.installed.openclaw import (
     OPENCLAW_AGENT_SETUP_TIMEOUT_SEC,
     OpenClaw,
     openclaw_session_jsonl_to_atif_steps,
 )
-from harbor.models.agent.context import AgentContext
-from harbor.models.agent.name import AgentName
-from harbor.models.trial.config import AgentConfig
+from sprint.models.agent.context import AgentContext
+from sprint.models.agent.name import AgentName
+from sprint.models.trial.config import AgentConfig
 
 
 @pytest.fixture
@@ -99,7 +99,7 @@ def test_populate_context_writes_trajectory(agent: OpenClaw) -> None:
 
 
 def test_compose_config_patch_mcp(agent: OpenClaw, tmp_path: Path) -> None:
-    from harbor.models.task.config import MCPServerConfig
+    from sprint.models.task.config import MCPServerConfig
 
     a = OpenClaw(
         logs_dir=tmp_path,

@@ -5,7 +5,7 @@ from uuid import uuid4
 import httpx
 import pytest
 
-from harbor.hosted.registry_credentials import (
+from sprint.hosted.registry_credentials import (
     RegistryCredentialReplacementRequired,
     add_registry_credential,
     delete_registry_credential,
@@ -63,15 +63,15 @@ class FakeRegistryHttpClient:
 @pytest.fixture
 def fake_auth(monkeypatch):
     monkeypatch.setattr(
-        "harbor.hosted.registry_credentials.get_access_token",
+        "sprint.hosted.registry_credentials.get_access_token",
         AsyncMock(return_value="access-token"),
     )
     monkeypatch.setattr(
-        "harbor.hosted.registry_credentials.httpx.AsyncClient",
+        "sprint.hosted.registry_credentials.httpx.AsyncClient",
         FakeRegistryHttpClient,
     )
     monkeypatch.setattr(
-        "harbor.hosted.registry_credentials.registry_credentials_url",
+        "sprint.hosted.registry_credentials.registry_credentials_url",
         lambda: CREDENTIALS_URL,
     )
     FakeRegistryHttpClient.requests = []
@@ -252,10 +252,10 @@ async def test_add_registry_credential_retries_after_stale_token_401(
     # token cache and retry, and the retried attempt must fetch a fresh token.
     invalidations: list[bool] = []
     monkeypatch.setattr(
-        "harbor.hosted.api.invalidate_token", lambda: invalidations.append(True)
+        "sprint.hosted.api.invalidate_token", lambda: invalidations.append(True)
     )
     monkeypatch.setattr(
-        "harbor.hosted.registry_credentials.get_access_token",
+        "sprint.hosted.registry_credentials.get_access_token",
         AsyncMock(side_effect=["stale-token", "fresh-token"]),
     )
     FakeRegistryHttpClient.responses = [

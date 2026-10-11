@@ -3,7 +3,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from harbor.viewer.server import create_app
+from sprint.viewer.server import create_app
 
 
 def _make_trial(tmp_path: Path) -> tuple[TestClient, str, str, Path]:

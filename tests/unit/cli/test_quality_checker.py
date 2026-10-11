@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from harbor.analyze.models import build_check_response_model
-from harbor.cli.quality_checker.models import (
+from sprint.analyze.models import build_check_response_model
+from sprint.cli.quality_checker.models import (
     Rubric,
     RubricCriterion,
     load_rubric,

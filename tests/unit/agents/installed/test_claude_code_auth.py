@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.claude_code import ClaudeCode
+from sprint.agents.installed.claude_code import ClaudeCode
 
 _MODEL = "anthropic/claude-3-5-sonnet-20241022"
 

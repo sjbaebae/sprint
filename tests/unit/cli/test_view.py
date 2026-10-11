@@ -7,8 +7,8 @@ from unittest.mock import Mock
 import pytest
 from typer.testing import CliRunner
 
-from harbor.cli import view
-from harbor.cli.main import app
+from sprint.cli import view
+from sprint.cli.main import app
 
 
 runner = CliRunner()
@@ -115,7 +115,7 @@ class TestRunProductionMode:
 
         monkeypatch.setattr(view, "STATIC_DIR", static_dir)
         create_app = Mock(return_value=object())
-        monkeypatch.setattr("harbor.viewer.create_app", create_app)
+        monkeypatch.setattr("sprint.viewer.create_app", create_app)
 
         class FakeConfig:
             def __init__(self, app: object, host: str, port: int, log_level: str):
@@ -142,7 +142,7 @@ class TestRunProductionMode:
     ):
         monkeypatch.setattr(view, "STATIC_DIR", tmp_path / "missing-static")
         create_app = Mock(return_value=object())
-        monkeypatch.setattr("harbor.viewer.create_app", create_app)
+        monkeypatch.setattr("sprint.viewer.create_app", create_app)
 
         fake_server = Mock()
         monkeypatch.setitem(

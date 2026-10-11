@@ -26,7 +26,7 @@ def _import_module_from_file(module_name: str, file_path: Path):
 
 
 task_config_module = _import_module_from_file(
-    "harbor.models.task.config", src_path / "harbor" / "models" / "task" / "config.py"
+    "sprint.models.task.config", src_path / "harbor" / "models" / "task" / "config.py"
 )
 TaskConfig = task_config_module.TaskConfig
 TaskConfig.model_rebuild(
@@ -34,7 +34,7 @@ TaskConfig.model_rebuild(
 )
 
 task_paths_module = _import_module_from_file(
-    "harbor.models.task.paths", src_path / "harbor" / "models" / "task" / "paths.py"
+    "sprint.models.task.paths", src_path / "harbor" / "models" / "task" / "paths.py"
 )
 TaskPaths = task_paths_module.TaskPaths
 

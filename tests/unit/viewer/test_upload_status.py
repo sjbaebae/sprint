@@ -2,7 +2,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from harbor.viewer.server import create_app
+from sprint.viewer.server import create_app
 
 
 def test_upload_status_reports_in_progress_without_result_json(tmp_path: Path) -> None:
@@ -38,7 +38,7 @@ def test_upload_forwards_selected_organization(tmp_path: Path) -> None:
         )
     )
     client = TestClient(create_app(tmp_path))
-    with patch("harbor.upload.uploader.Uploader.upload_job", upload):
+    with patch("sprint.upload.uploader.Uploader.upload_job", upload):
         response = client.post(
             "/api/jobs/job/upload", json={"visibility": "private", "org": "research"}
         )

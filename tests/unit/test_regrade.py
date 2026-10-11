@@ -14,20 +14,20 @@ import pytest
 from dirhash import dirhash
 from pydantic import ValidationError
 
-from harbor.environments.base import ExecResult
-from harbor.job import Job
-from harbor.models.agent.context import AgentContext
-from harbor.models.job.config import DatasetConfig, JobConfig, SourceJobConfig
-from harbor.models.job.lock import (
+from sprint.environments.base import ExecResult
+from sprint.job import Job
+from sprint.models.agent.context import AgentContext
+from sprint.models.job.config import DatasetConfig, JobConfig, SourceJobConfig
+from sprint.models.job.lock import (
     AgentSkillLock,
     TaskLock,
     TrialLock,
     VerifierLock,
     build_job_lock,
 )
-from harbor.models.task.id import LocalTaskId
-from harbor.models.trial.config import TaskConfig as TrialTaskConfig
-from harbor.models.trial.config import (
+from sprint.models.task.id import LocalTaskId
+from sprint.models.trial.config import TaskConfig as TrialTaskConfig
+from sprint.models.trial.config import (
     AgentConfig,
     ArtifactConfig,
     EnvironmentConfig,
@@ -35,8 +35,8 @@ from harbor.models.trial.config import (
     TrialConfig,
     VerifierConfig,
 )
-from harbor.models.trial.paths import TrialPaths
-from harbor.models.trial.result import (
+from sprint.models.trial.paths import TrialPaths
+from sprint.models.trial.result import (
     AgentInfo,
     ExceptionInfo,
     ModelInfo,
@@ -44,9 +44,9 @@ from harbor.models.trial.result import (
     TimingInfo,
     TrialResult,
 )
-from harbor.models.verifier.result import VerifierResult
-from harbor.trial.errors import EnvironmentStartTimeoutError, VerifierTimeoutError
-from harbor.trial.regrade import (
+from sprint.models.verifier.result import VerifierResult
+from sprint.trial.errors import EnvironmentStartTimeoutError, VerifierTimeoutError
+from sprint.trial.regrade import (
     RegradeTrial,
     check_task_regradable,
     expand_task_path,
@@ -55,7 +55,7 @@ from harbor.trial.regrade import (
     resolve_source_job_dir,
     resolve_source_trial_dir,
 )
-from harbor.trial.trial import Trial
+from sprint.trial.trial import Trial
 
 CONVENTION_MANIFEST_ENTRY = {
     "source": "/logs/artifacts",
@@ -308,7 +308,7 @@ async def _create_multi_step_regrade_trial(
     )
     agent_env = agent_env or _stock_mock_env()
     with patch(
-        "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+        "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
         return_value=agent_env,
     ):
         trial = await Trial.create(config)
@@ -371,7 +371,7 @@ async def _run_regrade_trial(
         ),
     )
     with patch(
-        "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+        "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
         side_effect=fake_create,
     ):
         trial = await Trial.create(config)
@@ -983,7 +983,7 @@ class TestMultiStepRegradeTrial:
         agent_env = _stock_mock_env()
         agent_env.capabilities.dynamic_network_policy = False
         with patch(
-            "harbor.trial.trial.EnvironmentFactory.create_environment_from_config",
+            "sprint.trial.trial.EnvironmentFactory.create_environment_from_config",
             return_value=agent_env,
         ):
             trial = await Trial.create(
@@ -2324,7 +2324,7 @@ class TestResolveSourceJobDir:
 
     @pytest.mark.parametrize("partial", [False, True])
     async def test_concurrent_job_cache_population(self, tmp_path: Path, partial: bool):
-        from harbor.download.downloader import Downloader
+        from sprint.download.downloader import Downloader
 
         job_id = uuid4()
         cache_dir = tmp_path / ".sources" / str(job_id)
@@ -2340,7 +2340,7 @@ class TestResolveSourceJobDir:
             (target / "result.json").write_text("{}")
             return 2
 
-        with patch("harbor.download.downloader.Downloader") as factory:
+        with patch("sprint.download.downloader.Downloader") as factory:
             downloader = Downloader.__new__(Downloader)
             downloader.db = AsyncMock()
             downloader.db.get_job.return_value = {"job_name": "some-job"}

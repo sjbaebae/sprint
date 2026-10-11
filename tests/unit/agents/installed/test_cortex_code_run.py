@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.cortex_code import CortexCode
-from harbor.models.agent.context import AgentContext
+from sprint.agents.installed.cortex_code import CortexCode
+from sprint.models.agent.context import AgentContext
 
 
 def _agent(temp_dir, **kwargs):
@@ -302,7 +302,7 @@ class TestCliMode:
 def test_session_id_parsing_ignores_stray_scalar_lines(temp_dir):
     """stderr is merged into the output stream, so a bare JSON scalar can appear;
     it must be skipped, not crash .get() (this runs in the trial finally block)."""
-    from harbor.agents.installed.cortex_code import (
+    from sprint.agents.installed.cortex_code import (
         _OUTPUT_FILENAME,
         _get_session_id_from_output,
     )

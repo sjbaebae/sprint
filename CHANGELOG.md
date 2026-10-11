@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Breaking (Sprint):** Rename the distribution and Python namespace to `sprint`; merge authoring and execution code under `src/sprint`. Update imports from `harbor` or `worlds` to `sprint`.
+
 - Add the experimental Sprint authoring library with independent resources, named data/worker attachments, checkpoint collection, isolated validation, persisted review records and optional agent-trace transfer to separate verifiers.
 
 - **Breaking (separate verifiers):** Verifier-specific images and build definitions now take precedence over inherited agent images. Without a verifier definition, Harbor reuses the agent environment definition and uploads tests to `/tests`; dedicated verifier images still require bundled tests. Multi-step tasks resolve step definitions before task-level definitions.
@@ -738,20 +740,20 @@ All `install-*.sh.j2` files have been deleted. If you referenced these templates
 
 Removed files:
 
-- `src/harbor/agents/installed/install-claude-code.sh.j2`
-- `src/harbor/agents/installed/install-aider.sh.j2`
-- `src/harbor/agents/installed/install-codex.sh.j2`
-- `src/harbor/agents/installed/install-cursor-cli.sh.j2`
-- `src/harbor/agents/installed/install-gemini-cli.sh.j2`
-- `src/harbor/agents/installed/install-goose.sh.j2`
-- `src/harbor/agents/installed/install-hermes.sh.j2`
-- `src/harbor/agents/installed/install-kimi-cli.sh.j2`
-- `src/harbor/agents/installed/install-mini-swe-agent.sh.j2`
-- `src/harbor/agents/installed/install-opencode.sh.j2`
-- `src/harbor/agents/installed/install-openhands.sh.j2`
-- `src/harbor/agents/installed/install-qwen-code.sh.j2`
-- `src/harbor/agents/installed/install-swe-agent.sh.j2`
-- `src/harbor/agents/installed/cline/install-cline.sh.j2`
+- `src/sprint/agents/installed/install-claude-code.sh.j2`
+- `src/sprint/agents/installed/install-aider.sh.j2`
+- `src/sprint/agents/installed/install-codex.sh.j2`
+- `src/sprint/agents/installed/install-cursor-cli.sh.j2`
+- `src/sprint/agents/installed/install-gemini-cli.sh.j2`
+- `src/sprint/agents/installed/install-goose.sh.j2`
+- `src/sprint/agents/installed/install-hermes.sh.j2`
+- `src/sprint/agents/installed/install-kimi-cli.sh.j2`
+- `src/sprint/agents/installed/install-mini-swe-agent.sh.j2`
+- `src/sprint/agents/installed/install-opencode.sh.j2`
+- `src/sprint/agents/installed/install-openhands.sh.j2`
+- `src/sprint/agents/installed/install-qwen-code.sh.j2`
+- `src/sprint/agents/installed/install-swe-agent.sh.j2`
+- `src/sprint/agents/installed/cline/install-cline.sh.j2`
 
 #### 3. `BaseEnvironment.exec()` now accepts a `user` parameter
 

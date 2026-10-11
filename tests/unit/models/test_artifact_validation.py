@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from harbor.models.task.artifacts import (
+from sprint.models.task.artifacts import (
     effective_artifact_service,
     is_convention_entry,
     sidecar_services,
@@ -11,7 +11,7 @@ from harbor.models.task.artifacts import (
     validate_artifact_entries,
     with_convention_entry,
 )
-from harbor.models.task.config import (
+from sprint.models.task.config import (
     ArtifactConfig,
     TaskConfig,
     VerifierCollectConfig,

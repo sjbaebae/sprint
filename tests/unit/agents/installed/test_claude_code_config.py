@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.claude_code import ClaudeCode
+from sprint.agents.installed.claude_code import ClaudeCode
 
 
 def test_claude_code_accepts_config_file_path(tmp_path: Path, temp_dir: Path) -> None:

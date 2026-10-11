@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.factory import AgentFactory
-from harbor.agents.installed.junie import Junie
-from harbor.models.agent.name import AgentName
+from sprint.agents.factory import AgentFactory
+from sprint.agents.installed.junie import Junie
+from sprint.models.agent.name import AgentName
 
 
 def _result(

@@ -434,7 +434,7 @@ def _install_fake(
         get_runner=runner_shim.get_runner,
         list_runners=runner_shim.list_runners,
     )
-    monkeypatch.setattr("harbor.environments.cwsandbox._cwsandbox", fake)
+    monkeypatch.setattr("sprint.environments.cwsandbox._cwsandbox", fake)
     return backend
 
 

@@ -2,7 +2,7 @@
 
 import pytest
 
-from harbor.models.trajectories import (
+from sprint.models.trajectories import (
     Agent,
     ContentPart,
     ImageSource,

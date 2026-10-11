@@ -10,7 +10,7 @@ cd "$repo_root/apps/viewer"
 bun install
 bun run build
 
-static_dir="$repo_root/src/harbor/viewer/static"
+static_dir="$repo_root/src/sprint/viewer/static"
 rm -rf "$static_dir"
 mkdir -p "$static_dir"
 cp -r "$repo_root/apps/viewer/build/client/"* "$static_dir/"

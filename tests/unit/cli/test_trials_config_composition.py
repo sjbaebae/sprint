@@ -4,8 +4,8 @@ from types import SimpleNamespace
 
 from typer.testing import CliRunner
 
-from harbor.cli.main import app
-from harbor.models.trial.config import TrialConfig
+from sprint.cli.main import app
+from sprint.models.trial.config import TrialConfig
 
 
 runner = CliRunner()
@@ -29,7 +29,7 @@ def _capture_trial_config(monkeypatch) -> list[TrialConfig]:
         captured.append(config)
         return FakeTrial()
 
-    monkeypatch.setattr("harbor.trial.trial.Trial.create", create)
+    monkeypatch.setattr("sprint.trial.trial.Trial.create", create)
     return captured
 
 

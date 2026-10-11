@@ -5,18 +5,18 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from harbor.agents.capabilities import AgentCapabilities
-from harbor.agents.installed.base import NonZeroAgentExitCodeError
-from harbor.models.task.config import (
+from sprint.agents.capabilities import AgentCapabilities
+from sprint.agents.installed.base import NonZeroAgentExitCodeError
+from sprint.models.task.config import (
     TaskConfig,
     StepConfig,
     VerifierConfig,
     VerifierEnvironmentMode,
 )
-from harbor.models.trial.paths import EnvironmentPaths, TrialPaths
-from harbor.models.trial.result import ExceptionInfo, StepResult
-from harbor.trial.errors import AgentTimeoutError
-from harbor.trial.multi_step import MultiStepTrial
+from sprint.models.trial.paths import EnvironmentPaths, TrialPaths
+from sprint.models.trial.result import ExceptionInfo, StepResult
+from sprint.trial.errors import AgentTimeoutError
+from sprint.trial.multi_step import MultiStepTrial
 
 
 def _exception_info() -> ExceptionInfo:
@@ -579,7 +579,7 @@ def test_archive_step_outputs_can_preserve_live_agent_dir(tmp_path: Path) -> Non
     (trial.paths.verifier_dir / "reward.txt").write_text("1")
 
     def move_dir_contents(src: Path, dst: Path) -> None:
-        from harbor.trial.artifact_handler import ArtifactHandler
+        from sprint.trial.artifact_handler import ArtifactHandler
 
         ArtifactHandler.move_dir_contents(src, dst)
 

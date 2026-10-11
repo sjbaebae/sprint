@@ -3,10 +3,10 @@ import json
 import pytest
 from typer.testing import CliRunner
 
-from harbor.agents.factory import AgentFactory
-from harbor.agents.installed.codex import Codex
-from harbor.cli.main import app
-from harbor.hub.agent_catalog import (
+from sprint.agents.factory import AgentFactory
+from sprint.agents.installed.codex import Codex
+from sprint.cli.main import app
+from sprint.hub.agent_catalog import (
     HarborHubAgentCatalogError,
     HarborHubAgentCatalogResponse,
 )
@@ -43,7 +43,7 @@ def _mock_hub_catalog(monkeypatch) -> None:
         return catalog
 
     monkeypatch.setattr(
-        "harbor.cli.agents.fetch_harbor_hub_agent_catalog", fetch_catalog
+        "sprint.cli.agents.fetch_harbor_hub_agent_catalog", fetch_catalog
     )
 
 
@@ -57,7 +57,7 @@ def test_schema_json_matches_options_schema() -> None:
 def test_schema_accepts_import_path() -> None:
     result = runner.invoke(
         app,
-        ["agent", "schema", "harbor.agents.installed.codex:Codex", "--json"],
+        ["agent", "schema", "sprint.agents.installed.codex:Codex", "--json"],
     )
 
     assert result.exit_code == 0
@@ -168,7 +168,7 @@ def test_hub_catalog_failure_does_not_fall_back_to_local(monkeypatch) -> None:
     async def fail() -> HarborHubAgentCatalogResponse:
         raise HarborHubAgentCatalogError("catalog unavailable")
 
-    monkeypatch.setattr("harbor.cli.agents.fetch_harbor_hub_agent_catalog", fail)
+    monkeypatch.setattr("sprint.cli.agents.fetch_harbor_hub_agent_catalog", fail)
 
     result = runner.invoke(app, ["agent", "list", "--hub", "--json"])
 

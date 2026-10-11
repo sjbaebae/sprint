@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from harbor.skills import (
+from sprint.skills import (
     _CACHE_DIR,
     _checkout_skills,
     _repo_cache_root,
@@ -239,7 +239,7 @@ class TestGetGitSkillMetadataSymlink:
         link.symlink_to(tmp_path / "real_cache")
 
         fake_cache_dir = link / "harbor" / "skills"
-        monkeypatch.setattr("harbor.skills._CACHE_DIR", fake_cache_dir)
+        monkeypatch.setattr("sprint.skills._CACHE_DIR", fake_cache_dir)
 
         # Build a cached skill path using the real (resolved) path,
         # as _find_skill_dirs would produce via Path.resolve()
@@ -292,35 +292,35 @@ class TestSelectLsRemoteSha:
     """Regression tests for harbor-framework/harbor#2924."""
 
     def test_prefers_refs_heads_over_refs_for(self) -> None:
-        from harbor.skills import select_ls_remote_sha
+        from sprint.skills import select_ls_remote_sha
 
         output = "aaaa\trefs/for/main\nbbbb\trefs/heads/main\n"
         assert select_ls_remote_sha(output, "main") == "bbbb"
 
     def test_prefers_tag_over_review_ref(self) -> None:
-        from harbor.skills import select_ls_remote_sha
+        from sprint.skills import select_ls_remote_sha
 
         output = "aaaa\trefs/for/v1.0\nbbbb\trefs/tags/v1.0\n"
         assert select_ls_remote_sha(output, "v1.0") == "bbbb"
 
     def test_exact_head(self) -> None:
-        from harbor.skills import select_ls_remote_sha
+        from sprint.skills import select_ls_remote_sha
 
         assert select_ls_remote_sha("cccc\tHEAD\n", "HEAD") == "cccc"
 
     def test_fully_qualified_ref(self) -> None:
-        from harbor.skills import select_ls_remote_sha
+        from sprint.skills import select_ls_remote_sha
 
         output = "dddd\trefs/heads/main\n"
         assert select_ls_remote_sha(output, "refs/heads/main") == "dddd"
 
     def test_suffix_match_skips_refs_for(self) -> None:
-        from harbor.skills import select_ls_remote_sha
+        from sprint.skills import select_ls_remote_sha
 
         output = "aaaa\trefs/for/main\nbbbb\trefs/remotes/origin/main\n"
         assert select_ls_remote_sha(output, "main") == "bbbb"
 
     def test_falls_back_to_first_line(self) -> None:
-        from harbor.skills import select_ls_remote_sha
+        from sprint.skills import select_ls_remote_sha
 
         assert select_ls_remote_sha("aaaa\trefs/for/main\n", "main") == "aaaa"

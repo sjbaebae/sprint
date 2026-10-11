@@ -6,8 +6,8 @@ from uuid import uuid4
 import pytest
 from typer.testing import CliRunner
 
-from harbor.cli.hub import hub_app
-from harbor.hub.copy import CopyJobResult, copy_job
+from sprint.cli.hub import hub_app
+from sprint.hub.copy import CopyJobResult, copy_job
 
 runner = CliRunner()
 
@@ -42,14 +42,14 @@ class TestCopyJobLoop:
     @pytest.fixture(autouse=True)
     def _logged_in(self, monkeypatch) -> None:
         monkeypatch.setattr(
-            "harbor.hub.copy.require_user_id", AsyncMock(return_value="user-id")
+            "sprint.hub.copy.require_user_id", AsyncMock(return_value="user-id")
         )
 
     @pytest.mark.asyncio
     async def test_single_complete_round(self, monkeypatch) -> None:
         payload = _round_payload()
         monkeypatch.setattr(
-            "harbor.hub.copy._post_round", AsyncMock(return_value=payload)
+            "sprint.hub.copy._post_round", AsyncMock(return_value=payload)
         )
 
         result = await copy_job(payload["job_id"])
@@ -71,7 +71,7 @@ class TestCopyJobLoop:
             ),
         ]
         post = AsyncMock(side_effect=rounds)
-        monkeypatch.setattr("harbor.hub.copy._post_round", post)
+        monkeypatch.setattr("sprint.hub.copy._post_round", post)
         seen: list[int] = []
 
         result = await copy_job(job_id, on_round=lambda r: seen.append(r.n_copied))
@@ -92,7 +92,7 @@ class TestCopyJobLoop:
             ),
         ]
         post = AsyncMock(side_effect=rounds)
-        monkeypatch.setattr("harbor.hub.copy._post_round", post)
+        monkeypatch.setattr("sprint.hub.copy._post_round", post)
 
         result = await copy_job(job_id, overwrite=True)
 
@@ -112,7 +112,7 @@ class TestCopyJobLoop:
             job_id=job_id, n_copied=0, n_failed=2, n_remaining=0, complete=False
         )
         post = AsyncMock(return_value=stuck)
-        monkeypatch.setattr("harbor.hub.copy._post_round", post)
+        monkeypatch.setattr("sprint.hub.copy._post_round", post)
 
         result = await copy_job(job_id)
 
@@ -123,7 +123,7 @@ class TestCopyJobLoop:
 
 def _patched_copy_job(monkeypatch, result: CopyJobResult) -> AsyncMock:
     mock = AsyncMock(return_value=result)
-    monkeypatch.setattr("harbor.hub.copy.copy_job", mock)
+    monkeypatch.setattr("sprint.hub.copy.copy_job", mock)
     return mock
 
 
@@ -134,7 +134,7 @@ def _patched_upload_db(monkeypatch) -> MagicMock:
         return_value={"orgs": [{"name": "my-org"}], "users": []}
     )
     monkeypatch.setattr(
-        "harbor.upload.db_client.UploadDB", MagicMock(return_value=instance)
+        "sprint.upload.db_client.UploadDB", MagicMock(return_value=instance)
     )
     return instance
 
@@ -176,7 +176,7 @@ class TestCopyCommand:
         _patched_copy_job(monkeypatch, result_model)
         db = _patched_upload_db(monkeypatch)
         monkeypatch.setattr(
-            "harbor.cli.job_sharing.confirm_non_member_org_shares",
+            "sprint.cli.job_sharing.confirm_non_member_org_shares",
             AsyncMock(return_value=False),
         )
 
@@ -196,7 +196,7 @@ class TestCopyCommand:
         _patched_copy_job(monkeypatch, result_model)
         db = _patched_upload_db(monkeypatch)
         monkeypatch.setattr(
-            "harbor.cli.job_sharing.confirm_non_member_org_shares",
+            "sprint.cli.job_sharing.confirm_non_member_org_shares",
             AsyncMock(return_value=False),
         )
 
@@ -314,7 +314,7 @@ class TestCopyCommand:
 
 def _patched_copy_trial(monkeypatch, result: CopyJobResult) -> AsyncMock:
     mock = AsyncMock(return_value=result)
-    monkeypatch.setattr("harbor.hub.copy.copy_trial", mock)
+    monkeypatch.setattr("sprint.hub.copy.copy_trial", mock)
     return mock
 
 
@@ -367,15 +367,15 @@ class TestTrialCopyCommand:
 class TestCopyTrialLoop:
     @pytest.mark.asyncio
     async def test_copy_trial_targets_trial_copy_function(self, monkeypatch) -> None:
-        from harbor.hub.copy import copy_trial
+        from sprint.hub.copy import copy_trial
 
         monkeypatch.setattr(
-            "harbor.hub.copy.require_user_id", AsyncMock(return_value="user-id")
+            "sprint.hub.copy.require_user_id", AsyncMock(return_value="user-id")
         )
         trial_id = str(uuid4())
         payload = _round_payload(trial_id=trial_id, trial_name="t", n_trials=1)
         post = AsyncMock(return_value=payload)
-        monkeypatch.setattr("harbor.hub.copy._post_round", post)
+        monkeypatch.setattr("sprint.hub.copy._post_round", post)
 
         result = await copy_trial(trial_id, name="snapshot")
 

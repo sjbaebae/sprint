@@ -4,10 +4,10 @@ from unittest.mock import patch
 
 import pytest
 
-from harbor.agents.installed.base import _coerce_value
-from harbor.agents.installed.claude_code import ClaudeCode
-from harbor.agents.installed.codex import Codex
-from harbor.agents.installed.openhands import OpenHands
+from sprint.agents.installed.base import _coerce_value
+from sprint.agents.installed.claude_code import ClaudeCode
+from sprint.agents.installed.codex import Codex
+from sprint.agents.installed.openhands import OpenHands
 
 
 class TestCoerceValue:

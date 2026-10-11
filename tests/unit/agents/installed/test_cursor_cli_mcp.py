@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from harbor.agents.installed.cursor_cli import CursorCli
-from harbor.models.task.config import MCPServerConfig
+from sprint.agents.installed.cursor_cli import CursorCli
+from sprint.models.task.config import MCPServerConfig
 
 
 class TestRegisterMcpServers:
@@ -525,7 +525,7 @@ class TestCursorCliCost:
             )
 
     def test_accepts_pydantic_pricing_model(self, temp_dir):
-        from harbor.agents.installed.cursor_cli import CursorTokenPricing
+        from sprint.agents.installed.cursor_cli import CursorTokenPricing
 
         agent = CursorCli(
             logs_dir=temp_dir,
@@ -603,7 +603,7 @@ class TestCursorCliCost:
             )
         )
 
-        from harbor.models.agent.context import AgentContext
+        from sprint.models.agent.context import AgentContext
 
         context = AgentContext()
         agent.populate_context_post_run(context)

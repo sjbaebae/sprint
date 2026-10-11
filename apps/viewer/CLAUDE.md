@@ -24,7 +24,7 @@ bun run build
 # Type checking
 bun run typecheck
 
-# Deploy to harbor view (copies build to src/harbor/viewer/static/)
+# Deploy to harbor view (copies build to src/sprint/viewer/static/)
 harbor view ./jobs --build
 ```
 

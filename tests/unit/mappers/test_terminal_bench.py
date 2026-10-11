@@ -5,13 +5,13 @@ from pathlib import Path
 import pytest
 import yaml
 
-from harbor.mappers.terminal_bench import (
+from sprint.mappers.terminal_bench import (
     DockerComposeProcessor,
     TerminalBenchMapper,
     TerminalBenchTaskConfig,
     copy_test_script_with_reward_logging,
 )
-from harbor.models.difficulty import Difficulty
+from sprint.models.difficulty import Difficulty
 
 
 class TestTerminalBenchTaskConfig:
