@@ -70,3 +70,35 @@ async def test_timeout_destroys_worker(tmp_path):
         assert env.stops == 1
         assert session.environment is None
     assert env.stops == 1
+
+
+@pytest.mark.asyncio
+async def test_worker_lifetime_expires_without_provisioning(tmp_path):
+    async with WorkerSession(
+        Worker(),
+        directory=tmp_path / "worker",
+        factory=lambda **kw: (_ for _ in ()).throw(RuntimeError("must not provision")),
+    ) as session:
+        session.deadline = 0
+        with pytest.raises(TimeoutError, match="lifetime"):
+            await session.run("print(1)")
+
+
+@pytest.mark.asyncio
+async def test_cleanup_attempts_all_resources_when_one_provider_fails():
+    from worlds.workers import close_all
+
+    called = []
+
+    class Resource:
+        def __init__(self, name, fail=False):
+            self.name, self.fail = name, fail
+
+        async def close(self):
+            called.append(self.name)
+            if self.fail:
+                raise RuntimeError("provider teardown failed")
+
+    with pytest.raises(ExceptionGroup, match="cleanup failed"):
+        await close_all([Resource("bad", True), Resource("good")])
+    assert sorted(called) == ["bad", "good"]

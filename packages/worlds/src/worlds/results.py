@@ -41,13 +41,41 @@ class RunResult:
             json.dumps(payload, indent=2, allow_nan=False)
         )
         sections = ["<h1>Run review</h1>"]
+        events = self.directory / "events.jsonl"
+        if events.is_file():
+            sections.append("<h2>Lifecycle times</h2>" + pre(events.read_text()))
         for trial in self.trials:
             sections.append(f"<h2>{html.escape(trial.name)}</h2>")
             sections.append(pre(asdict(trial)))
+            resources = self.directory / "resources" / trial.name
+            if resources.is_dir():
+                sections.append("<h3>Worker execution records</h3>")
+                for journal in sorted(resources.glob("*/jobs.jsonl")):
+                    sections.append(
+                        "<h4>"
+                        + html.escape(journal.parent.name)
+                        + "</h4>"
+                        + pre(journal.read_text())
+                    )
+                    for source in sorted(journal.parent.glob("*.py")):
+                        sections.append(
+                            "<h4>Submitted code: "
+                            + html.escape(source.name)
+                            + "</h4>"
+                            + pre(source.read_text())
+                        )
+                for feedback in sorted(resources.glob("*.json")):
+                    sections.append(
+                        "<h4>Request feedback</h4>" + pre(feedback.read_text())
+                    )
             records = self.directory / trial.records
             trajectory = records / "agent/trajectory.json"
             if trajectory.is_file() and not trajectory.is_symlink():
-                data = json.loads(trajectory.read_text())
+                data = read_trajectory(trajectory)
+                if data.get("error"):
+                    sections.append(
+                        "<h3>Transcript unavailable</h3>" + pre(data["error"])
+                    )
                 for step in data.get("steps", []):
                     heading = f"Turn {step.get('step_id', '?')}: {step.get('source', 'unknown')}"
                     sections.append(f"<h3>{html.escape(heading)}</h3>")
@@ -77,6 +105,19 @@ class RunResult:
             + "\n".join(sections)
         )
         return self
+
+
+def read_trajectory(path):
+    """A malformed transcript is a visibility failure, not a change to reward."""
+    try:
+        data = json.loads(path.read_text())
+        if not isinstance(data, dict) or not isinstance(data.get("steps", []), list):
+            raise ValueError("trajectory must contain a steps list")
+        if any(not isinstance(step, dict) for step in data.get("steps", [])):
+            raise ValueError("trajectory steps must be objects")
+        return data
+    except (OSError, ValueError) as error:
+        return {"steps": [], "error": f"{type(error).__name__}: {error}"}
 
 
 def pre(value):

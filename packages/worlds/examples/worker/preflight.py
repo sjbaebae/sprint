@@ -9,6 +9,7 @@ from worlds import (
     Agent,
     Budget,
     Experiment,
+    Files,
     Resources,
     Sandbox,
     Task,
@@ -26,15 +27,19 @@ async def main():
     args = parser.parse_args()
     root = Path(".worlds/worker-preflight") / uuid4().hex
     root.mkdir(parents=True)
+    data = root / "data"
+    data.mkdir()
+    (data / "rows.txt").write_text("retained")
     private = root / "private"
     private.mkdir()
     (private / "evaluate.py").write_text(
-        'def verify(context): return {"score": float((context.submission / "answer").read_text() == "retained")}'
+        'def verify(context):\n    journal = context.records / "worlds-resources/train/jobs.jsonl"\n    return {"score": float((context.submission / "answer").read_text() == "retained" and "checkpoint-collected" in journal.read_text())}'
     )
     reference = root / "solve.sh"
     worker_check = ""
     if args.gpu:
         worker_check += 'import subprocess; print(subprocess.check_output(["nvidia-smi", "-L"]).decode())\n'
+        worker_check += Path(__file__).with_name("gpu_probe.py").read_text() + "\n"
     if args.internet == "none":
         worker_check += 'import socket\ntry:\n socket.create_connection(("1.1.1.1",443),timeout=3)\nexcept OSError:\n print("outbound blocked")\nelse:\n raise RuntimeError("outbound unexpectedly allowed")\n'
     reference.write_text(
@@ -45,7 +50,13 @@ cat > /app/job.py <<'WORKER_CODE'
 """
         + worker_check
         + """from pathlib import Path
-Path("checkpoint").write_text("retained")
+Path("checkpoint").write_text(Path("/resources/data/rows.txt").read_text())
+try:
+ Path("/resources/data/rows.txt").write_text("tampered")
+except PermissionError:
+ print("data write blocked")
+else:
+ raise RuntimeError("attached data was writable")
 WORKER_CODE
 worlds-resource run train /app/job.py --wait 120 > /app/first.json
 python -c 'import json; assert json.load(open("/app/first.json"))["status"] == "completed"'
@@ -65,7 +76,8 @@ python -c 'import json,shutil; r=json.load(open("/app/collected.json")); assert 
         World(
             sandbox=sandbox,
             attachments={
-                "train": Worker(sandbox=sandbox, resources=Resources(gpu=args.gpu))
+                "data": Files(data),
+                "train": Worker(sandbox=sandbox, resources=Resources(gpu=args.gpu)),
             },
         ),
         Budget(seconds=300),

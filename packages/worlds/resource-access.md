@@ -43,7 +43,8 @@ does not grant access to the host, other trials or the verifier.
 
 Queue messages and learner logs are untrusted. The operator journal records what
 was actually executed. Cancellation and timeout must tear down all allocated
-workers. Provider TTLs bound orphan lifetime if the host fails.
+workers. Modal TTLs bound orphan lifetime if the host fails. Docker cleanup requires the host
+to remain alive. The host deadline includes provisioning and job execution.
 
 ## Required preflight
 
@@ -63,7 +64,7 @@ async with WorkerSession(
     directory=Path("run/worker"),
     backend="modal",
 ) as worker:
-    result = await worker.run("import torch; print(torch.cuda.is_available())")
+    result = await worker.run("import subprocess; print(subprocess.check_output([\"nvidia-smi\", \"-L\"]).decode())")
 ```
 
 Jobs run as `agent`, reuse `/app` between successful calls and return exit code,

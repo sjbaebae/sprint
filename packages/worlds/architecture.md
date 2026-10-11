@@ -22,8 +22,9 @@ verifier. Multiple named attachments should grant explicit operations, such as
 executing a job, reading a dataset or accessing a checkpoint. Capacity and access
 permissions are separate. Provider credentials stay on the operator side.
 
-The current release implements world/verifier capacity. Named remote attachments
-are next; no placeholder configuration is presented as a working attachment.
+The current release implements independent world/verifier capacity, named read-only
+file attachments and persistent workers with a host-mediated run/status/collect queue.
+Workers are created lazily and destroyed before verification.
 
 ## Implemented lifecycle
 
@@ -38,7 +39,7 @@ requires an explicit transport allowlist and preinstalled tools when appropriate
 
 ## Remaining integrations
 
-Named remote resources; per-action workspace exports; enforceable action and
+Per-action workspace exports; enforceable action and
 subagent budgets; screened download services; RL token/log-probability export.
 These are distinct from the verified initial lifecycle.
 

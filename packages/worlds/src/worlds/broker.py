@@ -5,19 +5,22 @@ import json
 import re
 from pathlib import Path
 
-from .workers import WorkerSession
+from .workers import WorkerSession, close_all
 
 
 class ResourceBroker:
     """Route bounded code requests to explicitly granted per-trial workers."""
 
-    def __init__(self, environment, workers, *, directory: Path, backend):
+    def __init__(
+        self, environment, workers, *, directory: Path, backend, contexts=None
+    ):
         if environment is None:
             raise ValueError("resource broker requires a live agent environment")
         self.environment = environment
         self.workers = workers
         self.directory = Path(directory)
         self.backend = backend
+        self.contexts = contexts or {}
         self.sessions = {}
         self.task = None
         self.seen = set()
@@ -91,6 +94,7 @@ class ResourceBroker:
                         self.workers[name],
                         directory=self.directory / name,
                         backend=self.backend,
+                        context=self.contexts.get(name),
                     )
                     await session.__aenter__()
                     self.sessions[name] = session
@@ -123,6 +127,7 @@ class ResourceBroker:
                 failure = error
             self.task = None
         for session in self.sessions.values():
-            await session.__aexit__(None, None, None)
+            session.closed = True
+        await close_all(self.sessions.values())
         if failure is not None:
             raise failure

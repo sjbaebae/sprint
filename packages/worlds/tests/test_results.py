@@ -126,3 +126,28 @@ def test_agent_time_limit_still_grades_final_artifact(tmp_path):
     )
     assert result.rewards == [0.75]
     assert result.trials[0].error["exception_type"] == "AgentTimeoutError"
+
+
+def test_review_keeps_grade_with_malformed_transcript_and_shows_worker_records(
+    tmp_path,
+):
+    agent = tmp_path / "native/trial/agent"
+    agent.mkdir(parents=True)
+    (agent / "trajectory.json").write_text("{broken")
+    worker = tmp_path / "resources/trial/train"
+    worker.mkdir(parents=True)
+    (worker / "jobs.jsonl").write_text('{"event":"job-end","return_code":1}')
+    (worker / "abc.py").write_text('print("<script>")')
+    (tmp_path / "events.jsonl").write_text(
+        '{"event":"agent-start","timestamp":"observed"}'
+    )
+    result = RunResult(
+        tmp_path,
+        (TrialResult("trial", "graded", 0.5, None, None, "native/trial", {}, None),),
+    ).save()
+    page = (tmp_path / "review.html").read_text()
+    assert result.rewards == [0.5]
+    assert "Transcript unavailable" in page
+    assert "job-end" in page
+    assert "observed" in page
+    assert "<script>" not in page

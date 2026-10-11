@@ -1,158 +1,128 @@
 # Worlds
 
-Define the objective and evaluation. Reuse the world, resources and agent harness.
-This library lives in the [Harbor fork](https://github.com/sjbaebae/harbor/tree/worlds).
+Author a task and its evaluation. Reuse a sandbox, attach resources and choose an
+agent harness. This package lives in the [Harbor fork](https://github.com/sjbaebae/harbor/tree/worlds).
 
 ```python
 from pathlib import Path
-from worlds import Agent, Experiment, Resources, Task, Validation, World
+from worlds import Agent, Experiment, Files, Resources, Task, Validation, Worker, World
 
 experiment = Experiment(
-    task=Task("Improve the supplied implementation. Put the result in submission/."),
+    task=Task("Improve the supplied implementation."),
+    world=World(
+        files=Path("workspace"),
+        attachments={
+            "data": Files(Path("datasets")),
+            "train": Worker(resources=Resources(gpu="L4")),
+        },
+    ),
     validation=Validation(bundle=Path("validation")),
-    world=World(files=Path("workspace"), resources=Resources(gpu="L4")),
     agent=Agent(model="gpt-6-astra", harness="codex"),
 )
 result = await experiment.run(directory=Path(".worlds/trial"), backend="modal")
 print(result.rewards)
-# .worlds/trial/review.html contains results, evidence and recorded tool calls.
 ```
 
-The example expresses the configuration; a live model harness also needs provider
-authentication and permitted API transport. Offline worlds deny all outbound access,
-including model API traffic. Preinstall tools in the image for offline execution.
-Use an explicit hostname allowlist when a harness needs API access. Credentials
-are never included in the public workspace or evaluation build context by Worlds.
+The default sandbox denies outbound traffic. A live harness needs a preinstalled
+image, authentication and an explicit model-API allowlist. This configuration
+example does not supply those deployment settings. Provider credentials stay on
+the host. Do not put secrets or protected evaluation files in public assets.
 
-An evaluation bundle needs one file, `evaluate.py`:
+## Evaluation
+
+`validation/evaluate.py` is the only required evaluation file:
 
 ```python
 def verify(context):
-    # context.submission: final artifact
-    # context.private: private evaluation files
-    # context.records: collected agent logs/trajectory, untrusted evidence
+    # submission: final artifact; private: validation bundle
+    # records: collected agent logs, treated as untrusted evidence
+    # records/worlds-resources: operator-supplied worker code and execution records
     return {"score": 0.75, "metrics": {"accuracy": 0.75}}
 ```
 
-## Run the verified example
+For rubric grading, supply `judge(context, rubric_text)` with the same return
+shape and configure `Validation(..., rubric="rubric.md", weights=(0.8, 0.2))`.
+The author supplies the judge model call and credential transport.
 
-From the fork root, using existing Modal authentication:
+Optional `disqualify(context)` returns `{"confirmed": [{"id": "...", "evidence":
+["..."]}], "suspected": []}`. Confirmed violations score zero; suspicions and
+grader failures remain unscored. Links and special files are rejected before
+grading. Dataset contamination checks are task-specific. Never execute learner
+code in the trusted grader process.
 
-```sh
-uv sync --package research-worlds --extra modal
-uv run --package research-worlds --extra modal python packages/worlds/examples/answer/preflight.py --backend modal
-# Optional hardware preflight:
-uv run --package research-worlds --extra modal python packages/worlds/examples/answer/preflight.py --backend modal --gpu L4
-```
+## Resources
 
-The preflight checks an empty submission (reward 0) and a reference solution
-(reward 1), public workspace availability, absence of private answers in the
-learner container, and a blocked outbound TCP connection. The GPU option checks
-`nvidia-smi` too. Every invocation uses a fresh directory and tears down workers.
-It makes no frontier model calls.
-
-For Docker Desktop, explicitly enable networking for the toy example:
-
-```sh
-uv run --package research-worlds --extra harbor python packages/worlds/examples/answer/preflight.py --internet full
-```
-
-Unsupported network policies fail closed. Never use this public-network toy
-configuration as evidence that an offline environment was tested.
-
-## Independent pieces
-
-| Object | Responsibility |
+| Definition | Agent access |
 |---|---|
-| `World` | Public workspace and execution setting |
-| `Sandbox` | Image, Python packages and network policy |
-| `Resources` | CPU, RAM, GPU type and count for one worker role |
-| `Task` | Objective and submission location |
-| `Validation` | Private verifier, optional rubric judge and disqualification |
-| `Agent` | Model, harness and harness-specific options |
-| `Experiment` | Combine definitions; compile or execute independent trials |
-| `RunResult` | Stable results and review records |
+| `World(files=...)` | Writable `/app` workspace |
+| `Files(path)` | Read-only `/resources/<name>`, copied into the learner image |
+| `Worker(sandbox=..., resources=...)` | Separate sandbox for Python jobs |
+| `Validation(resources=...)` | Private grading sandbox, inaccessible to agent |
 
-The host calls `run()`; resource requests apply to the provisioned workers.
-World and validation requests are independent, so a GPU experiment can use a
-CPU-only verifier. Named remote resource attachments remain separate integration
-work; they are not represented by silent, unused settings.
+`Resources` requests CPU, RAM and optional GPU. `Sandbox` sets image, packages and
+network policy. World, worker and verifier hardware/network settings are independent.
+Read-only file attachments are available at the same paths in the learner and its
+workers. Worker images must contain required packages.
 
-## Grading
+Inside the learner:
 
-Use `Validation(bundle=..., rubric="rubric.md", weights=(0.8, 0.2))` to combine
-`verify(context)` and `judge(context, rubric_text)`. Both return a normalized
-`score` with optional metrics and evidence. The author supplies the judge model
-call and its credential transport. Traces are evidence, never judge instructions.
-
-Optional `disqualify(context)` returns:
-
-```python
-{"confirmed": [{"id": "protected_data_use", "evidence": ["trusted matching record"]}],
- "suspected": []}
+```sh
+worlds-resource list
+worlds-resource run train experiment.py --wait 60
+worlds-resource status REQUEST_ID --wait 60
+worlds-resource collect REQUEST_ID checkpoint.pt --wait 60
 ```
 
-Confirmed violations score zero. Suspicions and grader failures remain unscored.
-Submission links and special files are rejected before grading. Contamination
-matching is task-specific and must be supplied by the author. Never execute
-learner code in the trusted grader process.
+`run` returns a request ID and actual exit code/stdout/stderr when completed.
+`collect` copies one regular file beneath the worker's `/app`; copy its returned
+read-only `artifact` path into your submission. Checkpoints persist between jobs.
+The host serializes jobs, retains code/hashes/UTC events and destroys workers before
+verification. Jobs have `Worker.seconds` deadlines and a total
+`Worker.lifetime_seconds` limit. Modal also enforces a provider lifetime.
 
-## Records
+Collection rejects symlink paths, special files, concurrent changes and files over
+1 GiB. Source payloads are limited to 1 MiB; there are at most 200 resource requests
+per trial. These are resource-service limits, independent of harness action counts.
+See [resource access](resource-access.md) for boundaries.
 
-Each run retains:
+## Test the complete path
 
-- `result.json`: rewards, metrics, violations, errors and record paths.
-- `events.jsonl`: operator-observed lifecycle timestamps.
-- `review.html`: a vertical offline transcript with escaped commands and output.
-- `runs/`: native provider/harness records, artifacts and evaluation output.
-- Per-trial `state/`: before/after submission manifests and text diffs.
+From the fork root with existing Modal authentication:
 
-Snapshots cover the declared submission tree, not the whole live filesystem.
-Large/special files have explicit omissions. Missing trajectory timestamps or
-reasoning are reported as missing; lifecycle times are not invented turn times.
-An agent reaching its time limit can still receive a valid final-artifact grade.
-Infrastructure failures remain distinct from reward zero. Records can contain
-sensitive material; runtime directories are ignored by Git.
+```sh
+uv run --package research-worlds --extra modal --no-default-groups python packages/worlds/examples/worker/preflight.py --backend modal --gpu L4
+```
 
-`StateTracker` also supports explicit snapshots of quiescent operator-owned
-workspace exports. It is not an atomic snapshot of a live hostile filesystem.
+This oracle preflight checks an offline L4 worker, checkpoint reuse, collection,
+cleanup and independent grading. It makes no frontier model calls. The simpler
+[answer preflight](examples/answer/preflight.py) also checks empty/reference rewards
+and absence of private answers in the learner.
+
+For Docker Desktop, pass `--backend docker --internet full`. This host rejects the
+requested no-network policy; public-network tests do not verify offline isolation.
+Unsupported policies fail closed.
+
+## Review a run
+
+Open `<run-directory>/review.html`: vertical transcript, recorded turn timestamps,
+commands/results, worker source/feedback, lifecycle times and final grading.
+Machine-readable records remain in `result.json`, `events.jsonl`, `resources/`
+and native `runs/`. Per-trial `state/` contains before/after submission manifests
+and text diffs. Missing timestamps/reasoning are shown as missing. Malformed
+transcripts are reported without changing an otherwise valid reward.
+
+Snapshots cover the submission tree. `StateTracker` supports additional snapshots
+of quiescent workspace exports. Live per-action filesystem snapshots, enforced
+harness action/subagent limits, screened downloads and RL token/log-probability
+export are not connected. Native harness logs are not tamper-proof. Runtime
+records may contain sensitive content and are ignored by Git.
 
 ## Development
 
 ```sh
-uv run --package research-worlds --extra harbor pytest packages/worlds/tests -q
+uv run --package research-worlds --extra harbor --with pytest --with pytest-asyncio --no-default-groups pytest packages/worlds/tests -q
 ```
 
-Current checks: 35 library tests; 247 focused Harbor regression tests; real CPU
-and L4 Modal preflights with offline networking and separate grading containers.
-Runpod hosts the checkout at `/workspace/harbor-worlds`; its current CPU pod lacks
-Docker and rejects namespace creation. It can orchestrate remote workers, but
-nested sandbox execution on that pod has not been validated.
-
-Per-action snapshots, named remote resource attachments, enforced action/subagent
-limits, screened dataset downloads and RL token/log-probability export are not
-connected in this initial library. Native harness logs are not tamper-proof.
-See [architecture.md](architecture.md) for the boundaries and next steps.
-
-### Attach public data
-
-```python
-from pathlib import Path
-from worlds import Files, World
-
-world = World(attachments={"data": Files(Path("datasets"))})
-```
-
-The agent reads `/resources/data`. Contents are copied into the learner image,
-owned by root and read-only for the agent. Attachments are excluded from the
-private verifier image. Names cannot contain paths; symlinks, special files and
-trees overlapping the private validation bundle are rejected. This is a copied
-image attachment, so very large datasets should use a future storage adapter.
-Attach a separate worker with `Worker(resources=Resources(gpu="L4"))`. The agent
-submits Python using `worlds-resource run NAME SCRIPT.py --wait 60` and retrieves
-feedback with `worlds-resource status REQUEST_ID`. The host owns provider
-credentials and cleanup. Checkpoints persist under the worker's `/app` between
-jobs. Use `worlds-resource collect REQUEST_ID CHECKPOINT_PATH --wait 60` to retrieve a
-regular file from the worker’s `/app`; the returned read-only path can be copied
-into the submission. Collection rejects symlinks/special files, concurrent changes
-and files larger than 1 GiB. See [resource access](resource-access.md).
+[Architecture](architecture.md) describes the boundaries. Runpod can host the
+orchestrator; the current CPU Pod lacks Docker/namespace support, so its workers
+must run remotely. The provider-backed preflights above were launched locally.

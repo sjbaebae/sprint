@@ -4,10 +4,27 @@ import asyncio
 import hashlib
 import json
 import shlex
-import shutil
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
+
+
+async def close_all(resources):
+    """Attempt every teardown even if another provider reports a cleanup failure."""
+    errors = []
+
+    async def attempt(resource):
+        try:
+            await resource.close()
+        except Exception as error:
+            errors.append(error)
+
+    async with asyncio.TaskGroup() as group:
+        for resource in resources:
+            group.create_task(attempt(resource))
+    if errors:
+        raise ExceptionGroup("resource cleanup failed", errors)
 
 
 class WorkerSession:
@@ -18,18 +35,23 @@ class WorkerSession:
     Use as an async context manager so trial cancellation also tears it down.
     """
 
-    def __init__(self, worker, *, directory: Path, backend="docker", factory=None):
+    def __init__(
+        self, worker, *, directory: Path, backend="docker", factory=None, context=None
+    ):
         self.worker = worker
         self.directory = Path(directory)
         self.backend = backend
         self.factory = factory
+        self.context = Path(context) if context is not None else None
         self.environment = None
         self.lock = asyncio.Lock()
         self.closed = False
+        self.deadline = None
 
     async def __aenter__(self):
         self.directory.mkdir(parents=True, exist_ok=False)
         self.directory.chmod(0o700)
+        self.deadline = time.monotonic() + self.worker.lifetime_seconds
         return self
 
     async def __aexit__(self, *_):
@@ -63,18 +85,10 @@ class WorkerSession:
         from harbor.models.environment_type import EnvironmentType
         from harbor.models.trial.config import EnvironmentConfig as BackendConfig
         from harbor.models.trial.paths import TrialPaths
-        from .backends.harbor import dockerfile
+        from .backends.harbor import build_worker
 
-        build = self.directory / "environment"
-        build.mkdir(exist_ok=True)
-        (build / "Dockerfile").write_text(
-            dockerfile(self.worker.sandbox, copy_workspace=False).replace(
-                "USER agent\n",
-                "COPY worker_export.py /opt/worlds-export.py\nRUN chmod 444 /opt/worlds-export.py\nUSER agent\n",
-            )
-        )
-        shutil.copyfile(
-            Path(__file__).with_name("worker_export.py"), build / "worker_export.py"
+        build = self.context or build_worker(
+            self.worker, self.directory / "environment"
         )
         paths = TrialPaths(trial_dir=self.directory / "runtime")
         paths.mkdir()
@@ -92,7 +106,14 @@ class WorkerSession:
         )
         factory = self.factory or EnvironmentFactory.create_environment_from_config
         self.environment = factory(
-            config=BackendConfig(type=EnvironmentType(self.backend)),
+            config=BackendConfig(
+                type=EnvironmentType(self.backend),
+                kwargs=(
+                    {"sandbox_timeout_secs": self.worker.lifetime_seconds}
+                    if self.backend == "modal"
+                    else {}
+                ),
+            ),
             environment_dir=build,
             environment_name="worker-" + uuid4().hex[:12],
             session_id=uuid4().hex,
@@ -119,6 +140,12 @@ class WorkerSession:
         async with self.lock:
             if self.closed:
                 raise RuntimeError("worker session is closed")
+            if self.deadline is None:
+                raise RuntimeError("worker session must be entered before use")
+            remaining = self.deadline - time.monotonic()
+            if remaining <= 0:
+                await self.close()
+                raise TimeoutError("worker lifetime exceeded")
             job_id = uuid4().hex
             source = self.directory / (job_id + ".py")
             source.write_text(code)
@@ -128,7 +155,7 @@ class WorkerSession:
                 sha256=hashlib.sha256(code.encode()).hexdigest(),
             )
             try:
-                await self.start()
+                await asyncio.wait_for(self.start(), timeout=remaining)
                 environment = self.environment
                 if environment is None:
                     raise RuntimeError("worker failed to initialize")
@@ -140,7 +167,10 @@ class WorkerSession:
                         user="agent",
                         timeout_sec=self.worker.seconds,
                     ),
-                    timeout=self.worker.seconds + 30,
+                    timeout=min(
+                        self.worker.seconds + 30,
+                        max(0, self.deadline - time.monotonic()),
+                    ),
                 )
                 payload = {
                     "job_id": job_id,

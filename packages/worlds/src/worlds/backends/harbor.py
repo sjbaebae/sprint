@@ -65,6 +65,28 @@ def dockerfile(
     return "\n".join(lines) + "\n"
 
 
+def build_worker(worker, directory, files=None):
+    """One build definition for inspected and provisioned worker images."""
+    directory = Path(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    for name, attachment in (files or {}).items():
+        (directory / "resources").mkdir(exist_ok=True)
+        copy_tree(attachment.path, directory / "resources" / name)
+    (directory / "Dockerfile").write_text(
+        dockerfile(
+            worker.sandbox, copy_workspace=False, attachments=tuple(files or {})
+        ).replace(
+            "USER agent\n",
+            "COPY worker_export.py /opt/worlds-export.py\n"
+            "RUN chmod 444 /opt/worlds-export.py\nUSER agent\n",
+        )
+    )
+    shutil.copyfile(
+        Path(__file__).parents[1] / "worker_export.py", directory / "worker_export.py"
+    )
+    return directory
+
+
 def compile_task(experiment, directory):
     """Emit a new task with separate verifier; refuse to overwrite authored state."""
     import toml
@@ -111,9 +133,14 @@ def compile_task(experiment, directory):
     for name, attachment in world.attachments.items():
         if isinstance(attachment, Worker):
             worker_dir = directory / "workers" / name
-            worker_dir.mkdir(parents=True)
-            (worker_dir / "Dockerfile").write_text(
-                dockerfile(attachment.sandbox, copy_workspace=False)
+            build_worker(
+                attachment,
+                worker_dir,
+                {
+                    key: value
+                    for key, value in world.attachments.items()
+                    if isinstance(value, Files)
+                },
             )
             continue
         (learner / "resources").mkdir(exist_ok=True)
@@ -291,6 +318,7 @@ async def run(experiment, *, directory, backend, trials, parallel):
     for event in TrialEvent:
         job.add_hook(event, record)
     from ..broker import ResourceBroker
+    from ..workers import close_all
 
     brokers = {}
 
@@ -307,21 +335,46 @@ async def run(experiment, *, directory, backend, trials, parallel):
                     workers,
                     directory=directory / "resources" / event.trial_name,
                     backend=backend,
+                    contexts={name: task / "workers" / name for name in workers},
                 )
                 brokers[event.trial_name] = broker
                 await broker.start()
         elif event.event == TrialEvent.AGENT_END:
-            broker = brokers.pop(event.trial_name, None)
+            broker = brokers.get(event.trial_name)
             if broker is not None:
                 await broker.close()
+                brokers.pop(event.trial_name, None)
 
+    async def evidence(event):
+        # Separate-mode hook runs after learner shutdown and log collection.
+        # Replace learner-created lookalikes before supplying operator evidence.
+        if event.environment is None:
+            raise RuntimeError("missing trial environment for evidence transfer")
+        target = event.environment.trial_paths.agent_dir / "worlds-resources"
+        if target.is_dir() and not target.is_symlink():
+            shutil.rmtree(target)
+        elif target.exists() or target.is_symlink():
+            target.unlink()
+        target.mkdir(mode=0o700)
+        source = directory / "resources" / event.trial_name
+        if source.is_dir():
+            for worker in source.iterdir():
+                if worker.is_dir():
+                    destination = target / worker.name
+                    destination.mkdir()
+                    for file in worker.iterdir():
+                        if file.is_file() and file.suffix in {".py", ".jsonl"}:
+                            shutil.copyfile(file, destination / file.name)
+                elif worker.suffix == ".json":
+                    shutil.copyfile(worker, target / worker.name)
+
+    job.add_hook(TrialEvent.VERIFICATION_START, evidence)
     job.add_hook(TrialEvent.AGENT_START, resources)
     job.add_hook(TrialEvent.AGENT_END, resources)
     try:
         native = await job.run()
     finally:
-        for broker in brokers.values():
-            await broker.close()
+        await close_all(brokers.values())
     return collect(
         directory, job.job_dir, native, submission=experiment.task.submission
     )

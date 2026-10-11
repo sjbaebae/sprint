@@ -68,8 +68,11 @@ class Worker:
     sandbox: Sandbox = field(default_factory=Sandbox)
     resources: Resources = field(default_factory=Resources)
     seconds: int = 600
+    lifetime_seconds: int = 3600
 
     def __post_init__(self):
+        if type(self.lifetime_seconds) is not int or self.lifetime_seconds < 1:
+            raise ValueError("worker lifetime must be a positive integer")
         if type(self.seconds) is not int or self.seconds < 1:
             raise ValueError("worker timeout must be a positive integer")
 
@@ -79,8 +82,8 @@ class World:
     """Shared workspace and sandbox; reusable across tasks and evaluations.
 
     Files are copied into the learner workspace. Never put protected data here.
-    This first backend exposes a shell workspace; custom remote tools are not yet
-    represented by this API.
+    Named Files are read-only in the learner and workers; Worker attachments
+    expose code submission and checkpoint collection through the host broker.
     """
 
     sandbox: Sandbox = field(default_factory=Sandbox)

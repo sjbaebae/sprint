@@ -265,3 +265,25 @@ def test_private_attachment_and_link_are_rejected(tmp_path):
             experiment,
             world=replace(experiment.world, attachments={"data": Files(linked)}),
         ).compile(tmp_path / "linked-task")
+
+
+def test_worker_and_agent_share_public_data_but_not_private_validation(tmp_path):
+    from dataclasses import replace
+    from worlds import Files, Worker
+
+    experiment = make_experiment(tmp_path)
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "rows.txt").write_text("public")
+    experiment = replace(
+        experiment,
+        world=replace(
+            experiment.world, attachments={"data": Files(data), "train": Worker()}
+        ),
+    )
+    task = experiment.compile(tmp_path / "task")
+    assert (task / "environment/resources/data/rows.txt").read_text() == "public"
+    assert (task / "workers/train/resources/data/rows.txt").read_text() == "public"
+    assert (task / "workers/train/worker_export.py").exists()
+    assert not list((task / "workers").rglob("secret.txt"))
+    assert "chmod 444" in (task / "workers/train/Dockerfile").read_text()
