@@ -3,6 +3,8 @@
 import asyncio
 import hashlib
 import json
+import shlex
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -66,7 +68,13 @@ class WorkerSession:
         build = self.directory / "environment"
         build.mkdir(exist_ok=True)
         (build / "Dockerfile").write_text(
-            dockerfile(self.worker.sandbox, copy_workspace=False)
+            dockerfile(self.worker.sandbox, copy_workspace=False).replace(
+                "USER agent\n",
+                "COPY worker_export.py /opt/worlds-export.py\nRUN chmod 444 /opt/worlds-export.py\nUSER agent\n",
+            )
+        )
+        shutil.copyfile(
+            Path(__file__).with_name("worker_export.py"), build / "worker_export.py"
         )
         paths = TrialPaths(trial_dir=self.directory / "runtime")
         paths.mkdir()
@@ -151,6 +159,47 @@ class WorkerSession:
                 )
                 await self.close()
                 raise
+
+    async def collect(self, relative: str, destination: Path):
+        """Return a stable regular-file snapshot from /app; retain its trusted hash."""
+        if not isinstance(relative, str):
+            raise ValueError("checkpoint path must be text")
+        async with self.lock:
+            environment = self.environment
+            if self.closed or environment is None:
+                raise RuntimeError("worker is not available for collection")
+            result = await environment.exec(
+                "python -I -S /opt/worlds-export.py " + shlex.quote(relative),
+                user="root",
+                timeout_sec=120,
+            )
+            if result.return_code != 0:
+                raise ValueError("checkpoint collection failed: " + str(result.stderr))
+            metadata = json.loads(result.stdout or "{}")
+            exported = metadata["path"]
+            if (
+                not isinstance(exported, str)
+                or not exported.startswith("/tmp/worlds-export-")
+                or "/" in exported.removeprefix("/tmp/")
+            ):
+                raise ValueError("invalid worker export path")
+            try:
+                await environment.download_file(exported, destination)
+                with Path(destination).open("rb") as stream:
+                    digest = hashlib.file_digest(stream, "sha256").hexdigest()
+                if digest != metadata["sha256"]:
+                    raise ValueError("collected checkpoint hash mismatch")
+                self.record(
+                    "checkpoint-collected",
+                    source=relative,
+                    sha256=digest,
+                    bytes=metadata["bytes"],
+                )
+                return {"sha256": digest, "bytes": metadata["bytes"]}
+            finally:
+                await environment.exec(
+                    "rm -f " + shlex.quote(exported), user="root", timeout_sec=30
+                )
 
     async def close(self):
         """Destroy the sandbox, including any learner-created detached processes."""

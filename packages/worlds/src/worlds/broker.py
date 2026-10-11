@@ -21,6 +21,7 @@ class ResourceBroker:
         self.sessions = {}
         self.task = None
         self.seen = set()
+        self.completed = {}
 
     async def start(self):
         self.directory.mkdir(parents=True, exist_ok=False)
@@ -55,23 +56,50 @@ class ResourceBroker:
             if len(self.seen) > 200:
                 raise ValueError("trial resource request limit exceeded")
             payload = request["payload"]
-            if not isinstance(payload, dict) or set(payload) != {"resource", "code"}:
-                raise ValueError("request must contain only resource and code")
-            name = payload["resource"]
-            if not isinstance(name, str) or name not in self.workers:
-                raise ValueError("resource is not granted to this trial")
-            if name not in self.sessions:
-                session = WorkerSession(
-                    self.workers[name],
-                    directory=self.directory / name,
-                    backend=self.backend,
+            if isinstance(payload, dict) and set(payload) == {"collect", "path"}:
+                original = payload["collect"]
+                if not isinstance(original, str) or original not in self.completed:
+                    raise ValueError(
+                        "collection requires a completed request from this trial"
+                    )
+                name = self.completed[original]
+                destination = self.directory / (request_id + ".artifact")
+                response.update(
+                    await self.sessions[name].collect(payload["path"], destination)
                 )
-                await session.__aenter__()
-                self.sessions[name] = session
-            response.update(await self.sessions[name].run(payload["code"]))
-            response["status"] = (
-                "completed" if response["return_code"] == 0 else "failed"
-            )
+                target = "/resources/control/artifact-" + request_id
+                await self.environment.upload_file(destination, target)
+                permissions = await self.environment.exec(
+                    "chmod 444 " + target, user="root", timeout_sec=30
+                )
+                if permissions.return_code != 0:
+                    raise RuntimeError(
+                        "failed to expose collected checkpoint read-only"
+                    )
+                response.update(status="completed", artifact=target)
+            else:
+                if not isinstance(payload, dict) or set(payload) != {
+                    "resource",
+                    "code",
+                }:
+                    raise ValueError("request must contain only resource and code")
+                name = payload["resource"]
+                if not isinstance(name, str) or name not in self.workers:
+                    raise ValueError("resource is not granted to this trial")
+                if name not in self.sessions:
+                    session = WorkerSession(
+                        self.workers[name],
+                        directory=self.directory / name,
+                        backend=self.backend,
+                    )
+                    await session.__aenter__()
+                    self.sessions[name] = session
+                response.update(await self.sessions[name].run(payload["code"]))
+                response["status"] = (
+                    "completed" if response["return_code"] == 0 else "failed"
+                )
+                if response["status"] == "completed":
+                    self.completed[request_id] = name
         except Exception as error:
             response.update(
                 status="error", error_type=type(error).__name__, message=str(error)

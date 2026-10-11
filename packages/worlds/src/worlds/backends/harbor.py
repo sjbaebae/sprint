@@ -137,7 +137,7 @@ def compile_task(experiment, directory):
             json.dumps(
                 {
                     name: {
-                        "operations": ["run", "status"],
+                        "operations": ["run", "status", "collect"],
                         "seconds": value.seconds,
                         "gpu": value.resources.gpu,
                     }
@@ -190,7 +190,7 @@ def compile_task(experiment, directory):
             if isinstance(value, Files)
         )
         + (
-            "\nUse worlds-resource list; worlds-resource run NAME SCRIPT.py --wait 60; worlds-resource status REQUEST_ID --wait 60. Jobs execute Python on the named worker and preserve /app between calls.\n"
+            "\nUse worlds-resource list; worlds-resource run NAME SCRIPT.py --wait 60; worlds-resource status REQUEST_ID --wait 60; worlds-resource collect REQUEST_ID FILE_RELATIVE_TO_APP --wait 60. Collection returns a read-only artifact path to copy into your submission. Jobs execute Python on the named worker and preserve /app between calls.\n"
             if workers
             else ""
         )

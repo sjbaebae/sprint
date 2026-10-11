@@ -32,16 +32,31 @@ async def main():
         'def verify(context): return {"score": float((context.submission / "answer").read_text() == "retained")}'
     )
     reference = root / "solve.sh"
-    reference.write_text("""#!/bin/sh
+    worker_check = ""
+    if args.gpu:
+        worker_check += 'import subprocess; print(subprocess.check_output(["nvidia-smi", "-L"]).decode())\n'
+    if args.internet == "none":
+        worker_check += 'import socket\ntry:\n socket.create_connection(("1.1.1.1",443),timeout=3)\nexcept OSError:\n print("outbound blocked")\nelse:\n raise RuntimeError("outbound unexpectedly allowed")\n'
+    reference.write_text(
+        """#!/bin/sh
 set -eu
 worlds-resource list
-printf 'from pathlib import Path; Path("checkpoint").write_text("retained")\\n' > /app/job.py
+cat > /app/job.py <<'WORKER_CODE'
+"""
+        + worker_check
+        + """from pathlib import Path
+Path("checkpoint").write_text("retained")
+WORKER_CODE
 worlds-resource run train /app/job.py --wait 120 > /app/first.json
 python -c 'import json; assert json.load(open("/app/first.json"))["status"] == "completed"'
 printf 'from pathlib import Path; print(Path("checkpoint").read_text())\\n' > /app/job.py
 worlds-resource run train /app/job.py --wait 120 > /app/second.json
-python -c 'import json; from pathlib import Path; r=json.load(open("/app/second.json")); assert r["status"] == "completed"; Path("/app/submission/answer").write_text(r["stdout"].strip())'
-""")
+python -c 'import json; r=json.load(open("/app/second.json")); assert r["status"] == "completed"; assert r["stdout"].strip() == "retained"'
+REQUEST=$(python -c 'import json; print(json.load(open("/app/first.json"))["request_id"])')
+worlds-resource collect "$REQUEST" checkpoint --wait 120 > /app/collected.json
+python -c 'import json,shutil; r=json.load(open("/app/collected.json")); assert r["status"] == "completed", r; shutil.copyfile(r["artifact"],"/app/submission/answer")'
+"""
+    )
     sandbox = Sandbox(internet=args.internet)
     experiment = Experiment(
         Task("Use the train worker and retain its checkpoint."),

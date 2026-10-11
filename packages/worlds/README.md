@@ -152,4 +152,7 @@ Attach a separate worker with `Worker(resources=Resources(gpu="L4"))`. The agent
 submits Python using `worlds-resource run NAME SCRIPT.py --wait 60` and retrieves
 feedback with `worlds-resource status REQUEST_ID`. The host owns provider
 credentials and cleanup. Checkpoints persist under the worker's `/app` between
-jobs. Artifact collection is not implemented yet. See [resource access](resource-access.md).
+jobs. Use `worlds-resource collect REQUEST_ID CHECKPOINT_PATH --wait 60` to retrieve a
+regular file from the worker’s `/app`; the returned read-only path can be copied
+into the submission. Collection rejects symlinks/special files, concurrent changes
+and files larger than 1 GiB. See [resource access](resource-access.md).

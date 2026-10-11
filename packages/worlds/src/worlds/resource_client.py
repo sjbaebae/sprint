@@ -45,7 +45,9 @@ def read_requests():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("operation", choices=["list", "run", "status", "_read"])
+    parser.add_argument(
+        "operation", choices=["list", "run", "collect", "status", "_read"]
+    )
     parser.add_argument("target", nargs="?")
     parser.add_argument("script", nargs="?")
     parser.add_argument("--wait", type=float, default=0)
@@ -56,12 +58,16 @@ def main():
     if args.operation == "list":
         print((ROOT / "manifest.json").read_text())
         return
-    if args.operation == "run":
+    if args.operation in {"run", "collect"}:
         if not args.script or not args.target:
             parser.error("run requires RESOURCE SCRIPT.py")
-        code = Path(args.script).read_text()
+        payload = (
+            {"resource": args.target, "code": Path(args.script).read_text()}
+            if args.operation == "run"
+            else {"collect": args.target, "path": args.script}
+        )
         request_id = uuid4().hex
-        encoded = json.dumps({"resource": args.target, "code": code}).encode()
+        encoded = json.dumps(payload).encode()
         if len(encoded) > LIMIT:
             parser.error("request exceeds 2 MiB")
         temporary = ROOT / "requests" / (request_id + ".tmp")

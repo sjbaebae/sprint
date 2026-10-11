@@ -2,7 +2,7 @@
 
 Read-only named file attachments are implemented. Separate hardware requests already
 work. `WorkerSession` now provisions persistent workers and executes bounded Python jobs.
-The agent-facing queue supports run/status. Output collection remains the next implementation target.
+The agent-facing queue supports run/status. Regular-file checkpoint collection is implemented.
 
 ```python
 world = World(
@@ -24,7 +24,8 @@ created lazily and terminated at trial end.
 - `worlds-resource list`: names and permitted operations.
 - `worlds-resource run train script.py`: submit code to the named worker.
 - `worlds-resource status JOB`: status and full execution feedback.
-- `worlds-resource collect JOB`: retrieve allowed output files/checkpoints.
+- `worlds-resource collect REQUEST_ID FILE --wait 60`: snapshot a regular file
+  beneath the worker’s `/app`, returning a read-only path in the agent sandbox.
 - Read-only datasets appear under `/resources/data`.
 
 ## Transport and boundaries
@@ -74,3 +75,11 @@ sandboxes before verification. The agent uses `worlds-resource run NAME SCRIPT.p
 exit code, stdout/stderr, or an exception type and message. Only Python code is
 accepted; resource names must be explicitly granted. Resource requests are limited
 to 200 per trial. Jobs are currently serialized by the broker.
+
+## Verified preflights
+
+`examples/worker/preflight.py` exercises agent submission, persistent checkpoint
+reuse, file collection, cleanup and separate grading. The Modal L4 preflight
+passed with outbound TCP blocked and reward 1.0. Local Docker passed with explicit
+full networking; Docker Desktop rejects the requested no-network policy on this
+host. These smoke tests use Harbor’s oracle harness, not a frontier model.
