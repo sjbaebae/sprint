@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Modal workers can mount existing pinned asset volumes read-only without copying them into images.
+
 - Named workers accept bounded file uploads through `sprint-resource upload`, with trusted content hashes and learner-user writes.
 
 - Add opt-in persistent worker shell access through `sprint-resource exec`, with

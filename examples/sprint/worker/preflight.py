@@ -28,11 +28,16 @@ async def main():
     parser.add_argument(
         "--shell", action="store_true", help="Check persistent worker shell access"
     )
+    parser.add_argument(
+        "--volume", help="Existing Modal volume containing rows.txt=retained"
+    )
     parser.add_argument("--host", help="SSH operator host, e.g. root@Runpod-IP")
     parser.add_argument("--identity", type=Path)
     parser.add_argument("--port", type=int, default=22)
     parser.add_argument("--host-uv", default="uv")
     args = parser.parse_args()
+    if args.volume and args.backend != "modal":
+        parser.error("--volume requires Modal")
     root = Path(".sprint/worker-preflight") / uuid4().hex
     root.mkdir(parents=True)
     data = root / "data"
@@ -50,6 +55,8 @@ async def main():
         worker_check += Path(__file__).with_name("gpu_probe.py").read_text() + "\n"
     if args.internet == "none":
         worker_check += 'import socket\ntry:\n socket.create_connection(("1.1.1.1",443),timeout=3)\nexcept OSError:\n print("outbound blocked")\nelse:\n raise RuntimeError("outbound unexpectedly allowed")\n'
+    if args.volume:
+        worker_check += "from pathlib import Path\nassert Path('/base/rows.txt').read_text() == 'retained'\ntry:\n Path('/base/rows.txt').write_text('tampered')\nexcept OSError:\n print('volume write blocked')\nelse:\n raise RuntimeError('pinned volume was writable')\n"
     reference.write_text(
         """#!/bin/sh
 set -eu
@@ -120,7 +127,10 @@ python -c 'import json; assert json.load(open("/app/shell-second.json"))["status
             attachments={
                 "data": Files(data),
                 "train": Worker(
-                    sandbox=sandbox, resources=Resources(gpu=args.gpu), shell=args.shell
+                    sandbox=sandbox,
+                    resources=Resources(gpu=args.gpu),
+                    shell=args.shell,
+                    read_only_volumes={"/base": args.volume} if args.volume else {},
                 ),
                 "deadline": Worker(sandbox=sandbox, seconds=1),
             },

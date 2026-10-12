@@ -935,6 +935,7 @@ class ModalEnvironment(ComposeServiceOpsMixin, BaseEnvironment):
         secrets: list[str] | None = None,
         registry_secret: str | None = None,
         volumes: dict[str, str] | None = None,
+        read_only_volumes: dict[str, str] | None = None,
         app_name: str = "__harbor__",
         sandbox_timeout_secs: int = 60 * 60 * 24,
         sandbox_idle_timeout_secs: int | None = None,
@@ -1051,6 +1052,9 @@ class ModalEnvironment(ComposeServiceOpsMixin, BaseEnvironment):
         self._secrets = secrets or []
         self._registry_secret = registry_secret
         self._volumes = volumes or {}
+        self._read_only_volumes = read_only_volumes or {}
+        if self._volumes.keys() & self._read_only_volumes.keys():
+            raise ValueError("volume mount paths must be unique")
         self._app_name = app_name
         self._sandbox_timeout = sandbox_timeout_secs
         self._sandbox_idle_timeout = sandbox_idle_timeout_secs
@@ -1141,8 +1145,11 @@ class ModalEnvironment(ComposeServiceOpsMixin, BaseEnvironment):
 
     def _volumes_config(self) -> dict[str, Volume]:
         return {
-            mount_path: Volume.from_name(volume_name)
-            for mount_path, volume_name in self._volumes.items()
+            **{path: Volume.from_name(name) for path, name in self._volumes.items()},
+            **{
+                path: Volume.from_name(name).read_only()
+                for path, name in self._read_only_volumes.items()
+            },
         }
 
     def _sandbox_labels(self) -> dict[str, str]:

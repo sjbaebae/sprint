@@ -7,6 +7,10 @@ from pathlib import Path
 from typing import Any
 
 
+RESERVED_MOUNTS = frozenset(
+    "app tmp etc opt resources logs home root var sbin lib64 run usr bin lib dev proc sys".split()
+)
+
 STATE_PATHS = (
     "/app",
     "/home/agent",
@@ -103,13 +107,18 @@ class Files:
 
 @dataclass(frozen=True)
 class Worker:
-    """Separate persistent sandbox for submitted Python jobs within one trial."""
+    """Persistent worker for Python jobs, uploads and opt-in shell access.
+
+    read_only_volumes maps dedicated mount paths to existing Modal asset volumes.
+    These external assets must remain immutable across checkpoints and restores.
+    """
 
     sandbox: Sandbox = field(default_factory=Sandbox)
     resources: Resources = field(default_factory=Resources)
     seconds: int = 600
     lifetime_seconds: int = 3600
     shell: bool = False
+    read_only_volumes: dict[str, str] = field(default_factory=dict)
     backend: str | None = None
 
     hourly_cost: float | None = None
@@ -117,6 +126,24 @@ class Worker:
     state_paths: tuple[str, ...] = STATE_PATHS
 
     def __post_init__(self):
+        for mount, name in self.read_only_volumes.items():
+            path = Path(mount)
+            if (
+                not path.is_absolute()
+                or ".." in path.parts
+                or str(path) != mount
+                or len(path.parts) != 2
+                or path.name in RESERVED_MOUNTS
+            ):
+                raise ValueError(
+                    "read-only volumes require dedicated top-level mount paths such as /base"
+                )
+            if not isinstance(name, str) or not re.fullmatch(
+                r"[A-Za-z0-9][A-Za-z0-9_.-]*", name
+            ):
+                raise ValueError(
+                    "read-only volume name must be a provider volume identifier"
+                )
         if type(self.shell) is not bool:
             raise ValueError("worker shell permission must be a boolean")
         if self.hourly_cost is not None and (

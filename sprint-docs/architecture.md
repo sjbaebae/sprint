@@ -1,6 +1,6 @@
 # Architecture contract
 
-Authors supply the task and validation. Reuse a world, attach resources and select
+Authors supply the task and validation. Reuse an environment, attach resources and select
 an agent. Provider configuration stays behind execution adapters.
 
 | Layer | Owns |
@@ -16,14 +16,14 @@ an agent. Provider configuration stays behind execution adapters.
 
 ## Host and workers
 
-The host runs orchestration. A world worker and a verifier have independent
+The host runs orchestration. A learner, attached worker and verifier have independent
 resource requests. GPU capacity is explicit; it is never inherited by the
 verifier. Multiple named attachments should grant explicit operations, such as
 executing a job, reading a dataset or accessing a checkpoint. Capacity and access
 permissions are separate. Provider credentials stay on the operator side.
 
-The current release implements independent world/verifier capacity, named read-only
-file attachments and persistent workers with a host-mediated run/status/collect queue.
+The current release implements independent learner/verifier capacity, named read-only
+file attachments and persistent workers with a host-mediated run/exec/upload/status/collect queue.
 Workers are created lazily and destroyed before verification.
 
 ## Implemented lifecycle
@@ -39,8 +39,10 @@ requires an explicit transport allowlist and preinstalled tools when appropriate
 
 ## Remaining integrations
 
-Per-action workspace exports; enforceable action and
-subagent budgets; screened download services; RL token/log-probability export.
+Automatic per-action workspace exports; screened download services;
+RL token/log-probability export. The bounded Codex adapter enforces action and
+single-agent limits with a managed sandbox profile; ordinary harness adapters
+retain their own capability limits.
 These are distinct from the verified initial lifecycle.
 
 Harbor internals may change substantially to support this contract. End users

@@ -276,3 +276,24 @@ async def test_upload_is_bounded_and_writes_as_learner(tmp_path):
         assert len(writes) == 1 and writes[0][1]["user"] == "agent"
         assert "target.relative_to(root)" in writes[0][0]
         assert not list(session.directory.glob("*.upload"))
+
+
+@pytest.mark.asyncio
+async def test_read_only_volume_grant_reaches_modal_provider(tmp_path):
+    worker = Worker(read_only_volumes={"/base": "pinned-release"})
+    with pytest.raises(ValueError, match="Modal"):
+        WorkerSession(worker, directory=tmp_path / "unsupported", backend="docker")
+    with pytest.raises(ValueError, match="dedicated"):
+        Worker(read_only_volumes={"/app": "pinned-release"})
+    env = FakeEnvironment()
+    configs = []
+
+    def factory(**kwargs):
+        configs.append(kwargs["config"])
+        return env
+
+    async with WorkerSession(
+        worker, directory=tmp_path / "modal", backend="modal", factory=factory
+    ) as session:
+        await session.start()
+        assert configs[0].kwargs["read_only_volumes"] == {"/base": "pinned-release"}

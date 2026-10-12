@@ -57,6 +57,8 @@ class WorkerSession:
         self.worker = worker
         self.directory = Path(directory)
         self.backend = worker.backend or backend
+        if worker.read_only_volumes and self.backend != "modal":
+            raise ValueError("read_only_volumes currently requires the Modal backend")
         self.factory = factory
         self.context = Path(context) if context is not None else None
         self.environment = None
@@ -119,9 +121,10 @@ class WorkerSession:
                 type=EnvironmentType(self.backend),
                 kwargs=(
                     {
+                        "read_only_volumes": self.worker.read_only_volumes,
                         "sandbox_timeout_secs": max(
                             1, math.ceil(self.deadline - time.monotonic())
-                        )
+                        ),
                     }
                     if self.backend == "modal"
                     else {}

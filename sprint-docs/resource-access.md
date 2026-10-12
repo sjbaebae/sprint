@@ -125,3 +125,27 @@ service and affected trial. This does not provide automatic recovery of running
 jobs after host loss; debug resume uses explicitly captured checkpoint state.
 
 Shell commands run as the worker’s learner user in `/app`. Successful commands preserve background processes; redirect their output to workspace files and inspect or stop them with later commands. Python `run` jobs retain their existing per-job process cleanup. A timeout or cancellation destroys the entire worker in either mode. Shell access is disabled by default and does not change the worker’s network policy or expose provider credentials. On 2026-10-12, the Modal L4 preflight with `--shell` passed with reward 1.0: a CPU-side file upload was read by GPU code, two shell calls shared files and a background process, Python jobs reused a checkpoint, collection delivered it to a separate verifier, and a timed-out worker was closed. This validates the native resource path with the oracle harness; it does not validate a frontier-model research campaign.
+
+
+## Large pinned assets
+
+On Modal, attach an existing named volume directly to a worker:
+
+```python
+Worker(
+    backend="modal",
+    resources=Resources(gpu="L4"),
+    shell=True,
+    read_only_volumes={"/base": "pinned-model-assets"},
+)
+```
+
+The operator prepares the volume before the trial. Sprint mounts it read-only;
+it neither creates nor populates it. Mounts use dedicated top-level directories
+and cannot replace the worker runtime or workspace. Other backends reject this
+option. Volume contents are external assets, not part of mutable workspace
+checkpoints: keep the named release immutable for reproducible restore. Never
+attach protected evaluation data to a learner worker.
+
+The 2026-10-12 Modal L4 preflight with `--shell --volume NAME` passed
+with reward 1.0, including asset reads and a rejected write to the mounted volume.
