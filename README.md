@@ -146,6 +146,8 @@ sprint-resource status REQUEST_ID --wait 60
 sprint-resource collect REQUEST_ID checkpoint.pt --wait 60
 ```
 
+For interactive GPU experimentation, set `Worker(..., shell=True)` and use `sprint-resource exec train 'COMMAND' --wait 60`. Successful shell calls preserve background processes; Python jobs clean up processes after each job. Both retain files until the worker closes.
+
 The broker returns execution output and checkpoint collection feedback without giving the learner provider credentials. See [resource access](sprint-docs/resource-access.md) for limits and lifecycle details.
 
 ## Add judge scoring and violations

@@ -2,14 +2,13 @@
 
 Sprint is the root framework. Use `uv` and Python 3.12+.
 
-- `src/sprint/`: public authoring API, resource broker, validation and review records.
-- `src/sprint/`: execution runtime and provider/agent adapters within the same package.
+- `src/sprint/`: authoring API, runtime, resource broker, validation, review records and provider/agent adapters.
 - `examples/sprint/`: runnable environments and preflights.
 - `tests/sprint/`: Sprint unit tests.
 - `sprint-docs/`: current documentation.
 - `reference/harbor/`: upstream documentation and attribution.
 
-Keep worlds, tasks, validation, agents and attached resources separate. Provider credentials and protected validation data must stay outside learner images. Never commit runtime records or credentials.
+Keep environments, tasks, validation, agents and attached resources separate. Provider credentials and protected validation data must stay outside learner images. Never commit runtime records or credentials.
 
 Use explicit runtime guards rather than asserts; prefer asyncio.TaskGroup for concurrency and Path methods for file I/O. Follow CONTRIBUTING.md.
 

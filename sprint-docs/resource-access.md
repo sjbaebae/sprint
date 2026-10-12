@@ -74,21 +74,22 @@ events outside the sandbox. Context exit destroys the worker; execution exceptio
 also destroy it. `Experiment.run` starts the host broker at agent start and destroys all worker
 sandboxes before verification. The agent uses `sprint-resource run NAME SCRIPT.py
 --wait 60` and `sprint-resource status REQUEST_ID --wait 60`. Results include actual
-exit code, stdout/stderr, or an exception type and message. Only Python code is
-accepted; resource names must be explicitly granted. Resource requests are limited
+exit code, stdout/stderr, or an exception type and message. Python scripts are accepted by `run`; shell commands require `shell=True` and use
+`exec`. Resource names must be explicitly granted. Resource requests are limited
 to `Budget.resource_requests` (default 200). `Budget.worker_concurrency` bounds
 concurrent requests across workers; each worker executes one job at a time.
 
 ## Verified preflights
 
-`examples/worker/preflight.py` exercises agent submission, persistent checkpoint
+`examples/sprint/worker/preflight.py` exercises agent submission, persistent checkpoint
 reuse, file collection, cleanup and separate grading. The Modal L4 preflight
 passed with outbound TCP blocked and reward 1.0. Local Docker passed with explicit
 full networking; Docker Desktop rejects the requested no-network policy on this
 host. These smoke tests use Harbor’s oracle harness, not a frontier model.
 
-Worker files persist between jobs; worker processes do not. A trusted Linux launcher
-runs each job as `agent` with privilege escalation disabled and stops all processes
+Worker files persist between jobs. Python `run` jobs stop worker-user processes
+after each job; successful shell `exec` calls preserve them. A trusted Linux launcher
+runs each Python job as `agent` with privilege escalation disabled and stops all processes
 of that dedicated worker user at job completion, including detached descendants.
 This applies only to attached workers, not the separate learner/harness container.
 Workers require Linux pidfd support and fail closed if process cleanup is unavailable.
@@ -122,4 +123,4 @@ per attempt, and records failures in `queue.jsonl`. Exhaustion terminates the
 service and affected trial. This does not provide automatic recovery of running
 jobs after host loss; debug resume uses explicitly captured checkpoint state.
 
-Shell commands run as the worker’s learner user in `/app`. Successful commands preserve background processes; redirect their output to workspace files and inspect or stop them with later commands. Python `run` jobs retain their existing per-job process cleanup. A timeout or cancellation destroys the entire worker in either mode. Shell access is disabled by default and does not change the worker’s network policy or expose provider credentials. The shell operation has local mock coverage; provider-backed persistence and cleanup still require a live preflight.
+Shell commands run as the worker’s learner user in `/app`. Successful commands preserve background processes; redirect their output to workspace files and inspect or stop them with later commands. Python `run` jobs retain their existing per-job process cleanup. A timeout or cancellation destroys the entire worker in either mode. Shell access is disabled by default and does not change the worker’s network policy or expose provider credentials. On 2026-10-12, the Modal L4 preflight with `--shell` passed with reward 1.0: two shell calls shared files and a background process, Python jobs reused a checkpoint, collection delivered it to a separate verifier, and a timed-out worker was closed. This validates the native resource path with the oracle harness; it does not validate a frontier-model research campaign.
