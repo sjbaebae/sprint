@@ -522,7 +522,7 @@ async def run(
                     for file in worker.iterdir():
                         if file.is_file() and file.suffix in {".py", ".jsonl"}:
                             shutil.copyfile(file, destination / file.name)
-                elif worker.suffix == ".json":
+                elif worker.suffix in {".json", ".jsonl"}:
                     shutil.copyfile(worker, target / worker.name)
 
     job.add_hook(TrialEvent.VERIFICATION_START, evidence)

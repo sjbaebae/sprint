@@ -4,6 +4,7 @@ import asyncio
 import json
 import re
 from pathlib import Path
+from datetime import UTC, datetime
 
 from .workers import WorkerSession, close_all
 
@@ -170,9 +171,45 @@ class ResourceBroker:
             )
         local = self.directory / (request_id + ".json")
         local.write_text(json.dumps(response))
-        await self.environment.upload_file(
-            local, "/resources/control/results/" + request_id + ".json"
-        )
+        await self.publish(local, request_id)
+
+    async def publish(self, local, request_id):
+        """Retry atomic delivery of retained feedback; never repeat job execution."""
+        target = "/resources/control/results/" + request_id + ".json"
+        staging = "/resources/control/results/." + request_id + ".tmp"
+        for attempt in range(3):
+            try:
+                async with asyncio.timeout(35):
+                    await self.environment.upload_file(local, staging)
+                    result = await self.environment.exec(
+                        f"chown root:root {staging} && chmod 444 {staging} && mv -f -- {staging} {target}",
+                        user="root",
+                        timeout_sec=30,
+                    )
+                    if result.return_code != 0:
+                        raise RuntimeError(
+                            "feedback publication failed: " + str(result.stderr)
+                        )
+                return
+            except Exception as error:
+                with (self.directory / "delivery.jsonl").open("a") as stream:
+                    stream.write(
+                        json.dumps(
+                            {
+                                "timestamp": datetime.now(UTC).isoformat(),
+                                "request_id": request_id,
+                                "attempt": attempt + 1,
+                                "error_type": type(error).__name__,
+                                "message": str(error),
+                            }
+                        )
+                        + "\n"
+                    )
+                if attempt == 2:
+                    raise RuntimeError(
+                        "resource feedback delivery failed after 3 attempts"
+                    ) from error
+                await asyncio.sleep(attempt + 1)
 
     async def close(self):
         """Cancel active code and destroy all workers before verifier execution."""

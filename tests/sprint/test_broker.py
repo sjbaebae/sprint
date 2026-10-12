@@ -10,6 +10,10 @@ from sprint.broker import ResourceBroker
 from sprint import resource_client
 
 
+async def successful_exec(*args, **kwargs):
+    return SimpleNamespace(return_code=0, stdout="", stderr="")
+
+
 def test_queue_rejects_links_special_files_and_malformed_json(tmp_path, monkeypatch):
     monkeypatch.setattr(resource_client, "ROOT", tmp_path)
     queue = tmp_path / "requests"
@@ -31,7 +35,7 @@ async def test_unknown_resource_returns_failure_without_provisioning(tmp_path):
         uploads.append(json.loads(source.read_text()))
 
     broker = ResourceBroker(
-        SimpleNamespace(upload_file=upload),
+        SimpleNamespace(upload_file=upload, exec=successful_exec),
         {"train": Worker()},
         directory=tmp_path,
         backend="docker",
@@ -143,3 +147,79 @@ async def test_restore_keeps_failed_workers_closed_and_preserves_reservations(
     assert broker.sessions["train"].closed
     with pytest.raises(RuntimeError, match="closed"):
         await broker.sessions["train"].run("print(1)")
+
+
+@pytest.mark.asyncio
+async def test_feedback_retry_is_atomic_and_never_reruns_training(
+    tmp_path, monkeypatch
+):
+    import asyncio
+
+    uploads, commands, executions = [], [], []
+
+    async def upload(source, target):
+        uploads.append(target)
+        assert target.endswith(".tmp")
+        if len(uploads) == 1:
+            raise OSError("transient storage failure")
+        assert json.loads(source.read_text())["stdout"] == "trained once"
+
+    async def execute(command, **kwargs):
+        commands.append(command)
+        assert kwargs["user"] == "root"
+        assert "chmod 444" in command and "mv -f --" in command
+        return SimpleNamespace(return_code=0, stdout="", stderr="")
+
+    async def no_sleep(*args):
+        pass
+
+    async def run(code):
+        executions.append(code)
+        return {"return_code": 0, "stdout": "trained once", "stderr": ""}
+
+    broker = ResourceBroker(
+        SimpleNamespace(upload_file=upload, exec=execute),
+        {"train": Worker()},
+        directory=tmp_path,
+        backend="modal",
+    )
+
+    async def session(name):
+        return SimpleNamespace(run=run)
+
+    monkeypatch.setattr(broker, "session", session)
+    monkeypatch.setattr(asyncio, "sleep", no_sleep)
+    await broker.dispatch(
+        {"request_id": "a" * 32, "payload": {"resource": "train", "code": "train()"}}
+    )
+    assert executions == ["train()"] and len(uploads) == 2 and len(commands) == 1
+    failure = json.loads((tmp_path / "delivery.jsonl").read_text())
+    assert failure["attempt"] == 1 and "transient storage" in failure["message"]
+    assert broker.completed == {"a" * 32: "train"}
+
+
+@pytest.mark.asyncio
+async def test_exhausted_feedback_retries_retain_operator_result(tmp_path, monkeypatch):
+    import asyncio
+
+    async def upload(*args):
+        raise OSError("storage unavailable")
+
+    async def no_sleep(*args):
+        pass
+
+    monkeypatch.setattr(asyncio, "sleep", no_sleep)
+    broker = ResourceBroker(
+        SimpleNamespace(upload_file=upload), {}, directory=tmp_path, backend="modal"
+    )
+    with pytest.raises(RuntimeError, match="after 3 attempts"):
+        await broker.dispatch(
+            {
+                "request_id": "a" * 32,
+                "payload": {"resource": "missing", "code": "train()"},
+            }
+        )
+    assert (
+        json.loads((tmp_path / ("a" * 32 + ".json")).read_text())["status"] == "error"
+    )
+    assert len((tmp_path / "delivery.jsonl").read_text().splitlines()) == 3

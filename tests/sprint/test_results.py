@@ -140,6 +140,9 @@ def test_review_keeps_grade_with_malformed_transcript_and_shows_worker_records(
     worker.mkdir(parents=True)
     (worker / "jobs.jsonl").write_text('{"event":"job-end","return_code":1}')
     (worker / "abc.py").write_text('print("<script>")')
+    (worker.parent / "delivery.jsonl").write_text(
+        '{"error_type":"OSError","message":"delivery retry"}'
+    )
     (tmp_path / "events.jsonl").write_text(
         '{"event":"agent-start","timestamp":"observed"}'
     )
@@ -152,6 +155,7 @@ def test_review_keeps_grade_with_malformed_transcript_and_shows_worker_records(
     assert "Transcript unavailable" in page
     assert "job-end" in page
     assert "observed" in page
+    assert "Resource service events" in page and "delivery retry" in page
     assert "<script>" not in page
 
 

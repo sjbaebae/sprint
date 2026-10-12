@@ -15,11 +15,38 @@ import time
 OUTPUT_BYTES = 1024 * 1024
 
 
+def linux_prctl(option):
+    """Apply a required Linux process policy or fail closed."""
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.prctl.argtypes = [
+        ctypes.c_int,
+        ctypes.c_ulong,
+        ctypes.c_ulong,
+        ctypes.c_ulong,
+        ctypes.c_ulong,
+    ]
+    libc.prctl.restype = ctypes.c_int
+    if libc.prctl(option, 1, 0, 0, 0) != 0:
+        raise OSError(ctypes.get_errno(), "cannot enforce worker process policy")
+
+
 def no_new_privileges():
     """Prevent learner code from gaining privileges through setuid executables."""
-    libc = ctypes.CDLL(None, use_errno=True)
-    if libc.prctl(38, 1, 0, 0, 0) != 0:
-        raise OSError(ctypes.get_errno(), "cannot enforce no_new_privs")
+    linux_prctl(38)
+
+
+def reap_children():
+    """Reap adopted orphan children rather than leaving them to container init."""
+    deadline = time.monotonic() + 5
+    while True:
+        try:
+            pid, _ = os.waitpid(-1, os.WNOHANG)
+        except ChildProcessError:
+            return
+        if pid == 0:
+            if time.monotonic() >= deadline:
+                raise TimeoutError("worker descendants could not be reaped")
+            time.sleep(0.02)
 
 
 def reap_user(uid):
@@ -87,6 +114,7 @@ def run(source, seconds):
     user = pwd.getpwnam("agent")
     if user.pw_uid == 0:
         raise ValueError("worker account must be unprivileged")
+    linux_prctl(36)  # PR_SET_CHILD_SUBREAPER: adopt double-forked descendants.
     # Also clear leftovers before starting if the previous launcher was interrupted.
     reap_user(user.pw_uid)
     timed_out = False
@@ -122,6 +150,7 @@ def run(source, seconds):
             finally:
                 if process is not None:
                     process.wait(timeout=5)
+                reap_children()
         out, out_truncated = read_output(stdout)
         err, err_truncated = read_output(stderr)
     return {

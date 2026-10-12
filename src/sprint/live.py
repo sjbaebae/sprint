@@ -371,6 +371,11 @@ class LiveRun:
                 if self.broker is not None:
                     await self.broker.gate.acquire()
                     broker_locked = True
+                    if self.broker.task is not None and self.broker.task.done():
+                        self.broker.task.result()
+                        raise RuntimeError(
+                            "cannot checkpoint a stopped resource broker"
+                        )
                     for worker_name, session in self.broker.sessions.items():
                         if session.closed:
                             worker_state[worker_name] = {"closed": True}

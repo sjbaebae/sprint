@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Publish worker feedback atomically with bounded delivery retries and retained
+  failure events. Reap adopted worker children and reject checkpoints of failed brokers.
+
 - Run worker jobs through a trusted unprivileged launcher that prevents detached
   work from surviving job completion; preserve partial timeout output and bound feedback size.
 

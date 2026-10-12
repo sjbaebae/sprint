@@ -126,7 +126,10 @@ def test_restore_pins_definition_budget_and_trims_interrupted_session(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_failed_capture_unfreezes_and_does_not_publish(tmp_path, monkeypatch):
+@pytest.mark.parametrize("failed_broker", [False, True])
+async def test_failed_capture_unfreezes_and_does_not_publish(
+    tmp_path, monkeypatch, failed_broker
+):
     import time
     import sprint.live as live
 
@@ -153,6 +156,15 @@ async def test_failed_capture_unfreezes_and_does_not_publish(tmp_path, monkeypat
     monkeypatch.setattr(live, "remote_helper", helper)
     monkeypatch.setattr(live, "checked", checked)
     monkeypatch.setattr(run, "_capture", capture)
+    if failed_broker:
+        import asyncio
+
+        async def failed_poll():
+            raise RuntimeError("transfer failed")
+
+        task = asyncio.create_task(failed_poll())
+        await asyncio.sleep(0)
+        run.broker = SimpleNamespace(gate=asyncio.Lock(), task=task)
     with pytest.raises(RuntimeError, match="transfer failed"):
         await run.checkpoint("one")
     assert any("unfreeze" in command for command in calls)

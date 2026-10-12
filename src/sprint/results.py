@@ -66,6 +66,10 @@ class RunResult:
                             + "</h4>"
                             + pre(source.read_text())
                         )
+                for journal in sorted(resources.glob("*.jsonl")):
+                    sections.append(
+                        "<h4>Resource service events</h4>" + pre(journal.read_text())
+                    )
                 for feedback in sorted(resources.glob("*.json")):
                     sections.append(
                         "<h4>Request feedback</h4>" + pre(feedback.read_text())

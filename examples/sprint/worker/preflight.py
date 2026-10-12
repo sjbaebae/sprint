@@ -65,7 +65,8 @@ else:
 import subprocess, sys
 status = Path("/proc/self/status").read_text()
 assert "NoNewPrivs:" in status and next(line for line in status.splitlines() if line.startswith("NoNewPrivs:")).split()[1] == "1"
-subprocess.Popen([sys.executable, "-c", "import time; from pathlib import Path; time.sleep(1); Path('/app/leaked-process').write_text('leaked')"], start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+child = subprocess.Popen([sys.executable, "-c", "import time; from pathlib import Path; time.sleep(1); Path('/app/leaked-process').write_text('leaked')"], start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+Path("child-pid").write_text(str(child.pid))
 WORKER_CODE
 sprint-resource run train /app/job.py --wait 120 > /app/first.json
 python -c 'import json; assert json.load(open("/app/first.json"))["status"] == "completed"'
@@ -74,6 +75,7 @@ from pathlib import Path
 import time
 time.sleep(1.2)
 assert not Path("/app/leaked-process").exists(), "detached process survived prior job"
+assert not Path("/proc/" + Path("child-pid").read_text()).exists(), "detached child was not reaped"
 print(Path("checkpoint").read_text())
 WORKER_CODE
 sprint-resource run train /app/job.py --wait 120 > /app/second.json

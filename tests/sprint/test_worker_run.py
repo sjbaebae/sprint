@@ -38,3 +38,25 @@ def test_process_cleanup_fails_closed_without_pidfds(monkeypatch):
     monkeypatch.setattr(worker_run.os, "pidfd_open", None, raising=False)
     with pytest.raises(RuntimeError, match="Linux pidfd"):
         worker_run.reap_user(1000)
+
+
+def test_adopted_children_are_reaped(monkeypatch):
+    values = iter([(123, 0), (0, 0)])
+
+    def waitpid(*args):
+        try:
+            return next(values)
+        except StopIteration:
+            raise ChildProcessError from None
+
+    monkeypatch.setattr(worker_run.os, "waitpid", waitpid)
+    monkeypatch.setattr(worker_run.time, "sleep", lambda seconds: None)
+    worker_run.reap_children()
+
+
+def test_unreapable_children_fail_closed(monkeypatch):
+    times = iter([0, 6])
+    monkeypatch.setattr(worker_run.time, "monotonic", lambda: next(times))
+    monkeypatch.setattr(worker_run.os, "waitpid", lambda *args: (0, 0))
+    with pytest.raises(TimeoutError, match="reaped"):
+        worker_run.reap_children()

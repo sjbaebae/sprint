@@ -95,3 +95,13 @@ Timed-out jobs return exit code 124, `timed_out: true`, and captured partial out
 the worker is then closed. Output feedback is bounded to 1 MiB per stream with
 explicit `stdout_truncated`/`stderr_truncated` flags. File checkpoints can still be
 used by subsequent successful jobs before the worker closes.
+
+Feedback is staged under a root-owned temporary filename and atomically published
+read-only, so status readers cannot observe partial uploads. Delivery retries up to
+three times without rerunning the job; each failure is timestamped in the trusted
+`delivery.jsonl` journal. Exhausted retries remain an infrastructure failure, with
+the original result retained on the operator host. A failed broker cannot publish
+a restorable live checkpoint.
+
+The worker launcher adopts and reaps orphan descendants after stopping them, so
+repeated jobs do not accumulate their detached children as zombies under init.
