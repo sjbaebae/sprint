@@ -1222,6 +1222,7 @@ class ModalEnvironment(ComposeServiceOpsMixin, BaseEnvironment):
             idle_timeout=self._sandbox_idle_timeout,
             name=self.session_id,
             block_network=block_network,
+            include_oidc_identity_token=False,
             secrets=self._secrets_config(),
             volumes=self._volumes_config(),  # ty: ignore[invalid-argument-type]
             **kwargs,
