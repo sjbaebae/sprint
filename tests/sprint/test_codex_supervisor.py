@@ -33,3 +33,18 @@ def test_status_replaces_symlink_without_touching_target(tmp_path):
     assert target.read_text() == "unchanged"
     assert not (tmp_path / "budget.json").is_symlink()
     assert json.loads((tmp_path / "budget.json").read_text()) == {"state": "finished"}
+
+
+def test_bounded_harness_forces_single_agent_and_managed_profile(tmp_path):
+    from sprint.agents.installed.bounded_codex import BoundedCodex
+
+    agent = BoundedCodex(
+        logs_dir=tmp_path,
+        permission_profile="research",
+        config={"features": {"multi_agent": True}, "web_search": "live"},
+    )
+    config = agent._build_effective_config()
+    assert config["default_permissions"] == "research"
+    assert config["features"]["multi_agent"] is False
+    assert config["features"]["multi_agent_v2"] is False
+    assert config["web_search"] == "live"
