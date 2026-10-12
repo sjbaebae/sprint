@@ -6,7 +6,7 @@ One distribution: **`sprint`**. One Python namespace: **`sprint`**.
 
 ## 1. Install
 
-Python 3.12+ and [uv](https://docs.astral.sh/uv/) are required. Install from GitHub; this fork is not published to PyPI.
+Python 3.12+ and [uv](https://docs.astral.sh/uv/) are required. Install from GitHub; Sprint is not published to PyPI.
 
 ```sh
 uv init my-environment
@@ -176,4 +176,4 @@ uv run --no-default-groups --with pytest --with pytest-asyncio pytest tests/spri
 - [Runnable examples and preflights](examples/sprint)
 - [Implementation](src/sprint)
 
-Sprint forks Harbor 0.24.0 (`dc933be707feafbb9efcdf092cb8a0e391332617`). Its retained execution engine, providers, and agent adapters now live inside the Sprint namespace. Upstream documentation and citation metadata remain in [reference/harbor](reference/harbor). [Apache-2.0 license](LICENSE).
+Sprint originated from Harbor 0.24.0 (`dc933be707feafbb9efcdf092cb8a0e391332617`). Its retained execution engine, providers, and agent adapters now live inside the Sprint namespace. Upstream documentation and citation metadata remain in [reference/harbor](reference/harbor). [Apache-2.0 license](LICENSE).
