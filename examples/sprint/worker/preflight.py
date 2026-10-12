@@ -25,6 +25,9 @@ async def main():
     parser.add_argument("--backend", choices=["docker", "modal"], default="modal")
     parser.add_argument("--internet", choices=["none", "full"], default="none")
     parser.add_argument("--gpu", default=None)
+    parser.add_argument(
+        "--shell", action="store_true", help="Check persistent worker shell access"
+    )
     parser.add_argument("--host", help="SSH operator host, e.g. root@Runpod-IP")
     parser.add_argument("--identity", type=Path)
     parser.add_argument("--port", type=int, default=22)
@@ -94,6 +97,15 @@ sprint-resource run deadline /app/timeout.py --wait 120 > /app/closed.json
 python -c 'import json; r=json.load(open("/app/closed.json")); assert r["status"] == "error" and "closed" in r["message"], r'
 """
     )
+    if args.shell:
+        shell_checks = """sprint-resource exec train 'echo persistent > /app/shell-marker; nohup sleep 120 > /app/shell-process.log 2>&1 & echo $! > /app/shell-pid' --wait 120 > /app/shell-first.json
+python -c 'import json; assert json.load(open("/app/shell-first.json"))["status"] == "completed"'
+sprint-resource exec train 'test "$(cat /app/shell-marker)" = persistent && kill -0 "$(cat /app/shell-pid)" && kill "$(cat /app/shell-pid)"' --wait 120 > /app/shell-second.json
+python -c 'import json; assert json.load(open("/app/shell-second.json"))["status"] == "completed"'
+"""
+        reference.write_text(
+            reference.read_text().replace("set -eu\n", "set -eu\n" + shell_checks, 1)
+        )
     sandbox = Sandbox(internet=args.internet)
     experiment = Experiment(
         Task("Use the train worker and retain its checkpoint."),
@@ -103,7 +115,9 @@ python -c 'import json; r=json.load(open("/app/closed.json")); assert r["status"
             sandbox=sandbox,
             attachments={
                 "data": Files(data),
-                "train": Worker(sandbox=sandbox, resources=Resources(gpu=args.gpu)),
+                "train": Worker(
+                    sandbox=sandbox, resources=Resources(gpu=args.gpu), shell=args.shell
+                ),
                 "deadline": Worker(sandbox=sandbox, seconds=1),
             },
         ),

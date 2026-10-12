@@ -229,6 +229,11 @@ def compile_task(experiment, directory):
             if workers
             else ""
         )
+        + (
+            "\nWorkers that list exec permit sprint-resource exec NAME 'SHELL COMMAND' --wait 60. Successful shell commands preserve background processes; redirect their output to files. Timeout or cancellation destroys the worker.\n"
+            if any(worker.shell for worker in workers.values())
+            else ""
+        )
         + f"\n\nWrite your final artifact under {experiment.task.submission}.\n"
     )
 
