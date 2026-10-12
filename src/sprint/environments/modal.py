@@ -1372,26 +1372,26 @@ class ModalEnvironment(ComposeServiceOpsMixin, BaseEnvironment):
             await self._raise_if_unexpected_exit_137(cause=exc)
             raise
 
+        # Drain both pipes while waiting: a noisy stderr must not block stdout EOF.
+        stdout = asyncio.create_task(process.stdout.read.aio())
+        stderr = asyncio.create_task(process.stderr.read.aio())
+        return_code = asyncio.create_task(process.wait.aio())
+        tasks = [stdout, stderr, return_code]
         try:
-            stdout = await process.stdout.read.aio()
+            await asyncio.gather(*tasks)
         except Exception as exc:
             await self._raise_if_unexpected_exit_137(cause=exc)
             raise
-        try:
-            stderr = await process.stderr.read.aio()
-        except Exception as exc:
-            await self._raise_if_unexpected_exit_137(cause=exc)
-            raise
-        try:
-            return_code = await process.wait.aio()
-        except Exception as exc:
-            await self._raise_if_unexpected_exit_137(cause=exc)
-            raise
+        finally:
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
 
         return ExecResult(
-            stdout=stdout,
-            stderr=stderr,
-            return_code=return_code,
+            stdout=stdout.result(),
+            stderr=stderr.result(),
+            return_code=return_code.result(),
         )
 
     @retry(

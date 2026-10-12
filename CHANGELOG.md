@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Modal command feedback drains stdout and stderr concurrently, preserving exit codes and provider failure diagnostics.
+
 - Modal workers can mount existing pinned asset volumes read-only without copying them into images.
 
 - Named workers accept bounded file uploads through `sprint-resource upload`, with trusted content hashes and learner-user writes.

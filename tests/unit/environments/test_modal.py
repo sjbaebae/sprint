@@ -792,6 +792,32 @@ class TestEnvSecretCache:
         assert exec_kwargs[0]["secrets"] == [secret]
         assert exec_kwargs[1]["secrets"] == [secret]
 
+    async def test_sdk_exec_drains_both_streams_before_waiting_for_eof(self, temp_dir):
+        env = _make_env(temp_dir)
+        stderr_drained = asyncio.Event()
+
+        async def stdout():
+            await stderr_drained.wait()
+            return "training output"
+
+        async def stderr():
+            stderr_drained.set()
+            return "training diagnostics"
+
+        process = SimpleNamespace(
+            stdout=SimpleNamespace(read=SimpleNamespace(aio=stdout)),
+            stderr=SimpleNamespace(read=SimpleNamespace(aio=stderr)),
+            wait=SimpleNamespace(aio=AsyncMock(return_value=7)),
+        )
+        env._sandbox = SimpleNamespace(
+            exec=SimpleNamespace(aio=AsyncMock(return_value=process))
+        )
+        async with asyncio.timeout(1):
+            result = await env._sdk_exec("train")
+        assert result.stdout == "training output"
+        assert result.stderr == "training diagnostics"
+        assert result.return_code == 7
+
     @pytest.mark.parametrize("failing_phase", ["stdout", "stderr", "wait"])
     async def test_sdk_exec_translates_unexpected_sandbox_exit_137(
         self,
