@@ -57,7 +57,9 @@ worker lifetime. Provider cleanup may take additional time after the deadline.
 
 Worker teardown has a 60-second host timeout. Cleanup errors are retained in the
 trusted worker journal, and the provider handle is retained for another cleanup
-attempt. A timeout is not recorded as successful resource deletion.
+attempt. Campaign-final cleanup retries retained handles once. Unresolved failures
+are written to `cleanup-errors.json` and shown in `review.html`, without discarding
+completed trial results. A timeout is not recorded as successful resource deletion.
 
 Final result collection also validates private grader output: only graded or
 zero-reward disqualified results may contain a reward. Quarantined results have

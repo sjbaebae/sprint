@@ -43,6 +43,12 @@ class RunResult:
             json.dumps(payload, indent=2, allow_nan=False)
         )
         sections = ["<h1>Run review</h1>"]
+        cleanup = self.directory / "cleanup-errors.json"
+        if cleanup.is_file():
+            sections.append(
+                "<h2>Unresolved resource cleanup failures</h2>"
+                + pre(cleanup.read_text())
+            )
         events = self.directory / "events.jsonl"
         if events.is_file():
             sections.append("<h2>Lifecycle times</h2>" + pre(events.read_text()))

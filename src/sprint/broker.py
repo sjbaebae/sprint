@@ -225,6 +225,43 @@ class ResourceBroker:
             self.task = None
         for session in self.sessions.values():
             session.closed = True
-        await close_all(self.sessions.values())
+        try:
+            await close_all(self.sessions.values())
+        except Exception as cleanup_error:
+            if failure is not None:
+                raise ExceptionGroup(
+                    "resource service and cleanup failed", [failure, cleanup_error]
+                ) from None
+            raise
         if failure is not None:
             raise failure
+
+
+async def finalize_brokers(brokers, directory: Path):
+    """Retry outstanding teardown and retain failures without losing trial results.
+
+    This is campaign-final cleanup. Trial hooks already report their failures on
+    the affected trial; remaining provider handles get one more bounded attempt.
+    Cancellation is never swallowed. Provider TTLs remain the host-loss fallback.
+    """
+    errors = []
+
+    async def attempt(name, broker):
+        try:
+            await broker.close()
+        except Exception as error:
+            errors.append(
+                {
+                    "timestamp": datetime.now(UTC).isoformat(),
+                    "trial": name,
+                    "error_type": type(error).__name__,
+                    "message": str(error),
+                }
+            )
+
+    async with asyncio.TaskGroup() as group:
+        for name, broker in brokers.items():
+            group.create_task(attempt(name, broker))
+    if errors:
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / "cleanup-errors.json").write_text(json.dumps(errors, indent=2))

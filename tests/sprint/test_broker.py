@@ -223,3 +223,70 @@ async def test_exhausted_feedback_retries_retain_operator_result(tmp_path, monke
         json.loads((tmp_path / ("a" * 32 + ".json")).read_text())["status"] == "error"
     )
     assert len((tmp_path / "delivery.jsonl").read_text().splitlines()) == 3
+
+
+@pytest.mark.asyncio
+async def test_final_cleanup_retries_retained_handles_and_records_every_failure(
+    tmp_path,
+):
+    from sprint.broker import finalize_brokers
+
+    attempted = []
+
+    class Broker:
+        def __init__(self, name, fail):
+            self.name, self.fail = name, fail
+
+        async def close(self):
+            attempted.append(self.name)
+            if self.fail:
+                raise TimeoutError("provider deletion pending")
+
+    await finalize_brokers(
+        {"bad": Broker("bad", True), "good": Broker("good", False)}, tmp_path
+    )
+    assert set(attempted) == {"bad", "good"}
+    errors = json.loads((tmp_path / "cleanup-errors.json").read_text())
+    assert len(errors) == 1
+    assert errors[0]["trial"] == "bad"
+    assert errors[0]["error_type"] == "TimeoutError"
+    assert errors[0]["timestamp"]
+
+
+@pytest.mark.asyncio
+async def test_broker_consumes_service_failure_but_preserves_failed_cleanup_handle(
+    tmp_path,
+):
+    import asyncio
+    from sprint.broker import finalize_brokers
+
+    broker = ResourceBroker(object(), {}, directory=tmp_path, backend="modal")
+
+    async def failure():
+        raise RuntimeError("service stopped")
+
+    class Session:
+        closed = False
+        environment = object()
+        attempts = 0
+
+        async def close(self):
+            self.attempts += 1
+            if self.attempts == 1:
+                raise TimeoutError("first teardown failed")
+            self.environment = None
+
+    session = Session()
+    broker.sessions["train"] = session
+    broker.task = asyncio.create_task(failure())
+    await asyncio.sleep(0)
+    with pytest.raises(ExceptionGroup) as error:
+        await broker.close()
+    assert "service stopped" in str(error.value.exceptions[0])
+    assert "first teardown failed" in str(error.value.exceptions[1].exceptions[0])
+    assert broker.task is None
+    assert session.environment is not None
+    await finalize_brokers({"trial": broker}, tmp_path)
+    assert session.attempts == 2
+    assert session.environment is None
+    assert not (tmp_path / "cleanup-errors.json").exists()

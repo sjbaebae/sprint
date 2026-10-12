@@ -290,3 +290,14 @@ def test_disqualification_requires_evidence_and_retains_zero_reward(tmp_path):
     )
     assert read_grade(path)["status"] == "disqualified"
     assert read_grade(path)["reward"] == 0
+
+
+def test_review_surfaces_unresolved_cleanup_without_discarding_grade(tmp_path):
+    (tmp_path / "cleanup-errors.json").write_text(
+        json.dumps([{"trial": "trial", "message": "<pending deletion>"}])
+    )
+    result = RunResult(tmp_path, ()).save()
+    page = (tmp_path / "review.html").read_text()
+    assert "Unresolved resource cleanup failures" in page
+    assert "&lt;pending deletion&gt;" in page
+    assert result.rewards == []

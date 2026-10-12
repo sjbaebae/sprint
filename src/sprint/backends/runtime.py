@@ -451,8 +451,7 @@ async def run(
 
     for event in TrialEvent:
         job.add_hook(event, record)
-    from ..broker import ResourceBroker
-    from ..workers import close_all
+    from ..broker import ResourceBroker, finalize_brokers
 
     brokers = {}
 
@@ -499,11 +498,15 @@ async def run(
         elif event.event == TrialEvent.AGENT_END:
             if control is not None:
                 await control.leaving()
-            # Cleanup errors belong to this trial. Do not replay a dead service
-            # in campaign-final cleanup and discard independent trial results.
-            broker = brokers.pop(event.trial_name, None)
+            broker = brokers.get(event.trial_name)
             if broker is not None:
-                await broker.close()
+                try:
+                    await broker.close()
+                finally:
+                    # Retain failed deletion handles for a final bounded retry.
+                    # close() consumes service errors once, independently of deletion.
+                    if all(s.environment is None for s in broker.sessions.values()):
+                        brokers.pop(event.trial_name, None)
 
     async def evidence(event):
         # Separate-mode hook runs after learner shutdown and log collection.
@@ -534,7 +537,7 @@ async def run(
     try:
         native = await job.run()
     finally:
-        await close_all(brokers.values())
+        await finalize_brokers(brokers, directory)
     return collect(
         directory, job.job_dir, native, submission=experiment.task.submission
     )

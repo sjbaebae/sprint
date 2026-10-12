@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Retry failed resource teardown without losing independent trial results; retain
+  unresolved cleanup errors in machine-readable records and the review page.
+
 - Stop affected agents promptly when an attached resource service terminates,
   while preserving independent trials and hook-owned cleanup.
 
