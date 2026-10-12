@@ -24,7 +24,7 @@ def test_queue_rejects_links_special_files_and_malformed_json(tmp_path, monkeypa
     result = resource_client.read_requests()
     assert len(result) == 1
     assert result[0]["request_id"] == "a" * 32
-    assert not list(queue.iterdir())
+    assert [path.name for path in queue.iterdir()] == ["a" * 32 + ".json"]
 
 
 @pytest.mark.asyncio
@@ -290,3 +290,101 @@ async def test_broker_consumes_service_failure_but_preserves_failed_cleanup_hand
     assert session.attempts == 2
     assert session.environment is None
     assert not (tmp_path / "cleanup-errors.json").exists()
+
+
+def test_queue_read_is_retryable_until_feedback_is_published(tmp_path, monkeypatch):
+    monkeypatch.setattr(resource_client, "ROOT", tmp_path)
+    queue = tmp_path / "requests"
+    queue.mkdir()
+    results = tmp_path / "results"
+    results.mkdir()
+    name = "d" * 32 + ".json"
+    request = queue / name
+    request.write_text('{"resource":"train","code":"print(7)"}')
+    first = resource_client.read_requests()
+    assert request.exists()
+    # Model a response lost between the container and the operator host.
+    assert resource_client.read_requests() == first
+    staging = results / ("." + name + ".tmp")
+    staging.write_text('{"status":"completed"}')
+    assert resource_client.read_requests() == first
+    staging.rename(results / name)
+    assert resource_client.read_requests() == []
+    assert not request.exists()
+
+
+def test_acknowledged_batch_does_not_permanently_starve_next_requests(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(resource_client, "ROOT", tmp_path)
+    queue = tmp_path / "requests"
+    queue.mkdir()
+    results = tmp_path / "results"
+    results.mkdir()
+    for index in range(33):
+        name = f"{index:032x}.json"
+        (queue / name).write_text("{}")
+        if index < 32:
+            (results / name).write_text('{"status":"error"}')
+    assert resource_client.read_requests() == []
+    remaining = resource_client.read_requests()
+    assert len(remaining) == 1
+    assert remaining[0]["request_id"] == f"{32:032x}"
+
+
+@pytest.mark.asyncio
+async def test_lost_queue_read_response_is_retried_without_dispatch(
+    tmp_path, monkeypatch
+):
+    import asyncio
+
+    attempts = 0
+    request = {
+        "request_id": "a" * 32,
+        "payload": {"resource": "train", "code": "print(1)"},
+    }
+
+    async def execute(*args, **kwargs):
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise ConnectionError("read response lost")
+        return SimpleNamespace(return_code=0, stdout=json.dumps([request]), stderr="")
+
+    async def no_delay(_):
+        pass
+
+    monkeypatch.setattr(asyncio, "sleep", no_delay)
+    broker = ResourceBroker(
+        SimpleNamespace(exec=execute), {}, directory=tmp_path, backend="modal"
+    )
+    assert await broker.read_queue() == [request]
+    assert attempts == 2
+    assert not broker.seen
+    errors = [
+        json.loads(line) for line in (tmp_path / "queue.jsonl").read_text().splitlines()
+    ]
+    assert errors[0]["error_type"] == "ConnectionError"
+    assert errors[0]["attempt"] == 1
+
+
+@pytest.mark.asyncio
+async def test_queue_read_failure_is_bounded_and_keeps_original_cause(
+    tmp_path, monkeypatch
+):
+    import asyncio
+
+    async def execute(*args, **kwargs):
+        raise ConnectionError("provider unreachable")
+
+    async def no_delay(_):
+        pass
+
+    monkeypatch.setattr(asyncio, "sleep", no_delay)
+    broker = ResourceBroker(
+        SimpleNamespace(exec=execute), {}, directory=tmp_path, backend="modal"
+    )
+    with pytest.raises(RuntimeError, match="after 3 attempts") as error:
+        await broker.read_queue()
+    assert isinstance(error.value.__cause__, ConnectionError)
+    assert len((tmp_path / "queue.jsonl").read_text().splitlines()) == 3

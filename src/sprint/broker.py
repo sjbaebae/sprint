@@ -50,19 +50,48 @@ class ResourceBroker:
         """Poll through the provider control plane, with no learner-facing socket."""
         while True:
             async with self.gate:
-                result = await self.environment.exec(
-                    "python -I -S /opt/sprint-resource.py _read",
-                    user="root",
-                    timeout_sec=30,
-                )
+                requests = await self.read_queue()
+                async with asyncio.TaskGroup() as group:
+                    for request in requests:
+                        group.create_task(self.bounded_dispatch(request))
+            await asyncio.sleep(1)
+
+    async def read_queue(self):
+        """Retry observation only; valid requests remain until final feedback."""
+        for attempt in range(3):
+            try:
+                async with asyncio.timeout(35):
+                    result = await self.environment.exec(
+                        "python -I -S /opt/sprint-resource.py _read",
+                        user="root",
+                        timeout_sec=30,
+                    )
                 if result.return_code != 0:
                     raise RuntimeError(
                         "resource queue read failed: " + str(result.stderr)
                     )
-                async with asyncio.TaskGroup() as group:
-                    for request in json.loads(result.stdout or "[]"):
-                        group.create_task(self.bounded_dispatch(request))
-            await asyncio.sleep(1)
+                requests = json.loads(result.stdout or "[]")
+                if not isinstance(requests, list) or len(requests) > 32:
+                    raise ValueError("invalid resource queue response")
+                return requests
+            except Exception as error:
+                with (self.directory / "queue.jsonl").open("a") as stream:
+                    stream.write(
+                        json.dumps(
+                            {
+                                "timestamp": datetime.now(UTC).isoformat(),
+                                "attempt": attempt + 1,
+                                "error_type": type(error).__name__,
+                                "message": str(error),
+                            }
+                        )
+                        + "\n"
+                    )
+                if attempt == 2:
+                    raise RuntimeError(
+                        "resource queue read failed after 3 attempts"
+                    ) from error
+                await asyncio.sleep(attempt + 1)
 
     async def bounded_dispatch(self, request):
         """Drain a bounded concurrent batch before a checkpoint can acquire gate."""

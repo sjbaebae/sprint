@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Retain queued requests until final feedback is published; retry bounded queue
+  observations and retain provider failures without repeating job execution.
+
 - Retry failed resource teardown without losing independent trial results; retain
   unresolved cleanup errors in machine-readable records and the review page.
 

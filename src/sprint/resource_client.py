@@ -14,7 +14,11 @@ LIMIT = 2 * 1024 * 1024
 
 
 def read_requests():
-    """Read regular queue files without following links or blocking on FIFOs."""
+    """Read pending regular files; acknowledge only atomically published feedback.
+
+    A lost provider response must leave valid requests available for another read.
+    Malformed inputs are discarded without following links or blocking on FIFOs.
+    """
     requests = []
     directory = os.open(ROOT / "requests", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
@@ -24,23 +28,31 @@ def read_requests():
             if re.fullmatch(r"[a-f0-9]{32}\.json", name)
         )
         for name in names[:32]:
+            remove = False
             try:
+                # Feedback is root-owned and atomically published by the host.
+                # Reading is not acknowledgment: retain valid requests until then.
+                if (ROOT / "results" / name).is_file():
+                    remove = True
+                    continue
                 fd = os.open(
                     name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory
                 )
                 with os.fdopen(fd, "rb") as stream:
                     info = os.fstat(stream.fileno())
                     if not stat.S_ISREG(info.st_mode) or info.st_size > LIMIT:
+                        remove = True
                         continue
                     payload = json.loads(stream.read(LIMIT + 1))
                 requests.append({"request_id": name[:-5], "payload": payload})
             except (OSError, ValueError):
-                pass
+                remove = True
             finally:
-                try:
-                    os.unlink(name, dir_fd=directory)
-                except OSError:
-                    pass
+                if remove:
+                    try:
+                        os.unlink(name, dir_fd=directory)
+                    except OSError:
+                        pass
     finally:
         os.close(directory)
     return requests

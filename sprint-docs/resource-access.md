@@ -113,3 +113,10 @@ then attempts resource cleanup. This trial is an infrastructure error, not a sco
 agent submission. Ordinary failed training jobs return feedback for further research.
 Run `uv run python examples/sprint/failure/service_preflight.py` to exercise this
 failure isolation with two Modal trials.
+
+Queue reads retain valid requests until root-owned final feedback is published.
+A lost provider response can therefore be retried without losing the submission.
+The broker retries queue observation up to three times, with 35-second host bounds
+per attempt, and records failures in `queue.jsonl`. Exhaustion terminates the
+service and affected trial. This does not provide automatic recovery of running
+jobs after host loss; debug resume uses explicitly captured checkpoint state.
