@@ -10,6 +10,18 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
+from sprint.environments.factory import EnvironmentFactory
+from sprint.models.task.config import (
+    EnvironmentConfig,
+    NetworkPolicy,
+    NetworkMode,
+)
+from sprint.models.environment_type import EnvironmentType
+from sprint.models.trial.config import EnvironmentConfig as BackendConfig
+from sprint.models.trial.paths import TrialPaths
+
+from .backends.runtime import build_worker
+
 
 CLEANUP_SECONDS = 60
 
@@ -32,9 +44,9 @@ async def close_all(resources):
 
 
 class WorkerSession:
-    """Own one lazily provisioned worker and execute bounded Python jobs serially.
+    """Own one lazy worker and serialize its Python jobs or granted shell commands.
 
-    The workspace survives successful jobs for checkpoint reuse. Any execution
+    Files survive successful calls; shell calls may also retain processes. Any execution
     exception destroys the worker: a timeout must not leave detached code running.
     Use as an async context manager so trial cancellation also tears it down.
     """
@@ -84,17 +96,6 @@ class WorkerSession:
             raise TimeoutError("worker lifetime exceeded")
         if self.environment is not None:
             return
-        from sprint.environments.factory import EnvironmentFactory
-        from sprint.models.task.config import (
-            EnvironmentConfig,
-            NetworkPolicy,
-            NetworkMode,
-        )
-        from sprint.models.environment_type import EnvironmentType
-        from sprint.models.trial.config import EnvironmentConfig as BackendConfig
-        from sprint.models.trial.paths import TrialPaths
-        from .backends.runtime import build_worker
-
         build = self.context or build_worker(
             self.worker, self.directory / "environment"
         )
