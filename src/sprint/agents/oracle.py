@@ -16,6 +16,10 @@ from sprint.models.trial.paths import EnvironmentPaths, TrialPaths
 from sprint.utils.env import resolve_env_vars
 
 
+class OracleExecutionError(RuntimeError):
+    """A reference script failed; do not report its artifact as a valid oracle run."""
+
+
 class OracleAgent(BaseAgent):
     _ORACLE_LOG_FILE = "oracle.txt"
     capabilities = AgentCapabilities(windows=True)
@@ -151,6 +155,9 @@ class OracleAgent(BaseAgent):
             if result.return_code != 0:
                 exit_code_path = self._trial_paths.agent_dir / "exit-code.txt"
                 exit_code_path.write_text(str(result.return_code))
+                raise OracleExecutionError(
+                    f"Reference solution exited with code {result.return_code}; see {self._ORACLE_LOG_FILE}"
+                )
         finally:
             if self._task.has_steps:
                 self._step_index += 1

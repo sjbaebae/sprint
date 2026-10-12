@@ -58,3 +58,19 @@ worker lifetime. Provider cleanup may take additional time after the deadline.
 Worker teardown has a 60-second host timeout. Cleanup errors are retained in the
 trusted worker journal, and the provider handle is retained for another cleanup
 attempt. A timeout is not recorded as successful resource deletion.
+
+Final result collection also validates private grader output: only graded or
+zero-reward disqualified results may contain a reward. Quarantined results have
+none. Malformed JSON, unknown statuses and nonfinite/out-of-range rewards quarantine
+that trial without discarding other campaign results. Disqualification requires
+confirmed evidence; a graded result cannot contain unresolved violations.
+
+A reference/oracle script exiting nonzero is an execution error, with its log and
+exit code retained. This rule concerns the oracle entrypoint, not unsuccessful
+experiments performed by an agent during otherwise valid research. Artifact-diff
+or transcript-rendering failures are reported as visibility failures and do not
+silently alter trusted grading.
+
+Run `uv run python examples/sprint/failure/preflight.py` to verify reference failure
+handling on Modal. It intentionally fails the reference and requires an unscored
+execution error; an all-zero summary alone is not proof that this check passed.

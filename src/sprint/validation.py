@@ -60,6 +60,26 @@ def unsafe_artifact(root):
     return None
 
 
+def validate_violation_groups(value):
+    """Require attributable confirmed/suspected records; do not infer violations."""
+    if not isinstance(value, dict) or set(value) != {"confirmed", "suspected"}:
+        raise ValueError("violations must contain confirmed and suspected lists")
+    for group in value.values():
+        if not isinstance(group, list) or any(
+            not isinstance(item, dict)
+            or not isinstance(item.get("id"), str)
+            or not item["id"].strip()
+            or not isinstance(item.get("evidence"), list)
+            or not item["evidence"]
+            for item in group
+        ):
+            raise ValueError(
+                "each violation requires an ID and a nonempty evidence list"
+            )
+    json.dumps(value, allow_nan=False)
+    return value
+
+
 def evaluate(module, context, *, weights=(1.0, 0.0), rubric=None):
     """Disqualifications gate grading; suspicion or grader errors remain unscored.
 
@@ -91,18 +111,7 @@ def evaluate(module, context, *, weights=(1.0, 0.0), rubric=None):
         )
         return {**result, "status": "disqualified", "reward": 0.0}
     if hasattr(module, "disqualify"):
-        violations = module.disqualify(context)
-        if not isinstance(violations, dict) or set(violations) != {
-            "confirmed",
-            "suspected",
-        }:
-            raise ValueError("disqualify must return confirmed and suspected lists")
-        for group in violations.values():
-            if not isinstance(group, list) or any(
-                not isinstance(v, dict) or not v.get("id") or not v.get("evidence")
-                for v in group
-            ):
-                raise ValueError("each violation requires id and evidence")
+        violations = validate_violation_groups(module.disqualify(context))
         result["violations"] = violations
         if violations["confirmed"]:
             return {**result, "status": "disqualified", "reward": 0.0}

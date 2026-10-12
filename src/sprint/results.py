@@ -2,9 +2,11 @@
 
 import html
 import json
+import math
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 
 @dataclass(frozen=True)
@@ -126,6 +128,14 @@ def read_trajectory(path):
             raise ValueError("trajectory must contain a steps list")
         if any(not isinstance(step, dict) for step in data.get("steps", [])):
             raise ValueError("trajectory steps must be objects")
+        for step in data.get("steps", []):
+            calls = step.get("tool_calls")
+            if calls is not None and (
+                not isinstance(calls, list)
+                or any(not isinstance(call, dict) for call in calls)
+            ):
+                raise ValueError("trajectory tool_calls must be a list of objects")
+        json.dumps(data, allow_nan=False)
         return data
     except (OSError, ValueError) as error:
         return {"steps": [], "error": f"{type(error).__name__}: {error}"}
@@ -138,6 +148,63 @@ def pre(value):
     return "<pre>" + html.escape(value) + "</pre>"
 
 
+def read_grade(path):
+    """Quarantine malformed private grading without losing other trial records."""
+    if not path.exists() and not path.is_symlink():
+        return {}
+    try:
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("grading result must be a regular file")
+        value = json.loads(path.read_text())
+        if not isinstance(value, dict):
+            raise ValueError("grading result must be an object")
+        json.dumps(value, allow_nan=False)
+        status = value.get("status")
+        if status not in {"graded", "disqualified", "quarantined"}:
+            raise ValueError("unknown grading status")
+        reward = value.get("reward")
+        if status == "quarantined":
+            if "reward" in value:
+                raise ValueError("quarantined grading must not contain reward")
+        elif (
+            type(reward) not in (int, float)
+            or not math.isfinite(reward)
+            or not 0 <= reward <= 1
+        ):
+            raise ValueError("final reward must be finite and in [0, 1]")
+        elif status == "disqualified" and reward != 0:
+            raise ValueError("disqualified grading must have zero reward")
+        from .validation import validate_violation_groups
+
+        violations = validate_violation_groups(
+            value.get("violations", {"confirmed": [], "suspected": []})
+        )
+        if status == "disqualified" and not violations["confirmed"]:
+            raise ValueError("disqualification requires confirmed violation evidence")
+        if status == "graded" and any(violations.values()):
+            raise ValueError("graded result contains unresolved violations")
+        return value
+    except (OSError, ValueError, TypeError) as error:
+        return {
+            "status": "quarantined",
+            "error_type": "MalformedGradingResult",
+            "message": str(error),
+        }
+
+
+def inspect_artifact(directory, records, submission):
+    """An inspection failure is retained without changing trusted grading."""
+    try:
+        return artifact_state(directory, records, submission)
+    except (OSError, ValueError) as error:
+        return {
+            "scope": submission,
+            "status": "inspection_error",
+            "error_type": type(error).__name__,
+            "message": str(error),
+        }
+
+
 def collect(directory, job_directory, native, *, submission="/app/submission"):
     """Translate a completed Harbor job without exposing its model classes."""
     directory, job_directory = Path(directory), Path(job_directory)
@@ -145,7 +212,7 @@ def collect(directory, job_directory, native, *, submission="/app/submission"):
     for trial in native.trial_results:
         records = job_directory / trial.trial_name
         grade_path = records / "verifier/result.json"
-        grade = json.loads(grade_path.read_text()) if grade_path.is_file() else {}
+        grade = read_grade(grade_path)
         error = (
             trial.exception_info.model_dump(mode="json")
             if trial.exception_info
@@ -172,7 +239,7 @@ def collect(directory, job_directory, native, *, submission="/app/submission"):
                 records=str(records.relative_to(directory)),
                 validation=grade,
                 error=error,
-                state=artifact_state(directory, records, submission),
+                state=inspect_artifact(directory, records, submission),
             )
         )
     return RunResult(directory, tuple(trials)).save()
@@ -201,8 +268,15 @@ def artifact_state(directory, records, submission):
         initial = records / "state-empty"
         initial.mkdir(exist_ok=True)
     store = records / "state"
+    if store.exists() or store.is_symlink():
+        store = records / ("state-" + uuid4().hex)
     before = StateTracker(initial, store).capture("before")
     after = StateTracker(final, store).capture("after")
     changes = StateTracker.diff(before, after)
     (store / "diff.json").write_text(json.dumps(changes, indent=2))
-    return {**scope, "status": "captured", "changes": changes}
+    return {
+        **scope,
+        "status": "captured",
+        "changes": changes,
+        "records": str(store.relative_to(directory)),
+    }

@@ -183,3 +183,28 @@ async def test_oracle_agent_uses_windows_step_specific_solve_bat(
     assert commands == [
         r"(cmd /c C:\solution\solve.bat) > C:\logs\agent\oracle.txt 2>&1"
     ]
+
+
+@pytest.mark.asyncio
+async def test_oracle_nonzero_exit_is_an_explicit_execution_failure(tmp_path):
+    from sprint.agents.oracle import OracleExecutionError
+
+    task_dir = _make_multi_step_oracle_task(tmp_path)
+    paths = TrialPaths(trial_dir=tmp_path / "trial")
+    paths.mkdir()
+    environment = AsyncMock()
+    environment.capabilities.mounted = True
+    environment.os = TaskOS.LINUX
+    environment.scoped_exec_env = MagicMock(
+        side_effect=lambda _: contextlib.nullcontext()
+    )
+    environment.exec = AsyncMock(
+        side_effect=[
+            ExecResult(stdout="", stderr="", return_code=0),
+            ExecResult(stdout="", stderr="failed", return_code=7),
+        ]
+    )
+    agent = OracleAgent(logs_dir=paths.agent_dir, task_dir=task_dir, trial_paths=paths)
+    with pytest.raises(OracleExecutionError, match="code 7"):
+        await agent.run("task", environment, AgentContext())
+    assert (paths.agent_dir / "exit-code.txt").read_text() == "7"

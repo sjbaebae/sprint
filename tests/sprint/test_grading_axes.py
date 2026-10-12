@@ -45,3 +45,18 @@ def test_judge_cannot_omit_or_invent_rubric_axes():
         grade_axes(criteria, {"T:4": {}}, expected_ids=["design", "implementation"])
     with pytest.raises(ValueError, match="exactly the expected"):
         grade_axes(criteria, {"T:4": {}}, expected_ids=["hypotheses"])
+
+
+@pytest.mark.parametrize(
+    "violation",
+    [
+        {"id": "", "evidence": ["T:1"]},
+        {"id": "claim", "evidence": "T:1"},
+        {"id": "claim", "evidence": []},
+    ],
+)
+def test_violation_records_require_ids_and_evidence_lists(violation):
+    from sprint.validation import validate_violation_groups
+
+    with pytest.raises(ValueError, match="evidence list"):
+        validate_violation_groups({"confirmed": [violation], "suspected": []})

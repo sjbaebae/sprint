@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Quarantine malformed grading per trial, preserve grades through review failures,
+  and support repeated artifact inspection. Reference scripts exiting nonzero now
+  raise an explicit oracle execution error rather than appearing successfully graded.
+
 - Validate checkpoint time, spending, lineage and state scope before provisioning;
   bound worker teardown and retain failed cleanup handles for retry. Normalize
   fractional remaining time to integer Modal timeouts and reject invalid limit definitions.

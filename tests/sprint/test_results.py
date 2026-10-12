@@ -3,6 +3,8 @@
 import json
 from types import SimpleNamespace
 
+import pytest
+
 from sprint.results import RunResult, TrialResult, collect
 
 
@@ -175,3 +177,112 @@ def test_review_numbers_only_agent_turns_and_marks_missing_reasoning(tmp_path):
     assert "Turn 1: agent" in page
     assert "Turn 3: agent" not in page
     assert "No reasoning summary recorded" in page
+
+
+@pytest.mark.parametrize(
+    "grade",
+    [
+        "[]",
+        "{broken",
+        '{"status":"graded","reward":true}',
+        '{"status":"graded","reward":NaN}',
+        '{"status":"graded","reward":1.1}',
+        '{"status":"quarantined","reward":1}',
+        '{"status":"disqualified","reward":0.5}',
+        '{"status":"unknown","reward":1}',
+        '{"status":"graded"}',
+        '{"status":"disqualified","reward":0}',
+        '{"status":"graded","reward":1,"violations":{"confirmed":[],"suspected":[{"id":"suspect","evidence":["T:1"]}]}}',
+    ],
+)
+def test_malformed_grading_quarantines_without_losing_campaign(tmp_path, grade):
+    native = tmp_path / "native"
+    for name, value in (("bad", grade), ("good", '{"status":"graded","reward":0.75}')):
+        records = native / name / "verifier"
+        records.mkdir(parents=True)
+        (records / "result.json").write_text(value)
+    trials = [
+        SimpleNamespace(
+            trial_name=name, exception_info=None, started_at=None, finished_at=None
+        )
+        for name in ("bad", "good")
+    ]
+    result = collect(tmp_path, native, SimpleNamespace(trial_results=trials))
+    assert result.trials[0].status == "quarantined"
+    assert result.trials[0].validation["error_type"] == "MalformedGradingResult"
+    assert result.rewards == [0.75]
+    json.loads((tmp_path / "result.json").read_text())
+
+
+def test_artifact_inspection_failure_does_not_discard_grade(tmp_path, monkeypatch):
+    import sprint.results as results
+
+    records = tmp_path / "native/trial/verifier"
+    records.mkdir(parents=True)
+    (records / "result.json").write_text('{"status":"graded","reward":0.75}')
+
+    def failed_inspection(*args):
+        raise OSError("export unavailable")
+
+    monkeypatch.setattr(results, "artifact_state", failed_inspection)
+    trial = SimpleNamespace(
+        trial_name="trial", exception_info=None, started_at=None, finished_at=None
+    )
+    result = collect(
+        tmp_path, tmp_path / "native", SimpleNamespace(trial_results=[trial])
+    )
+    assert result.rewards == [0.75]
+    assert result.trials[0].state["status"] == "inspection_error"
+
+
+def test_review_reports_invalid_tool_calls_without_losing_grade(tmp_path):
+    agent = tmp_path / "native/trial/agent"
+    agent.mkdir(parents=True)
+    (agent / "trajectory.json").write_text(
+        '{"steps":[{"source":"agent","tool_calls":7}]}'
+    )
+    result = RunResult(
+        tmp_path,
+        (TrialResult("trial", "graded", 0.5, None, None, "native/trial", {}, None),),
+    ).save()
+    assert result.rewards == [0.5]
+    assert "Transcript unavailable" in (tmp_path / "review.html").read_text()
+
+
+def test_artifact_inspection_can_repeat_and_observe_new_export(tmp_path):
+    from sprint.results import artifact_state
+
+    final = tmp_path / "native/trial/artifacts/app/submission"
+    final.mkdir(parents=True)
+    (final / "answer").write_text("first")
+    first = artifact_state(tmp_path, tmp_path / "native/trial", "/app/submission")
+    (final / "answer").write_text("second")
+    second = artifact_state(tmp_path, tmp_path / "native/trial", "/app/submission")
+    assert first["status"] == second["status"] == "captured"
+    assert first["records"] != second["records"]
+    assert "+second" in second["changes"][0]["patch"]
+
+
+def test_disqualification_requires_evidence_and_retains_zero_reward(tmp_path):
+    from sprint.results import read_grade
+
+    path = tmp_path / "grade.json"
+    path.write_text(
+        json.dumps(
+            {
+                "status": "disqualified",
+                "reward": 0,
+                "violations": {
+                    "confirmed": [
+                        {
+                            "id": "unsafe_artifact",
+                            "evidence": ["submission contains a symlink"],
+                        }
+                    ],
+                    "suspected": [],
+                },
+            }
+        )
+    )
+    assert read_grade(path)["status"] == "disqualified"
+    assert read_grade(path)["reward"] == 0
