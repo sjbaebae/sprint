@@ -388,3 +388,42 @@ async def test_queue_read_failure_is_bounded_and_keeps_original_cause(
         await broker.read_queue()
     assert isinstance(error.value.__cause__, ConnectionError)
     assert len((tmp_path / "queue.jsonl").read_text().splitlines()) == 3
+
+
+@pytest.mark.asyncio
+async def test_request_limit_bounds_host_lineage_and_records_with_explicit_feedback(
+    tmp_path,
+):
+    from sprint import Budget
+
+    feedback = []
+
+    async def upload(source, target):
+        feedback.append(json.loads(source.read_text()))
+
+    broker = ResourceBroker(
+        SimpleNamespace(upload_file=upload, exec=successful_exec),
+        {"train": Worker()},
+        directory=tmp_path,
+        backend="modal",
+        budget=Budget(resource_requests=2),
+    )
+    for index in range(20):
+        await broker.dispatch(
+            {
+                "request_id": f"{index:032x}",
+                "payload": {"resource": "not-granted", "code": "print(1)"},
+            }
+        )
+    assert len(broker.seen) == 2
+    assert len(feedback) == 20
+    assert all(row["error_type"] == "ResourceRequestLimitError" for row in feedback[2:])
+    assert len(list(tmp_path.glob("*.json"))) == 3
+    assert not broker.sessions
+    assert not broker.reservations
+    event = json.loads((tmp_path / "request-limit.json").read_text())
+    assert event["limit"] == 2
+    assert event["first_rejected_request"] == f"{2:032x}"
+    # An already admitted request remains deduplicated after exhaustion.
+    await broker.dispatch({"request_id": f"{0:032x}", "payload": {}})
+    assert len(feedback) == 20

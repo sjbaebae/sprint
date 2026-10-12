@@ -3,6 +3,7 @@
 import asyncio
 import json
 import re
+import tempfile
 from pathlib import Path
 from datetime import UTC, datetime
 
@@ -151,11 +152,12 @@ class ResourceBroker:
             raise ValueError("invalid queue request ID")
         if request_id in self.seen:
             return
+        if len(self.seen) >= self.budget.resource_requests:
+            await self.reject_limit(request_id)
+            return
         self.seen.add(request_id)
         response = {"request_id": request_id}
         try:
-            if len(self.seen) > self.budget.resource_requests:
-                raise ValueError("trial resource request limit exceeded")
             payload = request["payload"]
             if isinstance(payload, dict) and set(payload) == {"collect", "path"}:
                 original = payload["collect"]
@@ -201,6 +203,35 @@ class ResourceBroker:
         local = self.directory / (request_id + ".json")
         local.write_text(json.dumps(response))
         await self.publish(local, request_id)
+
+    async def reject_limit(self, request_id):
+        """Return explicit rejection without growing admitted lineage or host records.
+
+        Rejection feedback remains in the learner sandbox. Retain one exhaustion
+        event on the operator host; never allocate another worker or reservation.
+        """
+        response = {
+            "request_id": request_id,
+            "status": "error",
+            "error_type": "ResourceRequestLimitError",
+            "message": "trial resource request limit exceeded",
+        }
+        event = self.directory / "request-limit.json"
+        if not event.exists():
+            event.write_text(
+                json.dumps(
+                    {
+                        "timestamp": datetime.now(UTC).isoformat(),
+                        "event": "resource-request-limit-reached",
+                        "first_rejected_request": request_id,
+                        "limit": self.budget.resource_requests,
+                    }
+                )
+            )
+        with tempfile.TemporaryDirectory(prefix="sprint-rejection-") as temporary:
+            local = Path(temporary) / "feedback.json"
+            local.write_text(json.dumps(response))
+            await self.publish(local, request_id)
 
     async def publish(self, local, request_id):
         """Retry atomic delivery of retained feedback; never repeat job execution."""

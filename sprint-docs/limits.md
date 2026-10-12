@@ -10,7 +10,14 @@ budget = Budget(
 train = Worker(seconds=600, lifetime_seconds=1800, hourly_cost=1.5)
 ```
 
-Limits apply per trial. Independent workers may run concurrently. Requests to the
+Limits apply per trial. A unique admitted run or collection request consumes one
+`resource_requests` slot, including malformed payloads and failed jobs. Duplicate
+admitted IDs do not consume another slot. After exhaustion, requests receive
+`ResourceRequestLimitError` without growing host lineage or provisioning workers;
+one `request-limit.json` exhaustion record is retained. Rejection feedback lives
+in the learner sandbox. Status reads do not consume request slots.
+
+Independent workers may run concurrently. Requests to the
 same persistent worker remain serialized. Checkpoints wait for the current batch
 to drain and retain request IDs, completed jobs and spending reservations. Debug
 resume does not reset those limits. `live.status()` reports remaining time, requests,

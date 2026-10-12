@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Bound admitted request history and host records after resource-budget exhaustion,
+  while returning explicit rejection feedback and preserving limits across restore.
+
 - Reject checkpoint restores that mix captured resource helpers with a different
   host runtime, before materialization or provisioning.
 

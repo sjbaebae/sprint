@@ -381,3 +381,24 @@ def test_compiled_resource_release_passes_resume_compatibility(tmp_path):
     assert (restored / "workers/train/worker_run.py").read_bytes() == (
         task / "workers/train/worker_run.py"
     ).read_bytes()
+
+
+def test_restore_refuses_request_lineage_larger_than_budget(tmp_path):
+    from sprint import Budget
+    from sprint.live import validate_resume_limits
+
+    experiment = Experiment(
+        Task("task"),
+        Validation(tmp_path / "private"),
+        Agent("unused"),
+        budget=Budget(resource_requests=1),
+    )
+    with pytest.raises(ValueError, match="request lineage"):
+        validate_resume_limits(
+            experiment,
+            {
+                "remaining_seconds": 30,
+                "workers": {},
+                "broker": {"seen": ["a" * 32, "b" * 32]},
+            },
+        )

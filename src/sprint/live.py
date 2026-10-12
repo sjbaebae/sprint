@@ -114,6 +114,7 @@ def validate_resume_limits(experiment, metadata):
             for key in seen
         )
         or len(seen) != len(set(seen))
+        or len(seen) > experiment.budget.resource_requests
     ):
         raise ValueError("invalid checkpoint request lineage")
     if not isinstance(completed, dict) or any(
