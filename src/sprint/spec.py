@@ -111,9 +111,15 @@ class Worker:
     lifetime_seconds: int = 3600
     backend: str | None = None
 
+    hourly_cost: float | None = None
+
     state_paths: tuple[str, ...] = STATE_PATHS
 
     def __post_init__(self):
+        if self.hourly_cost is not None and (
+            not math.isfinite(self.hourly_cost) or self.hourly_cost < 0
+        ):
+            raise ValueError("hourly_cost must be finite and nonnegative")
         validate_state_paths(self.state_paths)
         if self.backend is not None:
             from .models.environment_type import EnvironmentType
@@ -234,8 +240,20 @@ class Budget:
     """Trial wall time. Harness-specific action limits require a capable adapter."""
 
     seconds: int = 3600
+    worker_concurrency: int = 1
+    resource_requests: int = 200
+    worker_spend: float | None = None
 
     def __post_init__(self):
+        for value in (self.worker_concurrency, self.resource_requests):
+            if type(value) is not int or value < 1:
+                raise ValueError(
+                    "concurrency and request limits must be positive integers"
+                )
+        if self.worker_spend is not None and (
+            not math.isfinite(self.worker_spend) or self.worker_spend < 0
+        ):
+            raise ValueError("worker_spend must be finite and nonnegative")
         if self.seconds <= 0:
             raise ValueError("trial timeout must be positive")
 

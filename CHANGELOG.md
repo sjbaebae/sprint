@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add per-trial worker concurrency, configurable resource request limits and retained
+  declared-rate lifetime spending reservations. Bound Modal sandbox survival after
+  host loss and add a rubric helper requiring explained scores and resolved evidence.
+
+
 - Add explicit SSH operator hosts (including Runpod CPU), per-worker backend placement, private release staging, complete record retrieval and remote cancellation.
 
 - Add mid-task logical-state checkpoint/resume: workspace chunks, native agent history, worker request lineage, compiled releases and remaining budgets. Processes restart on restore.

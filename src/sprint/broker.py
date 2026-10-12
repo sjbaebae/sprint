@@ -12,7 +12,14 @@ class ResourceBroker:
     """Route bounded code requests to explicitly granted per-trial workers."""
 
     def __init__(
-        self, environment, workers, *, directory: Path, backend, contexts=None
+        self,
+        environment,
+        workers,
+        *,
+        directory: Path,
+        backend,
+        contexts=None,
+        budget=None,
     ):
         if environment is None:
             raise ValueError("resource broker requires a live agent environment")
@@ -25,6 +32,12 @@ class ResourceBroker:
         self.task = None
         self.seen = set()
         self.completed = {}
+        from .spec import Budget
+
+        self.budget = budget or Budget()
+        self.reservations = {}
+        self.session_gate = asyncio.Lock()
+        self.slots = asyncio.Semaphore(self.budget.worker_concurrency)
         self.gate = asyncio.Lock()
 
     async def start(self):
@@ -45,9 +58,60 @@ class ResourceBroker:
                     raise RuntimeError(
                         "resource queue read failed: " + str(result.stderr)
                     )
-                for request in json.loads(result.stdout or "[]"):
-                    await self.dispatch(request)
+                async with asyncio.TaskGroup() as group:
+                    for request in json.loads(result.stdout or "[]"):
+                        group.create_task(self.bounded_dispatch(request))
             await asyncio.sleep(1)
+
+    async def bounded_dispatch(self, request):
+        """Drain a bounded concurrent batch before a checkpoint can acquire gate."""
+        async with self.slots:
+            await self.dispatch(request)
+
+    def reserve(self, name):
+        """Reserve the worker's full declared lifetime; never refund on uncertainty.
+
+        This is a conservative operator rate budget, not a provider invoice cap.
+        The reservation survives checkpoints and failed provisioning attempts.
+        """
+        if name in self.reservations:
+            return
+        worker = self.workers[name]
+        rate = worker.hourly_cost
+        if self.budget.worker_spend is not None and rate is None:
+            raise ValueError("spending limit requires hourly_cost on every worker")
+        amount = (rate or 0) * worker.lifetime_seconds / 3600
+        if (
+            self.budget.worker_spend is not None
+            and sum(self.reservations.values()) + amount > self.budget.worker_spend
+        ):
+            raise ValueError("worker lifetime reservation exceeds spending limit")
+        self.reservations[name] = amount
+        self.directory.mkdir(parents=True, exist_ok=True)
+        (self.directory / "spending.json").write_text(
+            json.dumps(
+                {
+                    "basis": "declared-rate-full-lifetime",
+                    "reservations": self.reservations,
+                    "limit": self.budget.worker_spend,
+                }
+            )
+        )
+
+    async def session(self, name):
+        """Serialize creation and reservation, including requests for the same worker."""
+        async with self.session_gate:
+            if name not in self.sessions:
+                self.reserve(name)
+                session = WorkerSession(
+                    self.workers[name],
+                    directory=self.directory / name,
+                    backend=self.backend,
+                    context=self.contexts.get(name),
+                )
+                await session.__aenter__()
+                self.sessions[name] = session
+            return self.sessions[name]
 
     async def dispatch(self, request):
         request_id = request["request_id"]
@@ -60,7 +124,7 @@ class ResourceBroker:
         self.seen.add(request_id)
         response = {"request_id": request_id}
         try:
-            if len(self.seen) > 200:
+            if len(self.seen) > self.budget.resource_requests:
                 raise ValueError("trial resource request limit exceeded")
             payload = request["payload"]
             if isinstance(payload, dict) and set(payload) == {"collect", "path"}:
@@ -93,16 +157,8 @@ class ResourceBroker:
                 name = payload["resource"]
                 if not isinstance(name, str) or name not in self.workers:
                     raise ValueError("resource is not granted to this trial")
-                if name not in self.sessions:
-                    session = WorkerSession(
-                        self.workers[name],
-                        directory=self.directory / name,
-                        backend=self.backend,
-                        context=self.contexts.get(name),
-                    )
-                    await session.__aenter__()
-                    self.sessions[name] = session
-                response.update(await self.sessions[name].run(payload["code"]))
+                session = await self.session(name)
+                response.update(await session.run(payload["code"]))
                 response["status"] = (
                     "completed" if response["return_code"] == 0 else "failed"
                 )

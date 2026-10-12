@@ -19,6 +19,11 @@ class Context:
     private: Path
     records: Path | None = None
 
+    @staticmethod
+    def grade_axes(criteria, evidence, *, maximum=3):
+        """Grade explained rubric scores using a trusted evidence reference index."""
+        return grade_axes(criteria, evidence, maximum=maximum)
+
 
 def component(value):
     """Require normalized scores and JSON-serializable metrics/evidence."""
@@ -59,6 +64,15 @@ def evaluate(module, context, *, weights=(1.0, 0.0), rubric=None):
     Deterministic checks must supply evidence for confirmed violations. Model
     allegations alone belong in suspected. Failures never receive a default score.
     """
+    if (
+        len(weights) != 2
+        or any(
+            type(weight) not in (int, float) or not math.isfinite(weight) or weight < 0
+            for weight in weights
+        )
+        or not math.isclose(sum(weights), 1)
+    ):
+        raise ValueError("grading weights must be finite, nonnegative and sum to one")
     result: dict[str, Any] = {
         "status": "graded",
         "violations": {"confirmed": [], "suspected": []},
@@ -137,6 +151,50 @@ def main(config_path):
         raise SystemExit(2)
     (output / "reward.json").write_text(
         json.dumps({"reward": result["reward"]}, allow_nan=False)
+    )
+
+
+def grade_axes(criteria, evidence, *, maximum=3):
+    """Validate equally weighted rubric judgments against a trusted evidence index.
+
+    Each criterion supplies id, score, explanation and evidence reference IDs.
+    Authors build the index from records supplied to the judge, not judge output.
+    Every score requires a concrete explanation; missing references fail grading.
+    This checks provenance and shape, not whether the judge's interpretation is true.
+    """
+    if type(maximum) is not int or maximum < 1:
+        raise ValueError("maximum must be a positive integer")
+    if not isinstance(criteria, list) or not criteria:
+        raise ValueError("criteria must be a nonempty list")
+    if not isinstance(evidence, dict):
+        raise ValueError("evidence must be a trusted reference index")
+    seen = set()
+    for item in criteria:
+        if not isinstance(item, dict):
+            raise ValueError("criterion must be an object")
+        identifier = item.get("id")
+        if not isinstance(identifier, str) or not identifier or identifier in seen:
+            raise ValueError("criterion IDs must be unique nonempty strings")
+        seen.add(identifier)
+        score = item.get("score")
+        if type(score) is not int or not 0 <= score <= maximum:
+            raise ValueError("criterion score is outside the rubric scale")
+        reason = item.get("explanation")
+        refs = item.get("evidence")
+        if not isinstance(reason, str) or not reason.strip():
+            raise ValueError("every criterion requires a concrete explanation")
+        if (
+            not isinstance(refs, list)
+            or not refs
+            or any(not isinstance(ref, str) or ref not in evidence for ref in refs)
+        ):
+            raise ValueError("every criterion requires resolvable evidence references")
+    return component(
+        {
+            "score": sum(item["score"] for item in criteria)
+            / (maximum * len(criteria)),
+            "criteria": criteria,
+        }
     )
 
 

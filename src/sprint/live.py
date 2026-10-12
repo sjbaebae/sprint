@@ -234,6 +234,21 @@ class LiveRun:
         async with self.lock:
             pass
 
+    def status(self):
+        """Inspect live limits without executing code in or changing the learner."""
+        elapsed = time.monotonic() - self.started if self.started is not None else 0
+        broker = self.broker
+        return {
+            "active": self.active,
+            "remaining_seconds": max(0, self.seconds - elapsed),
+            "resource_requests_used": len(broker.seen) if broker else 0,
+            "resource_requests_limit": self.experiment.budget.resource_requests,
+            "worker_concurrency": self.experiment.budget.worker_concurrency,
+            "worker_spend_limit": self.experiment.budget.worker_spend,
+            "worker_reservations": dict(broker.reservations) if broker else {},
+            "workers": sorted(broker.sessions) if broker else [],
+        }
+
     async def checkpoint(self, name):
         """Quiesce writers, drain a running worker request, publish, then continue.
 
@@ -278,6 +293,7 @@ class LiveRun:
                     broker_state = {
                         "seen": sorted(self.broker.seen),
                         "completed": self.broker.completed,
+                        "reservations": self.broker.reservations,
                     }
                 else:
                     broker_state = {"seen": [], "completed": {}}

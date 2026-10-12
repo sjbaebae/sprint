@@ -76,14 +76,14 @@ sprint-resource collect REQUEST_ID checkpoint.pt --wait 60
 `run` returns a request ID and actual exit code/stdout/stderr when completed.
 `collect` copies one regular file beneath the worker's `/app`; copy its returned
 read-only `artifact` path into your submission. Checkpoints persist between jobs.
-The host serializes jobs, retains code/hashes/UTC events and destroys workers before
+The host serializes jobs within each worker, retains code/hashes/UTC events and destroys workers before
 verification. Jobs have `Worker.seconds` deadlines and a total
 `Worker.lifetime_seconds` limit. Modal also enforces a provider lifetime.
 
 Collection rejects symlink paths, special files, concurrent changes and files over
-1 GiB. Source payloads are limited to 1 MiB; there are at most 200 resource requests
-per trial. These are resource-service limits, independent of harness action counts.
-See [resource access](resource-access.md) for boundaries.
+1 GiB. Source payloads are limited to 1 MiB; the default is 200 resource requests
+per trial, configurable through `Budget.resource_requests`. These are resource-service limits, independent of harness action counts.
+See [resource access](resource-access.md) and [runtime limits](limits.md) for boundaries and spending/concurrency configuration.
 
 ## Test the complete path
 

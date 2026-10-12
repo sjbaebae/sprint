@@ -293,6 +293,7 @@ async def restore_workers(broker, checkpoint, records):
 
     broker.seen = set(checkpoint.metadata["broker"]["seen"])
     broker.completed = dict(checkpoint.metadata["broker"]["completed"])
+    broker.reservations = dict(checkpoint.metadata["broker"].get("reservations", {}))
     for name, state in checkpoint.metadata["workers"].items():
         if name not in broker.workers:
             raise ValueError("checkpoint references an ungranted worker")
@@ -348,6 +349,10 @@ async def run(
 
     if trials < 1 or parallel < 1:
         raise ValueError("trials and parallel must be positive")
+    if experiment.budget.worker_spend is not None:
+        for attachment in experiment.env.attachments.values():
+            if isinstance(attachment, Worker) and attachment.hourly_cost is None:
+                raise ValueError("spending limit requires hourly_cost on every worker")
     directory = Path(directory).resolve()
     auth_env = agent_auth_env(experiment.agent)
     checkpoint, trajectory, seconds = None, None, experiment.budget.seconds
@@ -398,7 +403,14 @@ async def run(
                 override_timeout_sec=seconds,
             )
         ],
-        environment=TrialEnvironmentConfig(type=backend),
+        environment=TrialEnvironmentConfig(
+            type=backend,
+            kwargs={
+                "sandbox_timeout_secs": seconds + experiment.validation.seconds + 300
+            }
+            if backend == "modal"
+            else {},
+        ),
     )
     from sprint.trial.hooks import TrialEvent
     from ..results import collect
@@ -444,6 +456,7 @@ async def run(
                     directory=directory / "resources" / event.trial_name,
                     backend=backend,
                     contexts={name: task / "workers" / name for name in workers},
+                    budget=experiment.budget,
                 )
                 brokers[event.trial_name] = broker
                 if checkpoint is not None:
