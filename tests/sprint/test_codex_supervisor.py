@@ -48,3 +48,19 @@ def test_bounded_harness_forces_single_agent_and_managed_profile(tmp_path):
     assert config["features"]["multi_agent"] is False
     assert config["features"]["multi_agent_v2"] is False
     assert config["web_search"] == "live"
+
+
+@pytest.mark.asyncio
+async def test_learner_receives_enforced_budget(tmp_path, monkeypatch):
+    from unittest.mock import AsyncMock
+    from sprint.agents.installed.codex import Codex
+    from sprint.agents.installed.bounded_codex import BoundedCodex
+
+    run = AsyncMock()
+    monkeypatch.setattr(Codex, "run", run)
+    agent = BoundedCodex(logs_dir=tmp_path, seconds=120, max_turns=10)
+    await agent.run("Research task", object(), object())
+    prompt = run.call_args.args[0]
+    assert prompt.startswith("Research task")
+    assert "120 seconds and 10 actions" in prompt
+    assert agent.live_status in prompt

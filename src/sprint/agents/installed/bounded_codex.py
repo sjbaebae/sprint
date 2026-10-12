@@ -73,6 +73,17 @@ class BoundedCodex(Codex):
         return config
 
     @override
+    async def run(self, instruction, environment, context):
+        """Tell the learner the exact limits enforced by its supervisor."""
+        limits = (
+            f"\n\nExecution budget (enforced): {self.seconds:g} seconds and "
+            f"{self.max_turns} actions. These limits override task defaults. "
+            "Tool calls and agent messages count as actions; reasoning summaries do not. "
+            f"Read {self.live_status} for current budget status. No subagents."
+        )
+        await super().run(instruction + limits, environment, context)
+
+    @override
     async def exec_as_agent(
         self, environment, command, env=None, cwd=None, timeout_sec=None
     ):
