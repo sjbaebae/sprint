@@ -26,7 +26,7 @@ def workspace_evidence(
         )
         for name in sorted(names):
             path = Path(directory) / name
-            entry = {"path": str(path.relative_to(root))}
+            entry: dict[str, object] = {"path": str(path.relative_to(root))}
             if path.is_symlink():
                 entry["omitted"] = "symlink"
                 files.append(entry)

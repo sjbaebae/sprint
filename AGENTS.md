@@ -13,7 +13,7 @@ Keep worlds, tasks, validation, agents and attached resources separate. Provider
 
 Use explicit runtime guards rather than asserts; prefer asyncio.TaskGroup for concurrency and Path methods for file I/O. Follow CONTRIBUTING.md.
 
-Run relevant unit tests for changes. Integration preflights are necessary when runtime boundaries change. Do not test CLI help formatting. Run `uv run --no-default-groups --with ruff ruff check --fix .`, `uv run --no-default-groups --with ruff ruff format .`, and `uv run --no-default-groups --with ty ty check` after code changes. Record existing upstream type failures honestly.
+Keep tests compact: cover core behavior, trust boundaries and consequential regressions. Reuse existing coverage; avoid exhaustive permutations, implementation-mirroring tests and tests for cosmetic changes. Run relevant unit tests for changes. Integration preflights are necessary when runtime boundaries change. Do not test CLI help formatting. Run `uv run --no-default-groups --with ruff ruff check --fix .`, `uv run --no-default-groups --with ruff ruff format .`, and `uv run --no-default-groups --with ty ty check` after code changes. Record existing upstream type failures honestly.
 
 Focused tests:
 
