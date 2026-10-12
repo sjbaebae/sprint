@@ -221,7 +221,7 @@ class WorkerSession:
                 await self.close()
                 raise
 
-    async def shell(self, command: str):
+    async def shell(self, command: str, *, seconds: int | None = None):
         """Run a bounded shell command in the persistent learner workspace.
 
         Unlike Python jobs, successful shell calls leave background processes
@@ -236,6 +236,9 @@ class WorkerSession:
             or len(command.encode()) > 65536
         ):
             raise ValueError("shell command must be nonempty text of at most 64 KiB")
+        limit = self.worker.seconds if seconds is None else seconds
+        if type(limit) is not int or not 1 <= limit <= self.worker.seconds:
+            raise ValueError("shell timeout exceeds worker command budget")
         async with self.lock:
             if self.closed or self.deadline is None:
                 raise RuntimeError("worker session is not active")
@@ -248,9 +251,7 @@ class WorkerSession:
                         raise RuntimeError("worker failed to initialize")
                     seconds = max(
                         1,
-                        math.ceil(
-                            min(self.worker.seconds, self.deadline - time.monotonic())
-                        ),
+                        math.ceil(min(limit, self.deadline - time.monotonic())),
                     )
                     result = await asyncio.wait_for(
                         self.environment.exec(
