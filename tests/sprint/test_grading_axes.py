@@ -53,6 +53,11 @@ def test_judge_cannot_omit_or_invent_rubric_axes():
         {"id": "", "evidence": ["T:1"]},
         {"id": "claim", "evidence": "T:1"},
         {"id": "claim", "evidence": []},
+        {"id": "claim", "evidence": [None]},
+        {"id": "claim", "evidence": [False]},
+        {"id": "claim", "evidence": [""]},
+        {"id": "claim", "evidence": ["   "]},
+        {"id": "claim", "evidence": [{}]},
     ],
 )
 def test_violation_records_require_ids_and_evidence_lists(violation):
@@ -60,3 +65,29 @@ def test_violation_records_require_ids_and_evidence_lists(violation):
 
     with pytest.raises(ValueError, match="evidence list"):
         validate_violation_groups({"confirmed": [violation], "suspected": []})
+
+
+@pytest.mark.parametrize("same_group", [False, True])
+def test_duplicate_or_conflicting_violation_ids_are_not_finalizable(same_group):
+    from sprint.validation import validate_violation_groups
+
+    violation = {"id": "protected-data-use", "evidence": ["T:8"]}
+    value = {"confirmed": [violation], "suspected": []}
+    value["confirmed" if same_group else "suspected"].append(violation)
+    with pytest.raises(ValueError, match="unique across"):
+        validate_violation_groups(value)
+
+
+def test_violation_evidence_allows_structured_observations():
+    from sprint.validation import validate_violation_groups
+
+    value = {
+        "confirmed": [
+            {
+                "id": "dataset-overlap",
+                "evidence": [{"row_hash": "abc", "source": "trusted-overlap-check"}],
+            }
+        ],
+        "suspected": [],
+    }
+    assert validate_violation_groups(value) == value

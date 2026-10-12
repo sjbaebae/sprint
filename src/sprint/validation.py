@@ -11,6 +11,9 @@ from pathlib import Path
 from typing import Any
 
 
+OUTPUT = Path("/logs/verifier")
+
+
 @dataclass(frozen=True)
 class Context:
     """Read-only-by-contract artifact paths; never run learner code in this process."""
@@ -64,18 +67,32 @@ def validate_violation_groups(value):
     """Require attributable confirmed/suspected records; do not infer violations."""
     if not isinstance(value, dict) or set(value) != {"confirmed", "suspected"}:
         raise ValueError("violations must contain confirmed and suspected lists")
+    seen = set()
     for group in value.values():
         if not isinstance(group, list) or any(
             not isinstance(item, dict)
             or not isinstance(item.get("id"), str)
             or not item["id"].strip()
             or not isinstance(item.get("evidence"), list)
+            or any(
+                not (
+                    (isinstance(record, str) and record.strip())
+                    or (isinstance(record, dict) and record)
+                )
+                for record in item["evidence"]
+            )
             or not item["evidence"]
             for item in group
         ):
             raise ValueError(
-                "each violation requires an ID and a nonempty evidence list"
+                "each violation requires an ID and a nonempty evidence list of references or records"
             )
+        for item in group:
+            if item["id"] in seen:
+                raise ValueError(
+                    "violation IDs must be unique across confirmed and suspected"
+                )
+            seen.add(item["id"])
     json.dumps(value, allow_nan=False)
     return value
 
@@ -128,13 +145,14 @@ def evaluate(module, context, *, weights=(1.0, 0.0), rubric=None):
 
 def main(config_path):
     """Emit a detailed result; write Harbor reward only for finalized judgments."""
-    config = json.loads(Path(config_path).read_text())
-    private = Path(config_path).parent / "bundle"
-    output = Path("/logs/verifier")
+    output = OUTPUT
     output.mkdir(parents=True, exist_ok=True)
-    # Prevent stale reward acceptance if invoked repeatedly in the same verifier.
-    (output / "reward.json").unlink(missing_ok=True)
+    # Clear old outputs before parsing config or importing author code.
+    for name in ("reward.json", "result.json"):
+        (output / name).unlink(missing_ok=True)
     try:
+        config = json.loads(Path(config_path).read_text())
+        private = Path(config_path).parent / "bundle"
         sys.path.insert(0, str(private))
         spec = importlib.util.spec_from_file_location(
             "world_validation", private / config["entrypoint"]

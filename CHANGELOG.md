@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Clear stale grading outputs before configuration parsing; quarantine malformed
+  violation evidence and duplicate or conflicting violation IDs.
+
 - Bound admitted request history and host records after resource-budget exhaustion,
   while returning explicit rejection feedback and preserving limits across restore.
 

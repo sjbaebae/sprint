@@ -55,7 +55,12 @@ Unresolvable references or malformed scores raise; the verifier quarantines erro
 This validates attribution, not whether the explanation warrants the score.
 
 Confirmed deterministic violations disqualify; suspected violations quarantine.
-Missing or failed grading never receives a fabricated fallback score.
+Violation IDs must be unique across both groups. Evidence entries must be nonempty
+reference/description strings or nonempty structured records; blank and null entries
+fail validation. The author remains responsible for proving deterministic violations.
+Missing or failed grading never receives a fabricated fallback score. Regrading
+clears previous result/reward files before parsing configuration or importing the
+grader, so configuration failures cannot leave a previous reward in place.
 
 Worker failures are terminal: subsequent requests cannot silently provision another
 container using the original reservation. Closed worker state also survives resume.
