@@ -84,3 +84,14 @@ reuse, file collection, cleanup and separate grading. The Modal L4 preflight
 passed with outbound TCP blocked and reward 1.0. Local Docker passed with explicit
 full networking; Docker Desktop rejects the requested no-network policy on this
 host. These smoke tests use Harbor’s oracle harness, not a frontier model.
+
+Worker files persist between jobs; worker processes do not. A trusted Linux launcher
+runs each job as `agent` with privilege escalation disabled and stops all processes
+of that dedicated worker user at job completion, including detached descendants.
+This applies only to attached workers, not the separate learner/harness container.
+Workers require Linux pidfd support and fail closed if process cleanup is unavailable.
+
+Timed-out jobs return exit code 124, `timed_out: true`, and captured partial output;
+the worker is then closed. Output feedback is bounded to 1 MiB per stream with
+explicit `stdout_truncated`/`stderr_truncated` flags. File checkpoints can still be
+used by subsequent successful jobs before the worker closes.

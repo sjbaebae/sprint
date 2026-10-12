@@ -173,30 +173,37 @@ class WorkerSession:
                     if environment is None:
                         raise RuntimeError("worker failed to initialize")
                     await environment.upload_file(source, "/app/" + job_id + ".py")
+                    seconds = max(
+                        1,
+                        math.ceil(
+                            min(
+                                self.worker.seconds,
+                                max(0, self.deadline - time.monotonic()),
+                            )
+                        ),
+                    )
                     result = await asyncio.wait_for(
                         environment.exec(
-                            "python /app/" + job_id + ".py",
+                            f"python -I -S /opt/sprint-run.py /app/{job_id}.py {seconds}",
                             cwd="/app",
-                            user="agent",
-                            timeout_sec=max(
-                                1,
-                                math.ceil(
-                                    min(
-                                        self.worker.seconds,
-                                        max(0, self.deadline - time.monotonic()),
-                                    )
-                                ),
-                            ),
+                            user="root",
+                            timeout_sec=seconds + 20,
                         ),
-                        timeout=self.worker.seconds + 30,
+                        timeout=seconds + 30,
                     )
-                payload = {
-                    "job_id": job_id,
-                    "return_code": result.return_code,
-                    "stdout": result.stdout,
-                    "stderr": result.stderr,
-                }
+                if result.return_code != 0:
+                    raise RuntimeError("worker launcher failed: " + str(result.stderr))
+                payload = json.loads(result.stdout or "{}")
+                if (
+                    type(payload.get("return_code")) is not int
+                    or not isinstance(payload.get("stdout"), str)
+                    or not isinstance(payload.get("stderr"), str)
+                ):
+                    raise ValueError("invalid worker launcher feedback")
+                payload["job_id"] = job_id
                 self.record("job-end", **payload)
+                if payload.get("timed_out"):
+                    await self.close()
                 return payload
             except BaseException as error:
                 self.record(

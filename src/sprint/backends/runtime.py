@@ -81,11 +81,15 @@ def build_worker(worker, directory, files=None):
         ).replace(
             "USER agent\n",
             "COPY worker_export.py /opt/sprint-export.py\n"
-            "RUN chmod 444 /opt/sprint-export.py\nUSER agent\n",
+            "COPY worker_run.py /opt/sprint-run.py\n"
+            "RUN chmod 444 /opt/sprint-export.py /opt/sprint-run.py\nUSER root\n",
         )
     )
     shutil.copyfile(
         Path(__file__).parents[1] / "worker_export.py", directory / "worker_export.py"
+    )
+    shutil.copyfile(
+        Path(__file__).parents[1] / "worker_run.py", directory / "worker_run.py"
     )
     return directory
 

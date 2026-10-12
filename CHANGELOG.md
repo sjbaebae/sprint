@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Run worker jobs through a trusted unprivileged launcher that prevents detached
+  work from surviving job completion; preserve partial timeout output and bound feedback size.
+
 - Quarantine malformed grading per trial, preserve grades through review failures,
   and support repeated artifact inspection. Reference scripts exiting nonzero now
   raise an explicit oracle execution error rather than appearing successfully graded.

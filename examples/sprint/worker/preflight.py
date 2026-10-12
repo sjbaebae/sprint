@@ -62,15 +62,34 @@ except PermissionError:
  print("data write blocked")
 else:
  raise RuntimeError("attached data was writable")
+import subprocess, sys
+status = Path("/proc/self/status").read_text()
+assert "NoNewPrivs:" in status and next(line for line in status.splitlines() if line.startswith("NoNewPrivs:")).split()[1] == "1"
+subprocess.Popen([sys.executable, "-c", "import time; from pathlib import Path; time.sleep(1); Path('/app/leaked-process').write_text('leaked')"], start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 WORKER_CODE
 sprint-resource run train /app/job.py --wait 120 > /app/first.json
 python -c 'import json; assert json.load(open("/app/first.json"))["status"] == "completed"'
-printf 'from pathlib import Path; print(Path("checkpoint").read_text())\\n' > /app/job.py
+cat > /app/job.py <<'WORKER_CODE'
+from pathlib import Path
+import time
+time.sleep(1.2)
+assert not Path("/app/leaked-process").exists(), "detached process survived prior job"
+print(Path("checkpoint").read_text())
+WORKER_CODE
 sprint-resource run train /app/job.py --wait 120 > /app/second.json
 python -c 'import json; r=json.load(open("/app/second.json")); assert r["status"] == "completed"; assert r["stdout"].strip() == "retained"'
 REQUEST=$(python -c 'import json; print(json.load(open("/app/first.json"))["request_id"])')
 sprint-resource collect "$REQUEST" checkpoint --wait 120 > /app/collected.json
 python -c 'import json,shutil; r=json.load(open("/app/collected.json")); assert r["status"] == "completed", r; shutil.copyfile(r["artifact"],"/app/submission/answer")'
+cat > /app/timeout.py <<'WORKER_CODE'
+import time
+print("partial output before timeout", flush=True)
+time.sleep(5)
+WORKER_CODE
+sprint-resource run deadline /app/timeout.py --wait 120 > /app/timeout.json
+python -c 'import json; r=json.load(open("/app/timeout.json")); assert r["status"] == "failed", r; assert r["timed_out"] is True and r["return_code"] == 124, r; assert "partial output before timeout" in r["stdout"], r'
+sprint-resource run deadline /app/timeout.py --wait 120 > /app/closed.json
+python -c 'import json; r=json.load(open("/app/closed.json")); assert r["status"] == "error" and "closed" in r["message"], r'
 """
     )
     sandbox = Sandbox(internet=args.internet)
@@ -83,6 +102,7 @@ python -c 'import json,shutil; r=json.load(open("/app/collected.json")); assert 
             attachments={
                 "data": Files(data),
                 "train": Worker(sandbox=sandbox, resources=Resources(gpu=args.gpu)),
+                "deadline": Worker(sandbox=sandbox, seconds=1),
             },
         ),
         Budget(seconds=300),

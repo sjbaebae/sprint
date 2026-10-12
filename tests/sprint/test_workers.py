@@ -1,6 +1,7 @@
 """Worker ownership and checkpoint reuse without provider credentials."""
 
 from types import SimpleNamespace
+import json
 
 import pytest
 
@@ -26,11 +27,17 @@ class FakeEnvironment:
         self.sources.append(source.read_text())
 
     async def exec(self, command, **kwargs):
-        assert kwargs["user"] == "agent"
+        assert kwargs["user"] == "root"
         assert type(kwargs["timeout_sec"]) is int
         if self.fail:
             raise TimeoutError("deadline exceeded")
-        return SimpleNamespace(return_code=0, stdout="ok", stderr="")
+        return SimpleNamespace(
+            return_code=0,
+            stdout=json.dumps(
+                {"return_code": 0, "stdout": "ok", "stderr": "", "timed_out": False}
+            ),
+            stderr="",
+        )
 
 
 @pytest.mark.asyncio
@@ -180,3 +187,34 @@ async def test_hung_cleanup_is_bounded_and_remains_retryable(tmp_path, monkeypat
     env.stop = original_stop
     await session.close()
     assert session.environment is None and env.stops == 1
+
+
+@pytest.mark.asyncio
+async def test_timed_out_job_retains_partial_output_and_closes_worker(tmp_path):
+    env = FakeEnvironment()
+
+    async def timeout_feedback(command, **kwargs):
+        return SimpleNamespace(
+            return_code=0,
+            stdout=json.dumps(
+                {
+                    "return_code": 124,
+                    "stdout": "step 1 complete",
+                    "stderr": "last diagnostic",
+                    "timed_out": True,
+                }
+            ),
+            stderr="",
+        )
+
+    env.exec = timeout_feedback
+    async with WorkerSession(
+        Worker(), directory=tmp_path / "worker", factory=lambda **kwargs: env
+    ) as session:
+        result = await session.run("while True: pass")
+        assert result["timed_out"] and result["return_code"] == 124
+        assert (
+            result["stdout"] == "step 1 complete"
+            and result["stderr"] == "last diagnostic"
+        )
+        assert session.closed and env.stops == 1
