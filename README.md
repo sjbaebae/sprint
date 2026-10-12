@@ -113,7 +113,7 @@ Credentials are injected into the harness at runtime and redacted from serialize
 
 ## 4. Inspect results
 
-Open `.sprint/answer/review.html` for the transcript, turn timestamps, tool calls, worker feedback, and grading. `result.json` and `events.jsonl` contain structured records. Submission snapshots and diffs are retained per trial. Missing reasoning summaries or timestamps are displayed as missing; requesting summaries does not guarantee the provider returns them.
+Open `.sprint/answer/review.html` for the transcript, turn timestamps, tool calls, worker feedback, and grading. `result.json` and `events.jsonl` contain structured records. Submission snapshots and diffs are retained per trial. For mid-task state recovery, use [`Experiment.start()` and checkpoints](sprint-docs/checkpoints.md). Missing reasoning summaries or timestamps are displayed as missing; requesting summaries does not guarantee the provider returns them.
 
 ## Attach GPU workers or data
 

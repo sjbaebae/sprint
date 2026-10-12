@@ -7,6 +7,40 @@ from pathlib import Path
 from typing import Any
 
 
+STATE_PATHS = (
+    "/app",
+    "/home/agent",
+    "/logs/agent",
+    "/resources/control",
+    "/installed-agent",
+)
+
+
+def validate_state_paths(paths):
+    """Declare mutable directories; pseudo-filesystems cannot be checkpointed."""
+    if not isinstance(paths, (tuple, list)) or not paths:
+        raise ValueError("state_paths must be a nonempty sequence")
+    parsed = []
+    for value in paths:
+        path = Path(value)
+        if (
+            not path.is_absolute()
+            or ".." in path.parts
+            or str(path) != value
+            or path == Path("/")
+        ):
+            raise ValueError(
+                "state_paths must be canonical absolute directories below root"
+            )
+        if any(
+            path == Path(p) or path.is_relative_to(p) for p in ("/proc", "/sys", "/dev")
+        ):
+            raise ValueError("pseudo-filesystems cannot be checkpointed")
+        if any(path.is_relative_to(p) or p.is_relative_to(path) for p in parsed):
+            raise ValueError("state_paths must not overlap")
+        parsed.append(path)
+
+
 @dataclass(frozen=True)
 class Sandbox:
     """Reusable execution image, Python tooling and network policy."""
@@ -76,7 +110,10 @@ class Worker:
     seconds: int = 600
     lifetime_seconds: int = 3600
 
+    state_paths: tuple[str, ...] = STATE_PATHS
+
     def __post_init__(self):
+        validate_state_paths(self.state_paths)
         if type(self.lifetime_seconds) is not int or self.lifetime_seconds < 1:
             raise ValueError("worker lifetime must be a positive integer")
         if type(self.seconds) is not int or self.seconds < 1:
@@ -97,7 +134,10 @@ class Env:
     resources: Resources = field(default_factory=Resources)
     attachments: dict[str, Files | Worker] = field(default_factory=dict)
 
+    state_paths: tuple[str, ...] = STATE_PATHS
+
     def __post_init__(self):
+        validate_state_paths(self.state_paths)
         for name, attachment in self.attachments.items():
             if name == "control" or not re.fullmatch(r"[a-zA-Z][a-zA-Z0-9_-]*", name):
                 raise ValueError("attachment names must be simple identifiers")
@@ -211,10 +251,31 @@ class Experiment:
 
         return compile_task(self, directory)
 
-    async def run(self, *, directory: Path, backend="docker", trials=1, parallel=1):
-        """Run fresh trials through the selected infrastructure backend."""
+    async def run(
+        self,
+        *,
+        directory: Path,
+        backend="docker",
+        trials=1,
+        parallel=1,
+        resume_from=None,
+    ):
+        """Run trials, optionally restoring one saved logical-state checkpoint."""
         from .backends.runtime import run
 
         return await run(
-            self, directory=directory, backend=backend, trials=trials, parallel=parallel
+            self,
+            directory=directory,
+            backend=backend,
+            trials=trials,
+            parallel=parallel,
+            resume_from=resume_from,
+        )
+
+    def start(self, *, directory: Path, backend="docker", resume_from=None):
+        """Start one controllable live trial; use its async context for cleanup."""
+        from .live import LiveRun
+
+        return LiveRun(
+            self, directory=directory, backend=backend, resume_from=resume_from
         )

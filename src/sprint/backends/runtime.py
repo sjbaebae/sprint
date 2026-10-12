@@ -284,7 +284,49 @@ def agent_auth_env(agent):
     return {name: key, "CLAUDE_CODE_OAUTH_TOKEN": "", "CLAUDE_FORCE_OAUTH": "0"}
 
 
-async def run(experiment, *, directory, backend, trials, parallel):
+async def restore_workers(broker, checkpoint, records):
+    """Restore logical worker state and request lineage before polling resumes."""
+    import math
+    from dataclasses import replace
+    from ..live import restore_tree
+    from ..workers import WorkerSession
+
+    broker.seen = set(checkpoint.metadata["broker"]["seen"])
+    broker.completed = dict(checkpoint.metadata["broker"]["completed"])
+    for name, state in checkpoint.metadata["workers"].items():
+        if name not in broker.workers:
+            raise ValueError("checkpoint references an ungranted worker")
+        remaining = state["remaining_seconds"]
+        if not math.isfinite(remaining) or remaining <= 0:
+            raise ValueError("checkpoint worker budget is exhausted")
+        session = WorkerSession(
+            replace(broker.workers[name], lifetime_seconds=math.ceil(remaining)),
+            directory=broker.directory / name,
+            backend=broker.backend,
+            context=broker.contexts[name],
+        )
+        await session.__aenter__()
+        broker.sessions[name] = session
+        previous = records / name
+        if previous.is_dir():
+            shutil.copytree(previous, session.directory, dirs_exist_ok=True)
+        await session.start()
+        await restore_tree(
+            session.environment,
+            checkpoint,
+            "worker-" + name,
+            session.worker.state_paths,
+        )
+        session.record("worker-restored", parent=str(checkpoint.path))
+    if records.is_dir():
+        for item in records.iterdir():
+            if item.is_file():
+                shutil.copyfile(item, broker.directory / item.name)
+
+
+async def run(
+    experiment, *, directory, backend, trials, parallel, resume_from=None, control=None
+):
     """Use Harbor scheduling and native agent adapters rather than another runner."""
     from sprint import (
         Job,
@@ -300,7 +342,19 @@ async def run(experiment, *, directory, backend, trials, parallel):
         raise ValueError("trials and parallel must be positive")
     directory = Path(directory).resolve()
     auth_env = agent_auth_env(experiment.agent)
-    task = compile_task(experiment, directory / "task")
+    checkpoint, trajectory, seconds = None, None, experiment.budget.seconds
+    if resume_from is not None:
+        if trials != 1 or parallel != 1:
+            raise ValueError(
+                "restore requires one trial; fork checkpoints into separate runs"
+            )
+        from ..live import prepare_restore
+
+        checkpoint, task, trajectory, seconds = prepare_restore(
+            experiment, resume_from, directory
+        )
+    else:
+        task = compile_task(experiment, directory / "task")
     config = JobConfig(
         jobs_dir=directory / "runs",
         n_attempts=trials,
@@ -312,6 +366,8 @@ async def run(experiment, *, directory, backend, trials, parallel):
                 model_name=experiment.agent.model,
                 kwargs=experiment.agent.options,
                 env=auth_env,
+                load_trajectory=trajectory,
+                override_timeout_sec=seconds,
             )
         ],
         environment=TrialEnvironmentConfig(type=backend),
@@ -341,6 +397,13 @@ async def run(experiment, *, directory, backend, trials, parallel):
 
     async def resources(event):
         if event.event == TrialEvent.AGENT_START:
+            if checkpoint is not None:
+                from ..live import restore_tree
+
+                await restore_tree(
+                    event.environment, checkpoint, "learner", experiment.env.state_paths
+                )
+            broker = None
             workers = {
                 name: value
                 for name, value in experiment.env.attachments.items()
@@ -355,8 +418,23 @@ async def run(experiment, *, directory, backend, trials, parallel):
                     contexts={name: task / "workers" / name for name in workers},
                 )
                 brokers[event.trial_name] = broker
+                if checkpoint is not None:
+                    await broker.gate.acquire()
                 await broker.start()
+                if checkpoint is not None:
+                    try:
+                        await restore_workers(
+                            broker, checkpoint, directory / "resume-broker"
+                        )
+                    finally:
+                        broker.gate.release()
+            if control is not None:
+                control.attached(
+                    event.environment, broker, task, seconds=seconds, parent=checkpoint
+                )
         elif event.event == TrialEvent.AGENT_END:
+            if control is not None:
+                await control.leaving()
             broker = brokers.get(event.trial_name)
             if broker is not None:
                 await broker.close()

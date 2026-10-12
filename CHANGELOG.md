@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add mid-task logical-state checkpoint/resume: workspace chunks, native agent history, worker request lineage, compiled releases and remaining budgets. Processes restart on restore.
+
 - **Breaking (authoring):** Rename `World` and `Experiment.world` to `Env` and `Experiment.env`. Add explicit API-key authentication for Codex and Claude Code.
 
 - **Breaking (Sprint):** Rename the distribution and Python namespace to `sprint`; merge authoring and execution code under `src/sprint`. Update imports from `harbor` or `worlds` to `sprint`.

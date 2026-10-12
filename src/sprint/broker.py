@@ -25,6 +25,7 @@ class ResourceBroker:
         self.task = None
         self.seen = set()
         self.completed = {}
+        self.gate = asyncio.Lock()
 
     async def start(self):
         self.directory.mkdir(parents=True, exist_ok=False)
@@ -34,15 +35,18 @@ class ResourceBroker:
     async def serve(self):
         """Poll through the provider control plane, with no learner-facing socket."""
         while True:
-            result = await self.environment.exec(
-                "python -I -S /opt/sprint-resource.py _read",
-                user="root",
-                timeout_sec=30,
-            )
-            if result.return_code != 0:
-                raise RuntimeError("resource queue read failed: " + str(result.stderr))
-            for request in json.loads(result.stdout or "[]"):
-                await self.dispatch(request)
+            async with self.gate:
+                result = await self.environment.exec(
+                    "python -I -S /opt/sprint-resource.py _read",
+                    user="root",
+                    timeout_sec=30,
+                )
+                if result.return_code != 0:
+                    raise RuntimeError(
+                        "resource queue read failed: " + str(result.stderr)
+                    )
+                for request in json.loads(result.stdout or "[]"):
+                    await self.dispatch(request)
             await asyncio.sleep(1)
 
     async def dispatch(self, request):

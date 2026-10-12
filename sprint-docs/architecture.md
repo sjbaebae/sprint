@@ -48,32 +48,23 @@ should not need Harbor job models, Compose templates or provider scripts to
 author an ordinary environment.
 
 
-## Full-run checkpoints: required contract, not yet implemented
+## Mid-task state recovery
 
-A resumable checkpoint must restore the mid-task RL run, rather than start a new
-trial with copied files. Capture CPU/process memory, registers and process trees;
-all writable disks and resource filesystems; native agent conversation and harness
-state; queue entries, completed/pending request IDs and feedback; budgets, action
-counters, RNG state, and pinned environment versions. Running GPU resources require
-device-state checkpoint support. Never silently downgrade to filesystem-only state.
+`Experiment.start()` exposes an operator-controlled live run. `run.checkpoint(name)`
+saves declared mutable directories, native agent history, worker files, request
+lineage and remaining time. Restore starts fresh processes in fresh containers;
+it does not preserve RAM, live GPU allocations or network connections.
 
-Incremental storage is an optimization of this complete checkpoint: retain an
-immutable base plus disk blocks and dirty memory pages. Restore materializes the
-same complete state. Human-readable file diffs are an inspection view, not the
-state representation and not sufficient for restoration.
+Snapshots have complete manifests and content-addressed file chunks. Unchanged
+chunks are shared across snapshots; `Checkpoint.diff()` reports changed paths.
+File hashes are checked before restore. The compiled task and validation release
+are retained, and restore requires the same experiment definition.
 
-Freeze the participating runtimes and host scheduler into one consistent cut.
-Publish the checkpoint only after every component is durable. On failure, record
-an incomplete checkpoint and resume or safely stop the original run; never expose
-a partially successful checkpoint as restorable. Restore into an isolated branch,
-with the saved remaining budget, and retain its parent checkpoint ID.
+Capture temporarily pauses learner writes and waits for running broker requests
+to finish. It publishes a manifest only after exports succeed, then resumes the
+original branch. Call `stop()` to suspend that branch. Capture time consumes the
+budget. Applications must save optimizer, scheduler and RNG state to files when
+those are needed for recovery. Interrupted commands require inspection on resume.
 
-External API services and irreversible external side effects are outside the
-snapshot. Record in-flight operations and their recovery policy; never assume an
-inference request, network connection, or remote write can be rolled back. Runtime
-snapshots may contain credentials and private data and require private storage.
-
-Current state: submission manifests/text diffs and worker artifact collection are
-implemented. Full-run suspend/restore is not. Modal filesystem snapshots alone do
-not meet this contract; its memory-snapshot limitations exclude the current live
-GPU workflow. A process/VM backend with appropriate device support is required.
+See [checkpoint usage](checkpoints.md). Checkpoints are private operator data and
+may include credentials from native harness state. Do not commit them to GitHub.
