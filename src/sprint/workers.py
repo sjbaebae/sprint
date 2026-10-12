@@ -7,7 +7,7 @@ import math
 import shlex
 import time
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from uuid import uuid4
 
 from sprint.environments.factory import EnvironmentFactory
@@ -273,6 +273,72 @@ class WorkerSession:
                 )
                 await self.close()
                 raise
+
+    async def upload(self, content: bytes, relative: str):
+        """Copy a bounded learner file into /app without privileged writes there."""
+        path = PurePosixPath(relative) if isinstance(relative, str) else None
+        if path is None or path.is_absolute() or ".." in path.parts or not path.name:
+            raise ValueError("upload destination must be a relative file beneath /app")
+        if not isinstance(content, bytes) or len(content) > 1024 * 1024:
+            raise ValueError("upload must contain at most 1 MiB")
+        async with self.lock:
+            if self.closed or self.deadline is None:
+                raise RuntimeError("worker session is not active")
+            staging = "/tmp/sprint-upload-" + uuid4().hex
+            source = self.directory / (uuid4().hex + ".upload")
+            source.write_bytes(content)
+            try:
+                async with asyncio.timeout_at(self.deadline):
+                    await self.start()
+                    environment = self.environment
+                    if environment is None:
+                        raise RuntimeError("worker failed to initialize")
+                    await environment.upload_file(source, staging)
+                    result = await environment.exec(
+                        "chmod 444 " + staging, user="root", timeout_sec=30
+                    )
+                    if result.return_code != 0:
+                        raise RuntimeError("cannot stage worker upload")
+                    script = (
+                        "from pathlib import Path; import shutil; "
+                        "root=Path('/app'); target=(root / "
+                        + repr(relative)
+                        + ").resolve(); "
+                        "target.relative_to(root); target.parent.mkdir(parents=True, exist_ok=True); "
+                        "shutil.copyfile(" + repr(staging) + ", target)"
+                    )
+                    result = await environment.exec(
+                        "python -I -S -c " + shlex.quote(script),
+                        user="agent",
+                        cwd="/app",
+                        timeout_sec=30,
+                    )
+                    if result.return_code != 0:
+                        raise ValueError("worker upload failed: " + str(result.stderr))
+                    digest = hashlib.sha256(content).hexdigest()
+                    self.record(
+                        "file-uploaded",
+                        path=str(path),
+                        bytes=len(content),
+                        sha256=digest,
+                    )
+                    return {
+                        "return_code": 0,
+                        "path": "/app/" + str(path),
+                        "bytes": len(content),
+                        "sha256": digest,
+                    }
+            except ValueError:
+                raise
+            except BaseException:
+                await self.close()
+                raise
+            finally:
+                source.unlink(missing_ok=True)
+                if self.environment is not None:
+                    await self.environment.exec(
+                        "rm -f " + staging, user="root", timeout_sec=30
+                    )
 
     async def collect(self, relative: str, destination: Path):
         """Return a stable regular-file snapshot from /app; retain its trusted hash."""

@@ -245,3 +245,34 @@ async def test_shell_reuses_worker_and_cleans_up_on_timeout(tmp_path):
         with pytest.raises(TimeoutError):
             await session.shell("sleep 999")
         assert env.stops == 1
+
+
+@pytest.mark.asyncio
+async def test_upload_is_bounded_and_writes_as_learner(tmp_path):
+    calls = []
+    env = FakeEnvironment()
+
+    async def execute(command, **kwargs):
+        calls.append((command, kwargs))
+        return SimpleNamespace(return_code=0, stdout="", stderr="")
+
+    env.exec = execute
+    async with WorkerSession(
+        Worker(), directory=tmp_path / "upload", factory=lambda **kwargs: env
+    ) as session:
+        for path in ("../escape", "/etc/config"):
+            with pytest.raises(ValueError):
+                await session.upload(b"code", path)
+        with pytest.raises(ValueError):
+            await session.upload(b"x" * (1024 * 1024 + 1), "large")
+        assert env.starts == 0
+        result = await session.upload(b"print(42)", "code/train.py")
+        assert result["path"] == "/app/code/train.py" and result["bytes"] == 9
+        writes = [
+            (command, options)
+            for command, options in calls
+            if "python -I -S" in command
+        ]
+        assert len(writes) == 1 and writes[0][1]["user"] == "agent"
+        assert "target.relative_to(root)" in writes[0][0]
+        assert not list(session.directory.glob("*.upload"))

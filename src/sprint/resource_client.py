@@ -1,6 +1,7 @@
 """Stdlib-only agent client and bounded queue reader, installed root-owned."""
 
 import argparse
+import base64
 import json
 import os
 from pathlib import Path
@@ -61,10 +62,12 @@ def read_requests():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "operation", choices=["list", "run", "exec", "collect", "status", "_read"]
+        "operation",
+        choices=["list", "run", "exec", "upload", "collect", "status", "_read"],
     )
     parser.add_argument("target", nargs="?")
     parser.add_argument("script", nargs="?")
+    parser.add_argument("destination", nargs="?")
     parser.add_argument("--wait", type=float, default=0)
     args = parser.parse_args()
     if args.operation == "_read":
@@ -73,18 +76,31 @@ def main():
     if args.operation == "list":
         print((ROOT / "manifest.json").read_text())
         return
-    if args.operation in {"run", "exec", "collect"}:
+    if args.operation in {"run", "exec", "upload", "collect"}:
         if not args.script or not args.target:
             parser.error(
-                "run/exec/collect requires a resource or request ID and source/command/path"
+                "run/exec/upload/collect requires a target and source/command/path"
             )
-        payload = (
-            {"resource": args.target, "code": Path(args.script).read_text()}
-            if args.operation == "run"
-            else {"collect": args.target, "path": args.script}
-        )
-        if args.operation == "exec":
+        if args.operation == "run":
+            payload = {"resource": args.target, "code": Path(args.script).read_text()}
+        elif args.operation == "exec":
             payload = {"resource": args.target, "command": args.script}
+        elif args.operation == "collect":
+            payload = {"collect": args.target, "path": args.script}
+        else:  # upload
+            if not args.destination:
+                parser.error("upload requires RESOURCE LOCAL_FILE RELATIVE_DESTINATION")
+            with Path(args.script).open("rb") as stream:
+                content = stream.read(1024 * 1024 + 1)
+            if len(content) > 1024 * 1024:
+                parser.error(
+                    "upload exceeds 1 MiB; use Files attachments for large datasets"
+                )
+            payload = {
+                "resource": args.target,
+                "content": base64.b64encode(content).decode(),
+                "path": args.destination,
+            }
         request_id = uuid4().hex
         encoded = json.dumps(payload).encode()
         if len(encoded) > LIMIT:

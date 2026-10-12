@@ -54,10 +54,14 @@ async def main():
         """#!/bin/sh
 set -eu
 sprint-resource list
+printf 'uploaded' > /app/input.txt
+sprint-resource upload train /app/input.txt inputs/value.txt --wait 120 > /app/upload.json
+python -c 'import json; r=json.load(open("/app/upload.json")); assert r["status"] == "completed", r'
 cat > /app/job.py <<'WORKER_CODE'
 """
         + worker_check
         + """from pathlib import Path
+assert Path("/app/inputs/value.txt").read_text() == "uploaded"
 Path("checkpoint").write_text(Path("/resources/data/rows.txt").read_text())
 try:
  Path("/resources/data/rows.txt").write_text("tampered")

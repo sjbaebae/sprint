@@ -171,7 +171,7 @@ def compile_task(experiment, directory):
             json.dumps(
                 {
                     name: {
-                        "operations": ["run", "status", "collect"]
+                        "operations": ["run", "upload", "status", "collect"]
                         + (["exec"] if value.shell else []),
                         "seconds": value.seconds,
                         "gpu": value.resources.gpu,
@@ -225,7 +225,7 @@ def compile_task(experiment, directory):
             if isinstance(value, Files)
         )
         + (
-            "\nUse sprint-resource list; sprint-resource run NAME SCRIPT.py --wait 60; sprint-resource status REQUEST_ID --wait 60; sprint-resource collect REQUEST_ID FILE_RELATIVE_TO_APP --wait 60. Collection returns a read-only artifact path to copy into your submission. Jobs execute Python on the named worker and preserve /app between calls.\n"
+            "\nUse sprint-resource list; sprint-resource upload NAME LOCAL_FILE RELATIVE_DESTINATION --wait 60 (at most 1 MiB); sprint-resource run NAME SCRIPT.py --wait 60; sprint-resource status REQUEST_ID --wait 60; sprint-resource collect REQUEST_ID FILE_RELATIVE_TO_APP --wait 60. Collection returns a read-only artifact path to copy into your submission. Jobs execute Python on the named worker and preserve /app between calls.\n"
             if workers
             else ""
         )

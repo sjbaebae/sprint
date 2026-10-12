@@ -22,6 +22,7 @@ created lazily and terminated at trial end.
 ## Minimal operations
 
 - `sprint-resource list`: names and permitted operations.
+- `sprint-resource upload train LOCAL_FILE code/train.py`: copy a file of at most 1 MiB into the worker workspace. Use read-only `Files` attachments for large initial datasets. Uploads are recorded with size and SHA-256; transfer does not establish what data training consumed.
 - `sprint-resource run train script.py`: submit code to the named worker.
 - `sprint-resource exec train 'nvidia-smi'`: execute a shell command when the worker grants `shell=True`.
 - `sprint-resource status JOB`: status and full execution feedback.
@@ -123,4 +124,4 @@ per attempt, and records failures in `queue.jsonl`. Exhaustion terminates the
 service and affected trial. This does not provide automatic recovery of running
 jobs after host loss; debug resume uses explicitly captured checkpoint state.
 
-Shell commands run as the worker’s learner user in `/app`. Successful commands preserve background processes; redirect their output to workspace files and inspect or stop them with later commands. Python `run` jobs retain their existing per-job process cleanup. A timeout or cancellation destroys the entire worker in either mode. Shell access is disabled by default and does not change the worker’s network policy or expose provider credentials. On 2026-10-12, the Modal L4 preflight with `--shell` passed with reward 1.0: two shell calls shared files and a background process, Python jobs reused a checkpoint, collection delivered it to a separate verifier, and a timed-out worker was closed. This validates the native resource path with the oracle harness; it does not validate a frontier-model research campaign.
+Shell commands run as the worker’s learner user in `/app`. Successful commands preserve background processes; redirect their output to workspace files and inspect or stop them with later commands. Python `run` jobs retain their existing per-job process cleanup. A timeout or cancellation destroys the entire worker in either mode. Shell access is disabled by default and does not change the worker’s network policy or expose provider credentials. On 2026-10-12, the Modal L4 preflight with `--shell` passed with reward 1.0: a CPU-side file upload was read by GPU code, two shell calls shared files and a background process, Python jobs reused a checkpoint, collection delivered it to a separate verifier, and a timed-out worker was closed. This validates the native resource path with the oracle harness; it does not validate a frontier-model research campaign.

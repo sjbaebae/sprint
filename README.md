@@ -141,6 +141,7 @@ Pass this as `Experiment(env=env, ...)`. Use a preinstalled harness image or the
 
 ```sh
 sprint-resource list
+sprint-resource upload train config.json config.json --wait 60
 sprint-resource run train experiment.py --wait 60
 sprint-resource status REQUEST_ID --wait 60
 sprint-resource collect REQUEST_ID checkpoint.pt --wait 60

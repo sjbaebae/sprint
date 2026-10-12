@@ -1,6 +1,7 @@
 """Host-mediated local queue; the learner never needs provider network access."""
 
 import asyncio
+import base64
 import json
 import re
 import tempfile
@@ -184,19 +185,26 @@ class ResourceBroker:
                 if not isinstance(payload, dict) or set(payload) not in (
                     {"resource", "code"},
                     {"resource", "command"},
+                    {"resource", "content", "path"},
                 ):
                     raise ValueError(
-                        "request must contain resource and either code or command"
+                        "request must contain resource and code, command, or content/path"
                     )
                 name = payload["resource"]
                 if not isinstance(name, str) or name not in self.workers:
                     raise ValueError("resource is not granted to this trial")
                 session = await self.session(name)
-                result = (
-                    await session.shell(payload["command"])
-                    if "command" in payload
-                    else await session.run(payload["code"])
-                )
+                if "content" in payload:
+                    encoded = payload["content"]
+                    if not isinstance(encoded, str) or len(encoded) > 1400000:
+                        raise ValueError("upload exceeds 1 MiB")
+                    result = await session.upload(
+                        base64.b64decode(encoded, validate=True), payload["path"]
+                    )
+                elif "command" in payload:
+                    result = await session.shell(payload["command"])
+                else:
+                    result = await session.run(payload["code"])
                 response.update(result)
                 response["status"] = (
                     "completed" if response["return_code"] == 0 else "failed"
