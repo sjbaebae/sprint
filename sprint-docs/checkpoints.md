@@ -86,3 +86,10 @@ operator rewriting both manifests and hashes.
 
 Each restored branch is a separate trial. Continuing multiple branches can multiply
 aggregate cloud spending; per-trial reservations are not a campaign-wide invoice cap.
+
+Resource-bearing checkpoints pin the learner queue reader and worker execution/export
+helpers. Restore requires their captured hashes to match the calling Sprint build,
+before writing the restored release or provisioning containers. An incompatible
+checkpoint must be resumed with its original Sprint build. Helpers are never silently
+upgraded inside a saved release. This conservative check also rejects helper edits
+that do not change the protocol.

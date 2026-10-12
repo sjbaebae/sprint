@@ -1,6 +1,7 @@
 """Checkpoint/resume logical RL runs without saving process or GPU memory."""
 
 import asyncio
+import hashlib
 import json
 import math
 import re
@@ -143,6 +144,44 @@ def validate_resume_limits(experiment, metadata):
         raise ValueError("checkpoint spending limit exceeded or reservation missing")
 
 
+def validate_resource_runtime(experiment, checkpoint):
+    """Reject mixed host/container helper versions before spending on restore.
+
+    A compiled checkpoint retains its original immutable image inputs. Queue and
+    worker protocols must match the calling runtime; silently replacing helpers
+    would change the captured release. Use its original Sprint build to restore
+    an incompatible checkpoint.
+    """
+    from .spec import Worker
+
+    workers = {
+        name
+        for name, value in experiment.env.attachments.items()
+        if isinstance(value, Worker)
+    }
+    if not workers:
+        return
+    release = checkpoint.metadata["trees"].get("release", {})
+    expected = {"release/environment/resource_client.py": "resource_client.py"}
+    for name in workers:
+        for helper in ("worker_run.py", "worker_export.py"):
+            expected[f"release/workers/{name}/{helper}"] = helper
+    for name, helper in expected.items():
+        entry = release.get(name)
+        checksum = hashlib.sha256(
+            Path(__file__).with_name(helper).read_bytes()
+        ).hexdigest()
+        if (
+            not isinstance(entry, dict)
+            or entry.get("kind") != "file"
+            or entry.get("sha256") != checksum
+        ):
+            raise ValueError(
+                f"checkpoint resource runtime differs: {name}; "
+                "resume using the Sprint build that created this checkpoint"
+            )
+
+
 def prepare_restore(experiment, source, directory):
     """Validate state and materialize the exact compiled release before launch."""
     checkpoint = source if isinstance(source, Checkpoint) else Checkpoint(source)
@@ -151,6 +190,7 @@ def prepare_restore(experiment, source, directory):
     if metadata["definition"] != definition(experiment):
         raise ValueError("checkpoint belongs to a different experiment definition")
     validate_resume_limits(experiment, metadata)
+    validate_resource_runtime(experiment, checkpoint)
     from .spec import Worker
 
     roots_by_tree = {"learner": experiment.env.state_paths}

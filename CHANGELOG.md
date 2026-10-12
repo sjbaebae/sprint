@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Reject checkpoint restores that mix captured resource helpers with a different
+  host runtime, before materialization or provisioning.
+
 - Retain queued requests until final feedback is published; retry bounded queue
   observations and retain provider failures without repeating job execution.
 

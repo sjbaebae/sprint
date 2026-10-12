@@ -287,3 +287,97 @@ async def test_restored_fractional_budget_uses_integer_modal_lifetime(
         )
     lifetime = captured[0].environment.kwargs["sandbox_timeout_secs"]
     assert type(lifetime) is int and lifetime == 943
+
+
+@pytest.mark.parametrize("change", [None, "queue", "missing-worker", "changed-worker"])
+def test_resume_resource_helper_compatibility_before_materialization(tmp_path, change):
+    import sprint.live as live
+    from sprint import Worker
+
+    experiment = Experiment(
+        Task("task"),
+        Validation(tmp_path / "private"),
+        Agent("unused", harness="oracle"),
+        env=Env(attachments={"train": Worker()}),
+    )
+    sources = {
+        "release/environment/resource_client.py": "resource_client.py",
+        "release/workers/train/worker_run.py": "worker_run.py",
+        "release/workers/train/worker_export.py": "worker_export.py",
+    }
+    values = {
+        name: Path(live.__file__).with_name(helper).read_bytes()
+        for name, helper in sources.items()
+    }
+    if change == "queue":
+        values["release/environment/resource_client.py"] = (
+            b"old destructive queue reader"
+        )
+    elif change == "missing-worker":
+        del values["release/workers/train/worker_run.py"]
+    elif change == "changed-worker":
+        values["release/workers/train/worker_export.py"] = b"different export protocol"
+    store = CheckpointStore(tmp_path / "store")
+    release = put_tree(store, tmp_path, values)
+    learner = put_tree(store, tmp_path, {"app/state": b"saved"})
+    checkpoint = store.publish(
+        "one",
+        {
+            "definition": definition(experiment),
+            "remaining_seconds": 30,
+            "trees": {"release": release, "learner": learner},
+            "workers": {},
+            "broker": {"seen": [], "completed": {}, "reservations": {}},
+        },
+    )
+    target = tmp_path / "restore"
+    if change:
+        with pytest.raises(ValueError, match="checkpoint resource runtime differs"):
+            prepare_restore(experiment, checkpoint, target)
+        assert not target.exists()
+    else:
+        _, task, _, seconds = prepare_restore(experiment, checkpoint, target)
+        assert seconds == 30
+        assert (task / "environment/resource_client.py").read_bytes() == values[
+            "release/environment/resource_client.py"
+        ]
+
+
+def test_compiled_resource_release_passes_resume_compatibility(tmp_path):
+    from sprint import Worker
+
+    private = tmp_path / "private"
+    private.mkdir()
+    (private / "evaluate.py").write_text('def verify(context): return {"score": 1.0}')
+    experiment = Experiment(
+        Task("task"),
+        Validation(private),
+        Agent("unused", harness="oracle"),
+        env=Env(attachments={"train": Worker()}),
+    )
+    task = experiment.compile(tmp_path / "compiled")
+    store = CheckpointStore(tmp_path / "store")
+    release = put_tree(
+        store,
+        tmp_path,
+        {
+            "release/" + str(path.relative_to(task)): path.read_bytes()
+            for path in task.rglob("*")
+            if path.is_file()
+        },
+    )
+    learner = put_tree(store, tmp_path, {"app/state": b"saved"})
+    checkpoint = store.publish(
+        "one",
+        {
+            "definition": definition(experiment),
+            "remaining_seconds": 30,
+            "trees": {"release": release, "learner": learner},
+            "workers": {},
+            "broker": {"seen": [], "completed": {}, "reservations": {}},
+        },
+    )
+    _, restored, _, _ = prepare_restore(experiment, checkpoint, tmp_path / "restore")
+    assert (restored / "workers/train/worker_run.py").read_bytes() == (
+        task / "workers/train/worker_run.py"
+    ).read_bytes()
