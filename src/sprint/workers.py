@@ -366,7 +366,10 @@ class WorkerSession:
         if self.closed or environment is None:
             raise RuntimeError("worker is not available for collection")
         result = await environment.exec(
-            "python -I -S /opt/sprint-export.py " + shlex.quote(relative),
+            "python -I -S /opt/sprint-export.py "
+            + shlex.quote(relative)
+            + " "
+            + str(self.worker.max_artifact_bytes),
             user="root",
             timeout_sec=120,
         )
@@ -382,6 +385,9 @@ class WorkerSession:
             raise ValueError("invalid worker export path")
         try:
             await environment.download_file(exported, destination)
+            size = Path(destination).stat().st_size
+            if size != metadata["bytes"] or size > self.worker.max_artifact_bytes:
+                raise ValueError("collected checkpoint size mismatch or limit exceeded")
             with Path(destination).open("rb") as stream:
                 digest = hashlib.file_digest(stream, "sha256").hexdigest()
             if digest != metadata["sha256"]:

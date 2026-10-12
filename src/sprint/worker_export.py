@@ -12,8 +12,11 @@ LIMIT = 1024 * 1024 * 1024
 ROOT = "/app"
 
 
-def snapshot(relative):
+def snapshot(relative, max_bytes=None):
     """Copy a bounded regular file beneath /app, rejecting every symlink hop."""
+    limit = LIMIT if max_bytes is None else max_bytes
+    if type(limit) is not int or limit < 1:
+        raise ValueError("artifact limit must be a positive integer")
     path = PurePosixPath(relative)
     if not path.parts or path.is_absolute() or ".." in path.parts:
         raise ValueError("checkpoint path must be relative to /app")
@@ -31,8 +34,10 @@ def snapshot(relative):
         )
         with os.fdopen(descriptor, "rb") as source:
             before = os.fstat(source.fileno())
-            if not stat.S_ISREG(before.st_mode) or before.st_size > LIMIT:
-                raise ValueError("checkpoint must be a regular file of at most 1 GiB")
+            if not stat.S_ISREG(before.st_mode) or before.st_size > limit:
+                raise ValueError(
+                    f"checkpoint must be a regular file of at most {limit} bytes"
+                )
             digest = hashlib.sha256()
             total = 0
             with tempfile.NamedTemporaryFile(
@@ -41,8 +46,8 @@ def snapshot(relative):
                 temporary = target.name
                 while block := source.read(1024 * 1024):
                     total += len(block)
-                    if total > LIMIT:
-                        raise ValueError("checkpoint exceeds 1 GiB")
+                    if total > limit:
+                        raise ValueError(f"checkpoint exceeds {limit} bytes")
                     digest.update(block)
                     target.write(block)
             after = os.fstat(source.fileno())
@@ -62,4 +67,8 @@ def snapshot(relative):
 
 
 if __name__ == "__main__":
-    print(json.dumps(snapshot(sys.argv[1])))
+    print(
+        json.dumps(
+            snapshot(sys.argv[1], int(sys.argv[2]) if len(sys.argv) > 2 else None)
+        )
+    )

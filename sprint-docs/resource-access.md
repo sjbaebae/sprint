@@ -137,8 +137,13 @@ Worker(
     resources=Resources(gpu="L4"),
     shell=True,
     read_only_volumes={"/base": "pinned-model-assets"},
+    max_artifact_bytes=4 * 1024**3,  # allow a full model checkpoint
 )
 ```
+
+Checkpoint collection defaults to 1 GiB per file. Set `max_artifact_bytes` on
+the worker for larger models; the root-owned exporter and host both enforce it.
+The learner cannot raise this limit through a request.
 
 The operator prepares the volume before the trial. Sprint mounts it read-only;
 it neither creates nor populates it. Mounts use dedicated top-level directories

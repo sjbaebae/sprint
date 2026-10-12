@@ -41,3 +41,17 @@ def test_export_rejects_symlink_parents_fifo_and_oversize(tmp_path, monkeypatch)
     monkeypatch.setattr(worker_export, "LIMIT", 2)
     with pytest.raises(ValueError, match="regular file"):
         worker_export.snapshot("large")
+
+
+def test_operator_limit_can_allow_larger_checkpoint(tmp_path, monkeypatch):
+    monkeypatch.setattr(worker_export, "ROOT", str(tmp_path))
+    monkeypatch.setattr(worker_export, "LIMIT", 2)
+    (tmp_path / "checkpoint").write_bytes(b"larger")
+    with pytest.raises(ValueError, match="at most"):
+        worker_export.snapshot("checkpoint")
+    result = worker_export.snapshot("checkpoint", max_bytes=6)
+    try:
+        assert result["bytes"] == 6
+        assert Path(result["path"]).read_bytes() == b"larger"
+    finally:
+        Path(result["path"]).unlink()

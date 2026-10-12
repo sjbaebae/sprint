@@ -130,6 +130,7 @@ python -c 'import json; assert json.load(open("/app/shell-second.json"))["status
                     sandbox=sandbox,
                     resources=Resources(gpu=args.gpu),
                     shell=args.shell,
+                    max_artifact_bytes=16,  # exercise an explicit collection limit
                     read_only_volumes={"/base": args.volume} if args.volume else {},
                 ),
                 "deadline": Worker(sandbox=sandbox, seconds=1),

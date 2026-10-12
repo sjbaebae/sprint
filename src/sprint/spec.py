@@ -119,6 +119,7 @@ class Worker:
     lifetime_seconds: int = 3600
     shell: bool = False
     read_only_volumes: dict[str, str] = field(default_factory=dict)
+    max_artifact_bytes: int = 1024**3
     backend: str | None = None
 
     hourly_cost: float | None = None
@@ -126,6 +127,8 @@ class Worker:
     state_paths: tuple[str, ...] = STATE_PATHS
 
     def __post_init__(self):
+        if type(self.max_artifact_bytes) is not int or self.max_artifact_bytes < 1:
+            raise ValueError("max_artifact_bytes must be a positive integer")
         for mount, name in self.read_only_volumes.items():
             path = Path(mount)
             if (

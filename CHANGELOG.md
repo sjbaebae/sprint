@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Workers expose an operator-controlled checkpoint size limit, enforced during export and collection, for model artifacts larger than 1 GiB.
+
 - Modal command feedback drains stdout and stderr concurrently, preserving exit codes and provider failure diagnostics.
 
 - Modal workers can mount existing pinned asset volumes read-only without copying them into images.
