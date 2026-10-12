@@ -17,6 +17,8 @@ uv run modal setup
 
 Use `sprint` without `[modal]` for local Docker execution. Pin a reviewed commit instead of `@worlds` for reproducible deployments. Docker must be running for the Docker backend; networking restrictions also require backend support and fail closed when unsupported.
 
+The runner stays on the machine calling `run()`. To choose a Runpod CPU host explicitly, pass `host=Host(...)`; sandboxes and workers have separate placement. See [host and resource placement](sprint-docs/hosts.md).
+
 ## 2. Write private evaluation
 
 Create this layout:

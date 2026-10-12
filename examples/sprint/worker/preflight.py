@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from sprint import (
     Agent,
+    Host,
     Budget,
     Experiment,
     Files,
@@ -24,6 +25,10 @@ async def main():
     parser.add_argument("--backend", choices=["docker", "modal"], default="modal")
     parser.add_argument("--internet", choices=["none", "full"], default="none")
     parser.add_argument("--gpu", default=None)
+    parser.add_argument("--host", help="SSH operator host, e.g. root@Runpod-IP")
+    parser.add_argument("--identity", type=Path)
+    parser.add_argument("--port", type=int, default=22)
+    parser.add_argument("--host-uv", default="uv")
     args = parser.parse_args()
     root = Path(".sprint/worker-preflight") / uuid4().hex
     root.mkdir(parents=True)
@@ -82,7 +87,14 @@ python -c 'import json,shutil; r=json.load(open("/app/collected.json")); assert 
         ),
         Budget(seconds=300),
     )
-    result = await experiment.run(directory=root / "run", backend=args.backend)
+    host = (
+        Host(args.host, identity=args.identity, port=args.port, uv=args.host_uv)
+        if args.host
+        else None
+    )
+    result = await experiment.run(
+        directory=root / "run", backend=args.backend, host=host
+    )
     print(root, result.rewards)
     if result.rewards != [1.0]:
         raise RuntimeError("worker queue preflight failed; inspect persisted records")

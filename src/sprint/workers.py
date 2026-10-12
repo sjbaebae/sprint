@@ -40,7 +40,7 @@ class WorkerSession:
     ):
         self.worker = worker
         self.directory = Path(directory)
-        self.backend = backend
+        self.backend = worker.backend or backend
         self.factory = factory
         self.context = Path(context) if context is not None else None
         self.environment = None

@@ -109,11 +109,16 @@ class Worker:
     resources: Resources = field(default_factory=Resources)
     seconds: int = 600
     lifetime_seconds: int = 3600
+    backend: str | None = None
 
     state_paths: tuple[str, ...] = STATE_PATHS
 
     def __post_init__(self):
         validate_state_paths(self.state_paths)
+        if self.backend is not None:
+            from .models.environment_type import EnvironmentType
+
+            EnvironmentType(self.backend)
         if type(self.lifetime_seconds) is not int or self.lifetime_seconds < 1:
             raise ValueError("worker lifetime must be a positive integer")
         if type(self.seconds) is not int or self.seconds < 1:
@@ -259,8 +264,22 @@ class Experiment:
         trials=1,
         parallel=1,
         resume_from=None,
+        host=None,
     ):
         """Run trials, optionally restoring one saved logical-state checkpoint."""
+        if host is not None:
+            from .hosts import Host
+
+            if not isinstance(host, Host):
+                raise TypeError("host must be Host or None (current process)")
+            return await host.run(
+                self,
+                directory=directory,
+                backend=backend,
+                trials=trials,
+                parallel=parallel,
+                resume_from=resume_from,
+            )
         from .backends.runtime import run
 
         return await run(

@@ -1,14 +1,31 @@
 """Small live Codex trial; auth is injected at runtime by Harbor, never built in."""
 
+import argparse
 import asyncio
 import os
 from pathlib import Path
 from uuid import uuid4
 
-from sprint import Agent, Budget, Experiment, Sandbox, Task, Validation, Worker, Env
+from sprint import (
+    Host,
+    Agent,
+    Budget,
+    Experiment,
+    Sandbox,
+    Task,
+    Validation,
+    Worker,
+    Env,
+)
 
 
 async def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--host")
+    parser.add_argument("--identity", type=Path)
+    parser.add_argument("--port", type=int, default=22)
+    parser.add_argument("--host-uv", default="uv")
+    args = parser.parse_args()
     # Existing operator sign-in; never copy auth into an authored task or image.
     auth = Path.home() / ".codex/auth.json"
     if not auth.is_file():
@@ -50,7 +67,18 @@ async def main():
         Env(sandbox=sandbox, attachments={"compute": Worker()}),
         Budget(seconds=300),
     )
-    result = await experiment.run(directory=root / "run", backend="modal")
+    host = (
+        Host(
+            args.host,
+            identity=args.identity,
+            port=args.port,
+            uv=args.host_uv,
+            env={"CODEX_FORCE_AUTH_JSON": "1"},
+        )
+        if args.host
+        else None
+    )
+    result = await experiment.run(directory=root / "run", backend="modal", host=host)
     print(root, result.rewards)
     if result.rewards != [1.0]:
         raise RuntimeError(

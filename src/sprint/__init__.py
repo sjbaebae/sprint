@@ -2,6 +2,7 @@ import importlib.metadata
 from typing import TYPE_CHECKING
 
 from .checkpoint_store import Checkpoint
+from .hosts import Host
 from .results import RunResult, TrialResult
 from .spec import (
     Agent,
@@ -267,6 +268,7 @@ __all__ = [
 
 __all__ = [
     "Checkpoint",
+    "Host",
     "Agent",
     "Budget",
     "Experiment",

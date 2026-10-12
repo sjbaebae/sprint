@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add explicit SSH operator hosts (including Runpod CPU), per-worker backend placement, private release staging, complete record retrieval and remote cancellation.
+
 - Add mid-task logical-state checkpoint/resume: workspace chunks, native agent history, worker request lineage, compiled releases and remaining budgets. Processes restart on restore.
 
 - **Breaking (authoring):** Rename `World` and `Experiment.world` to `Env` and `Experiment.env`. Add explicit API-key authentication for Codex and Claude Code.

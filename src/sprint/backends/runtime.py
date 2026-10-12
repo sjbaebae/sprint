@@ -325,7 +325,15 @@ async def restore_workers(broker, checkpoint, records):
 
 
 async def run(
-    experiment, *, directory, backend, trials, parallel, resume_from=None, control=None
+    experiment,
+    *,
+    directory,
+    backend,
+    trials,
+    parallel,
+    resume_from=None,
+    control=None,
+    compiled_task=None,
 ):
     """Use Harbor scheduling and native agent adapters rather than another runner."""
     from sprint import (
@@ -353,8 +361,28 @@ async def run(
         checkpoint, task, trajectory, seconds = prepare_restore(
             experiment, resume_from, directory
         )
+    elif compiled_task is not None:
+        task = Path(compiled_task).resolve(strict=True)
+        directory.mkdir(parents=True, exist_ok=True)
     else:
         task = compile_task(experiment, directory / "task")
+    import socket
+
+    (directory / "placement.json").write_text(
+        json.dumps(
+            {
+                "host": {"hostname": socket.gethostname(), "pid": os.getpid()},
+                "learner_backend": backend,
+                "verifier_backend": backend,
+                "workers": {
+                    name: value.backend or backend
+                    for name, value in experiment.env.attachments.items()
+                    if isinstance(value, Worker)
+                },
+            },
+            indent=2,
+        )
+    )
     config = JobConfig(
         jobs_dir=directory / "runs",
         n_attempts=trials,

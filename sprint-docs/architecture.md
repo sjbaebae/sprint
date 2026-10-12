@@ -68,3 +68,10 @@ those are needed for recovery. Interrupted commands require inspection on resume
 
 See [checkpoint usage](checkpoints.md). Checkpoints are private operator data and
 may include credentials from native harness state. Do not commit them to GitHub.
+
+## Host placement
+
+The caller is the default operator host. `Experiment.run(host=Host(...))` stages
+the release over SSH and runs the scheduler/broker on that existing host. Sandbox
+placement still follows `backend`; `Worker.backend` overrides individual workers.
+See [hosts](hosts.md) for Runpod CPU → Modal execution and current boundaries.
