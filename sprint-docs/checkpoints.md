@@ -77,3 +77,12 @@ The native Codex check is also runnable:
 ```sh
 uv run --no-default-groups --extra modal python examples/sprint/checkpoint/codex_preflight.py
 ```
+
+Restore validates remaining trial/worker time against the original definition,
+request lineage, spending reservations and permitted state roots before provisioning.
+Malformed or increased budgets fail immediately. Checkpoint integrity hashes detect
+corruption; the private operator-owned store is not a signature against a malicious
+operator rewriting both manifests and hashes.
+
+Each restored branch is a separate trial. Continuing multiple branches can multiply
+aggregate cloud spending; per-trial reservations are not a campaign-wide invoice cap.

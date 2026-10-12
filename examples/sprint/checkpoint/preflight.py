@@ -27,6 +27,7 @@ if [ ! -f ready ]; then
   echo 7 > counter.txt
   echo 'from pathlib import Path; Path("/app/value.txt").write_text("9")' > job.py
   sprint-resource run compute job.py --wait 60 > first.json
+  python -c 'import json; r=json.load(open("first.json")); assert r["status"] == "completed", r'
   touch ready
   sleep 90
 fi

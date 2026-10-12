@@ -11,6 +11,9 @@ from pathlib import Path
 from uuid import uuid4
 
 
+CLEANUP_SECONDS = 60
+
+
 async def close_all(resources):
     """Attempt every teardown even if another provider reports a cleanup failure."""
     errors = []
@@ -175,9 +178,14 @@ class WorkerSession:
                             "python /app/" + job_id + ".py",
                             cwd="/app",
                             user="agent",
-                            timeout_sec=min(
-                                self.worker.seconds,
-                                max(0, self.deadline - time.monotonic()),
+                            timeout_sec=max(
+                                1,
+                                math.ceil(
+                                    min(
+                                        self.worker.seconds,
+                                        max(0, self.deadline - time.monotonic()),
+                                    )
+                                ),
                             ),
                         ),
                         timeout=self.worker.seconds + 30,
@@ -260,6 +268,16 @@ class WorkerSession:
         self.closed = True
         if self.environment is not None:
             environment = self.environment
-            await environment.stop(delete=True)
+            try:
+                await asyncio.wait_for(
+                    environment.stop(delete=True), timeout=CLEANUP_SECONDS
+                )
+            except BaseException as error:
+                self.record(
+                    "worker-cleanup-error",
+                    error_type=type(error).__name__,
+                    message=str(error),
+                )
+                raise
             self.environment = None
             self.record("worker-stopped")

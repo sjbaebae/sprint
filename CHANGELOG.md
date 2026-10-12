@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Validate checkpoint time, spending, lineage and state scope before provisioning;
+  bound worker teardown and retain failed cleanup handles for retry. Normalize
+  fractional remaining time to integer Modal timeouts and reject invalid limit definitions.
+
 - Close worker restart/deadline bypasses, preserve terminal workers across resume,
   prevent malformed filenames from starving the queue, and require complete rubric scorecards.
 

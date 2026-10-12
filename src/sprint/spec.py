@@ -117,7 +117,9 @@ class Worker:
 
     def __post_init__(self):
         if self.hourly_cost is not None and (
-            not math.isfinite(self.hourly_cost) or self.hourly_cost < 0
+            type(self.hourly_cost) not in (int, float)
+            or not math.isfinite(self.hourly_cost)
+            or self.hourly_cost < 0
         ):
             raise ValueError("hourly_cost must be finite and nonnegative")
         validate_state_paths(self.state_paths)
@@ -207,7 +209,10 @@ class Validation:
                 raise ValueError("validation paths must remain inside the bundle")
         if (
             len(self.weights) != 2
-            or any(not math.isfinite(x) or x < 0 for x in self.weights)
+            or any(
+                type(x) not in (int, float) or not math.isfinite(x) or x < 0
+                for x in self.weights
+            )
             or not math.isclose(sum(self.weights), 1)
         ):
             raise ValueError(
@@ -215,8 +220,8 @@ class Validation:
             )
         if self.weights[1] and not self.rubric:
             raise ValueError("model-based grading requires a rubric")
-        if self.seconds <= 0:
-            raise ValueError("validation timeout must be positive")
+        if type(self.seconds) is not int or self.seconds <= 0:
+            raise ValueError("validation timeout must be a positive integer")
 
 
 @dataclass(frozen=True)
@@ -251,11 +256,13 @@ class Budget:
                     "concurrency and request limits must be positive integers"
                 )
         if self.worker_spend is not None and (
-            not math.isfinite(self.worker_spend) or self.worker_spend < 0
+            type(self.worker_spend) not in (int, float)
+            or not math.isfinite(self.worker_spend)
+            or self.worker_spend < 0
         ):
             raise ValueError("worker_spend must be finite and nonnegative")
-        if self.seconds <= 0:
-            raise ValueError("trial timeout must be positive")
+        if type(self.seconds) is not int or self.seconds <= 0:
+            raise ValueError("trial timeout must be a positive integer")
 
 
 @dataclass(frozen=True)

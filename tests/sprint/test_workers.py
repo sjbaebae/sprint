@@ -27,6 +27,7 @@ class FakeEnvironment:
 
     async def exec(self, command, **kwargs):
         assert kwargs["user"] == "agent"
+        assert type(kwargs["timeout_sec"]) is int
         if self.fail:
             raise TimeoutError("deadline exceeded")
         return SimpleNamespace(return_code=0, stdout="ok", stderr="")
@@ -152,3 +153,30 @@ async def test_expired_collection_destroys_worker(tmp_path):
         with pytest.raises(TimeoutError, match="lifetime"):
             await session.collect("checkpoint", tmp_path / "artifact")
         assert session.closed and env.stops == 1
+
+
+@pytest.mark.asyncio
+async def test_hung_cleanup_is_bounded_and_remains_retryable(tmp_path, monkeypatch):
+    import asyncio
+    import sprint.workers as workers
+
+    env = FakeEnvironment()
+    session = WorkerSession(
+        Worker(), directory=tmp_path / "worker", factory=lambda **kwargs: env
+    )
+    await session.__aenter__()
+    await session.run("print(1)")
+    original_stop = env.stop
+
+    async def hung_stop(**kwargs):
+        await asyncio.Event().wait()
+
+    monkeypatch.setattr(workers, "CLEANUP_SECONDS", 0.02)
+    env.stop = hung_stop
+    with pytest.raises(TimeoutError):
+        await session.close()
+    assert session.closed and session.environment is env
+    assert "worker-cleanup-error" in (session.directory / "jobs.jsonl").read_text()
+    env.stop = original_stop
+    await session.close()
+    assert session.environment is None and env.stops == 1

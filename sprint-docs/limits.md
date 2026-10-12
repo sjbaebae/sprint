@@ -54,3 +54,7 @@ Worker failures are terminal: subsequent requests cannot silently provision anot
 container using the original reservation. Closed worker state also survives resume.
 Provisioning, code upload, execution and checkpoint collection obey the remaining
 worker lifetime. Provider cleanup may take additional time after the deadline.
+
+Worker teardown has a 60-second host timeout. Cleanup errors are retained in the
+trusted worker journal, and the provider handle is retained for another cleanup
+attempt. A timeout is not recorded as successful resource deletion.

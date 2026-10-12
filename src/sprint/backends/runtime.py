@@ -1,6 +1,7 @@
 """Translate the small authoring API into native Harbor tasks and jobs."""
 
 import json
+import math
 import os
 import shlex
 import shutil
@@ -420,7 +421,9 @@ async def run(
         environment=TrialEnvironmentConfig(
             type=backend,
             kwargs={
-                "sandbox_timeout_secs": seconds + experiment.validation.seconds + 300
+                "sandbox_timeout_secs": math.ceil(
+                    seconds + experiment.validation.seconds + 300
+                )
             }
             if backend == "modal"
             else {},

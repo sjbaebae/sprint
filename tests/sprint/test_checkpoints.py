@@ -185,3 +185,93 @@ def test_remote_pack_preserves_files_and_refuses_special_state(tmp_path):
     alias.symlink_to(root)
     with pytest.raises(ValueError, match="traverses"):
         validate_roots([str(alias / "nested")])
+
+
+@pytest.mark.parametrize("remaining", [True, float("nan"), float("inf"), -1, 3601])
+def test_resume_rejects_invalid_or_increased_trial_budget(tmp_path, remaining):
+    from sprint.live import validate_resume_limits
+
+    experiment = Experiment(Task("task"), Validation(tmp_path), Agent("model"))
+    with pytest.raises(ValueError, match="trial budget"):
+        validate_resume_limits(experiment, {"remaining_seconds": remaining})
+
+
+def test_resume_rejects_freed_spending_and_increased_worker_time(tmp_path):
+    from sprint import Budget, Worker
+    from sprint.live import validate_resume_limits
+
+    experiment = Experiment(
+        Task("task"),
+        Validation(tmp_path),
+        Agent("model"),
+        Env(attachments={"train": Worker(hourly_cost=2)}),
+        Budget(worker_spend=2),
+    )
+    metadata = {
+        "remaining_seconds": 100,
+        "workers": {"train": {"remaining_seconds": 50}},
+        "broker": {"seen": [], "completed": {}, "reservations": {"train": 2}},
+    }
+    validate_resume_limits(experiment, metadata)
+    metadata["broker"]["reservations"]["train"] = 0
+    with pytest.raises(ValueError, match="declared lifetime"):
+        validate_resume_limits(experiment, metadata)
+    metadata["broker"]["reservations"]["train"] = 2
+    metadata["workers"]["train"]["remaining_seconds"] = 3601
+    with pytest.raises(ValueError, match="worker budget"):
+        validate_resume_limits(experiment, metadata)
+
+
+def test_restore_rejects_out_of_scope_state_before_creating_run(tmp_path):
+    store = CheckpointStore(tmp_path / "store")
+    experiment = Experiment(Task("task"), Validation(tmp_path), Agent("model"))
+    learner = put_tree(store, tmp_path, {"etc/shadow": b"out of scope"})
+    checkpoint = store.publish(
+        "escape",
+        {
+            "definition": definition(experiment),
+            "remaining_seconds": 10,
+            "trees": {"learner": learner, "release": {}},
+        },
+    )
+    destination = tmp_path / "restore"
+    with pytest.raises(ValueError, match="declared roots"):
+        prepare_restore(experiment, checkpoint, destination)
+    assert not destination.exists()
+
+
+@pytest.mark.asyncio
+async def test_restored_fractional_budget_uses_integer_modal_lifetime(
+    tmp_path, monkeypatch
+):
+    import sprint
+    import sprint.live as live
+    from sprint.backends.runtime import run
+
+    experiment = Experiment(
+        Task("task"), Validation(tmp_path), Agent("test", harness="oracle")
+    )
+    captured = []
+
+    class Captured(Exception):
+        pass
+
+    async def create(config):
+        captured.append(config)
+        raise Captured()
+
+    monkeypatch.setattr(sprint.Job, "create", create)
+    monkeypatch.setattr(
+        live, "prepare_restore", lambda *args: (None, tmp_path, None, 42.5)
+    )
+    with pytest.raises(Captured):
+        await run(
+            experiment,
+            directory=tmp_path,
+            backend="modal",
+            trials=1,
+            parallel=1,
+            resume_from="checkpoint",
+        )
+    lifetime = captured[0].environment.kwargs["sandbox_timeout_secs"]
+    assert type(lifetime) is int and lifetime == 943

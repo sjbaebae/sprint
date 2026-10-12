@@ -3,6 +3,7 @@
 import asyncio
 import json
 import math
+import re
 import shlex
 import shutil
 import tarfile
@@ -64,6 +65,84 @@ async def restore_tree(environment, checkpoint, tree, roots):
             )
 
 
+def validate_resume_limits(experiment, metadata):
+    """Reject inconsistent budgets and lineage before provisioning any sandbox."""
+    from .spec import Worker
+
+    remaining = metadata.get("remaining_seconds")
+    if (
+        type(remaining) not in (int, float)
+        or not math.isfinite(remaining)
+        or not 0 < remaining <= experiment.budget.seconds
+    ):
+        raise ValueError(
+            "checkpoint remaining trial budget exceeds its limits or is exhausted"
+        )
+    workers = {
+        name: value
+        for name, value in experiment.env.attachments.items()
+        if isinstance(value, Worker)
+    }
+    states = metadata.get("workers", {})
+    broker = metadata.get("broker", {})
+    if not isinstance(states, dict) or not isinstance(broker, dict):
+        raise ValueError("invalid checkpoint worker or broker state")
+    for name, state in states.items():
+        if name not in workers or not isinstance(state, dict):
+            raise ValueError("checkpoint references an ungranted worker")
+        if set(state) == {"closed"} and state["closed"] is True:
+            continue
+        if set(state) != {"remaining_seconds"}:
+            raise ValueError("invalid checkpoint worker state fields")
+        seconds = state.get("remaining_seconds")
+        if (
+            type(seconds) not in (int, float)
+            or not math.isfinite(seconds)
+            or not 0 < seconds <= workers[name].lifetime_seconds
+        ):
+            raise ValueError(
+                "checkpoint worker budget exceeds its limits or is exhausted"
+            )
+    seen = broker.get("seen", [])
+    completed = broker.get("completed", {})
+    reservations = broker.get("reservations", {})
+    if (
+        not isinstance(seen, list)
+        or any(
+            not isinstance(key, str) or not re.fullmatch(r"[a-f0-9]{32}", key)
+            for key in seen
+        )
+        or len(seen) != len(set(seen))
+    ):
+        raise ValueError("invalid checkpoint request lineage")
+    if not isinstance(completed, dict) or any(
+        key not in seen or name not in states for key, name in completed.items()
+    ):
+        raise ValueError("invalid checkpoint completed request lineage")
+    if not isinstance(reservations, dict):
+        raise ValueError("invalid checkpoint spending reservations")
+    for name, amount in reservations.items():
+        if (
+            name not in workers
+            or type(amount) not in (int, float)
+            or not math.isfinite(amount)
+            or amount < 0
+        ):
+            raise ValueError("invalid checkpoint spending reservation")
+        expected = (
+            (workers[name].hourly_cost or 0) * workers[name].lifetime_seconds / 3600
+        )
+        if not math.isclose(amount, expected, rel_tol=1e-12, abs_tol=1e-12):
+            raise ValueError(
+                "checkpoint spending reservation differs from declared lifetime cost"
+            )
+    limit = experiment.budget.worker_spend
+    if limit is not None and (
+        set(states) - set(reservations) or sum(reservations.values()) > limit
+    ):
+        raise ValueError("checkpoint spending limit exceeded or reservation missing")
+
+
 def prepare_restore(experiment, source, directory):
     """Validate state and materialize the exact compiled release before launch."""
     checkpoint = source if isinstance(source, Checkpoint) else Checkpoint(source)
@@ -71,13 +150,29 @@ def prepare_restore(experiment, source, directory):
     metadata = checkpoint.metadata
     if metadata["definition"] != definition(experiment):
         raise ValueError("checkpoint belongs to a different experiment definition")
+    validate_resume_limits(experiment, metadata)
+    from .spec import Worker
+
+    roots_by_tree = {"learner": experiment.env.state_paths}
+    for name, state in metadata.get("workers", {}).items():
+        worker = experiment.env.attachments[name]
+        if not isinstance(worker, Worker):
+            raise ValueError("checkpoint references a non-worker attachment")
+        if state.get("closed") is not True:
+            roots_by_tree["worker-" + name] = worker.state_paths
+    for tree, roots in roots_by_tree.items():
+        entries = metadata["trees"].get(tree)
+        if not isinstance(entries, dict):
+            raise ValueError("checkpoint is missing a required state tree")
+        prefixes = tuple(root.lstrip("/") for root in roots)
+        if any(
+            not any(
+                name == prefix or name.startswith(prefix + "/") for prefix in prefixes
+            )
+            for name in entries
+        ):
+            raise ValueError("checkpoint state escapes its declared roots")
     remaining = metadata["remaining_seconds"]
-    if (
-        not isinstance(remaining, (int, float))
-        or not math.isfinite(remaining)
-        or remaining <= 0
-    ):
-        raise ValueError("checkpoint has no remaining trial budget")
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
     task = directory / "task"
