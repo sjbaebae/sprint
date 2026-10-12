@@ -218,3 +218,30 @@ async def test_timed_out_job_retains_partial_output_and_closes_worker(tmp_path):
             and result["stderr"] == "last diagnostic"
         )
         assert session.closed and env.stops == 1
+
+
+@pytest.mark.asyncio
+async def test_shell_reuses_worker_and_cleans_up_on_timeout(tmp_path):
+    class ShellEnvironment(FakeEnvironment):
+        async def exec(self, command, **kwargs):
+            assert kwargs["user"] == "agent"
+            assert kwargs["cwd"] == "/app"
+            if self.fail:
+                raise TimeoutError("command timeout")
+            return SimpleNamespace(return_code=0, stdout="running", stderr="")
+
+    denied = WorkerSession(Worker(), directory=tmp_path / "denied")
+    with pytest.raises(PermissionError):
+        await denied.shell("echo forbidden")
+    env = ShellEnvironment()
+    async with WorkerSession(
+        Worker(shell=True), directory=tmp_path / "shell", factory=lambda **kwargs: env
+    ) as session:
+        first = await session.shell("sleep 60 > /app/process.log 2>&1 &")
+        second = await session.shell("cat /app/process.log")
+        assert first["job_id"] != second["job_id"]
+        assert env.starts == 1 and env.stops == 0
+        env.fail = True
+        with pytest.raises(TimeoutError):
+            await session.shell("sleep 999")
+        assert env.stops == 1

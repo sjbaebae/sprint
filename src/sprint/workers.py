@@ -215,6 +215,64 @@ class WorkerSession:
                 await self.close()
                 raise
 
+    async def shell(self, command: str):
+        """Run a bounded shell command in the persistent learner workspace.
+
+        Unlike Python jobs, successful shell calls leave background processes
+        running. The entire worker is destroyed on timeout or cancellation.
+        Provider credentials remain exclusively on the orchestration host.
+        """
+        if not self.worker.shell:
+            raise PermissionError("shell access is not granted to this worker")
+        if (
+            not isinstance(command, str)
+            or not command.strip()
+            or len(command.encode()) > 65536
+        ):
+            raise ValueError("shell command must be nonempty text of at most 64 KiB")
+        async with self.lock:
+            if self.closed or self.deadline is None:
+                raise RuntimeError("worker session is not active")
+            job_id = uuid4().hex
+            self.record("shell-start", job_id=job_id, command=command)
+            try:
+                async with asyncio.timeout_at(self.deadline):
+                    await self.start()
+                    if self.environment is None:
+                        raise RuntimeError("worker failed to initialize")
+                    seconds = max(
+                        1,
+                        math.ceil(
+                            min(self.worker.seconds, self.deadline - time.monotonic())
+                        ),
+                    )
+                    result = await asyncio.wait_for(
+                        self.environment.exec(
+                            "/bin/bash -o pipefail -c " + shlex.quote(command),
+                            cwd="/app",
+                            user="agent",
+                            timeout_sec=seconds,
+                        ),
+                        timeout=seconds + 10,
+                    )
+                payload = {
+                    "job_id": job_id,
+                    "return_code": result.return_code,
+                    "stdout": result.stdout,
+                    "stderr": result.stderr,
+                }
+                self.record("shell-end", **payload)
+                return payload
+            except BaseException as error:
+                self.record(
+                    "shell-error",
+                    job_id=job_id,
+                    error_type=type(error).__name__,
+                    message=str(error),
+                )
+                await self.close()
+                raise
+
     async def collect(self, relative: str, destination: Path):
         """Return a stable regular-file snapshot from /app; retain its trusted hash."""
         if not isinstance(relative, str):

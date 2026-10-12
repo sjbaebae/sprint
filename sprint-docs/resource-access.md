@@ -2,13 +2,13 @@
 
 Read-only named file attachments are implemented. Separate hardware requests already
 work. `WorkerSession` now provisions persistent workers and executes bounded Python jobs.
-The agent-facing queue supports run/status. Regular-file checkpoint collection is implemented.
+The agent-facing queue supports run/exec/status. Regular-file checkpoint collection is implemented.
 
 ```python
-world = Env(
+env = Env(
     resources=Resources(cpus=2),
     attachments={
-        "train": Worker(resources=Resources(gpu="L4"), sandbox=gpu_image),
+        "train": Worker(resources=Resources(gpu="L4"), sandbox=gpu_image, shell=True),
         "data": Files(path=Path("datasets")),
     },
 )
@@ -23,6 +23,7 @@ created lazily and terminated at trial end.
 
 - `sprint-resource list`: names and permitted operations.
 - `sprint-resource run train script.py`: submit code to the named worker.
+- `sprint-resource exec train 'nvidia-smi'`: execute a shell command when the worker grants `shell=True`.
 - `sprint-resource status JOB`: status and full execution feedback.
 - `sprint-resource collect REQUEST_ID FILE --wait 60`: snapshot a regular file
   beneath the worker’s `/app`, returning a read-only path in the agent sandbox.
@@ -120,3 +121,5 @@ The broker retries queue observation up to three times, with 35-second host boun
 per attempt, and records failures in `queue.jsonl`. Exhaustion terminates the
 service and affected trial. This does not provide automatic recovery of running
 jobs after host loss; debug resume uses explicitly captured checkpoint state.
+
+Shell commands run as the worker’s learner user in `/app`. Successful commands preserve background processes; redirect their output to workspace files and inspect or stop them with later commands. Python `run` jobs retain their existing per-job process cleanup. A timeout or cancellation destroys the entire worker in either mode. Shell access is disabled by default and does not change the worker’s network policy or expose provider credentials. The shell operation has local mock coverage; provider-backed persistence and cleanup still require a live preflight.

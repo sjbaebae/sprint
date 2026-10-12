@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add opt-in persistent worker shell access through `sprint-resource exec`, with
+  learner-user execution, recorded feedback and worker teardown on timeout.
+
 - Clear stale grading outputs before configuration parsing; quarantine malformed
   violation evidence and duplicate or conflicting violation IDs.
 

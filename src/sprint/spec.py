@@ -109,6 +109,7 @@ class Worker:
     resources: Resources = field(default_factory=Resources)
     seconds: int = 600
     lifetime_seconds: int = 3600
+    shell: bool = False
     backend: str | None = None
 
     hourly_cost: float | None = None
@@ -116,6 +117,8 @@ class Worker:
     state_paths: tuple[str, ...] = STATE_PATHS
 
     def __post_init__(self):
+        if type(self.shell) is not bool:
+            raise ValueError("worker shell permission must be a boolean")
         if self.hourly_cost is not None and (
             type(self.hourly_cost) not in (int, float)
             or not math.isfinite(self.hourly_cost)

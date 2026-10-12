@@ -171,7 +171,8 @@ def compile_task(experiment, directory):
             json.dumps(
                 {
                     name: {
-                        "operations": ["run", "status", "collect"],
+                        "operations": ["run", "status", "collect"]
+                        + (["exec"] if value.shell else []),
                         "seconds": value.seconds,
                         "gpu": value.resources.gpu,
                     }

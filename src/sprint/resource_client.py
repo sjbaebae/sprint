@@ -61,7 +61,7 @@ def read_requests():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "operation", choices=["list", "run", "collect", "status", "_read"]
+        "operation", choices=["list", "run", "exec", "collect", "status", "_read"]
     )
     parser.add_argument("target", nargs="?")
     parser.add_argument("script", nargs="?")
@@ -73,14 +73,18 @@ def main():
     if args.operation == "list":
         print((ROOT / "manifest.json").read_text())
         return
-    if args.operation in {"run", "collect"}:
+    if args.operation in {"run", "exec", "collect"}:
         if not args.script or not args.target:
-            parser.error("run requires RESOURCE SCRIPT.py")
+            parser.error(
+                "run/exec/collect requires a resource or request ID and source/command/path"
+            )
         payload = (
             {"resource": args.target, "code": Path(args.script).read_text()}
             if args.operation == "run"
             else {"collect": args.target, "path": args.script}
         )
+        if args.operation == "exec":
+            payload = {"resource": args.target, "command": args.script}
         request_id = uuid4().hex
         encoded = json.dumps(payload).encode()
         if len(encoded) > LIMIT:

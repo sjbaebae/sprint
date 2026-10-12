@@ -181,16 +181,23 @@ class ResourceBroker:
                     )
                 response.update(status="completed", artifact=target)
             else:
-                if not isinstance(payload, dict) or set(payload) != {
-                    "resource",
-                    "code",
-                }:
-                    raise ValueError("request must contain only resource and code")
+                if not isinstance(payload, dict) or set(payload) not in (
+                    {"resource", "code"},
+                    {"resource", "command"},
+                ):
+                    raise ValueError(
+                        "request must contain resource and either code or command"
+                    )
                 name = payload["resource"]
                 if not isinstance(name, str) or name not in self.workers:
                     raise ValueError("resource is not granted to this trial")
                 session = await self.session(name)
-                response.update(await session.run(payload["code"]))
+                result = (
+                    await session.shell(payload["command"])
+                    if "command" in payload
+                    else await session.run(payload["code"])
+                )
+                response.update(result)
                 response["status"] = (
                     "completed" if response["return_code"] == 0 else "failed"
                 )
