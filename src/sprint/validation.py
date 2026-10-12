@@ -20,9 +20,11 @@ class Context:
     records: Path | None = None
 
     @staticmethod
-    def grade_axes(criteria, evidence, *, maximum=3):
+    def grade_axes(criteria, evidence, *, expected_ids, maximum=3):
         """Grade explained rubric scores using a trusted evidence reference index."""
-        return grade_axes(criteria, evidence, maximum=maximum)
+        return grade_axes(
+            criteria, evidence, expected_ids=expected_ids, maximum=maximum
+        )
 
 
 def component(value):
@@ -154,7 +156,7 @@ def main(config_path):
     )
 
 
-def grade_axes(criteria, evidence, *, maximum=3):
+def grade_axes(criteria, evidence, *, expected_ids, maximum=3):
     """Validate equally weighted rubric judgments against a trusted evidence index.
 
     Each criterion supplies id, score, explanation and evidence reference IDs.
@@ -164,6 +166,16 @@ def grade_axes(criteria, evidence, *, maximum=3):
     """
     if type(maximum) is not int or maximum < 1:
         raise ValueError("maximum must be a positive integer")
+    if (
+        not isinstance(expected_ids, (list, tuple))
+        or not expected_ids
+        or any(
+            not isinstance(identifier, str) or not identifier
+            for identifier in expected_ids
+        )
+        or len(set(expected_ids)) != len(expected_ids)
+    ):
+        raise ValueError("expected_ids must name every rubric criterion exactly once")
     if not isinstance(criteria, list) or not criteria:
         raise ValueError("criteria must be a nonempty list")
     if not isinstance(evidence, dict):
@@ -189,6 +201,8 @@ def grade_axes(criteria, evidence, *, maximum=3):
             or any(not isinstance(ref, str) or ref not in evidence for ref in refs)
         ):
             raise ValueError("every criterion requires resolvable evidence references")
+    if seen != set(expected_ids):
+        raise ValueError("judgments must cover exactly the expected rubric criteria")
     return component(
         {
             "score": sum(item["score"] for item in criteria)

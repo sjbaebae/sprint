@@ -297,6 +297,20 @@ async def restore_workers(broker, checkpoint, records):
     for name, state in checkpoint.metadata["workers"].items():
         if name not in broker.workers:
             raise ValueError("checkpoint references an ungranted worker")
+        if state.get("closed") is True:
+            session = WorkerSession(
+                broker.workers[name],
+                directory=broker.directory / name,
+                backend=broker.backend,
+                context=broker.contexts[name],
+            )
+            await session.__aenter__()
+            await session.close()
+            broker.sessions[name] = session
+            previous = records / name
+            if previous.is_dir():
+                shutil.copytree(previous, session.directory, dirs_exist_ok=True)
+            continue
         remaining = state["remaining_seconds"]
         if not math.isfinite(remaining) or remaining <= 0:
             raise ValueError("checkpoint worker budget is exhausted")

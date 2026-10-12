@@ -39,12 +39,18 @@ Python driver on the selected host.
 
 ## Judge evidence
 
-A validation bundle can use `context.grade_axes(criteria, evidence, maximum=3)` to validate equal-weight 0–3 scores. Each criterion needs a unique ID,
+A validation bundle can use `context.grade_axes(criteria, evidence, expected_ids=["hypotheses", "design"], maximum=3)` to validate equal-weight 0–3 scores. Each criterion needs a unique ID,
 integer score, concrete explanation and nonempty list of resolvable evidence IDs.
-The operator builds the evidence index from trusted records supplied to the judge.
+The judgments must cover exactly the author-declared criterion IDs; omitted or
+invented axes fail grading. The operator builds the evidence index from trusted records supplied to the judge.
 The helper returns a normalized component accepted by `judge(context, rubric)`.
 Unresolvable references or malformed scores raise; the verifier quarantines errors.
 This validates attribution, not whether the explanation warrants the score.
 
 Confirmed deterministic violations disqualify; suspected violations quarantine.
 Missing or failed grading never receives a fabricated fallback score.
+
+Worker failures are terminal: subsequent requests cannot silently provision another
+container using the original reservation. Closed worker state also survives resume.
+Provisioning, code upload, execution and checkpoint collection obey the remaining
+worker lifetime. Provider cleanup may take additional time after the deadline.

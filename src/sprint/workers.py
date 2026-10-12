@@ -3,6 +3,7 @@
 import asyncio
 import hashlib
 import json
+import math
 import shlex
 import time
 from datetime import datetime, timezone
@@ -74,6 +75,10 @@ class WorkerSession:
 
     async def start(self):
         """Provision once; apply the network policy at container creation."""
+        if self.closed:
+            raise RuntimeError("worker session is closed")
+        if self.deadline is None or self.deadline <= time.monotonic():
+            raise TimeoutError("worker lifetime exceeded")
         if self.environment is not None:
             return
         from sprint.environments.factory import EnvironmentFactory
@@ -109,7 +114,11 @@ class WorkerSession:
             config=BackendConfig(
                 type=EnvironmentType(self.backend),
                 kwargs=(
-                    {"sandbox_timeout_secs": self.worker.lifetime_seconds}
+                    {
+                        "sandbox_timeout_secs": max(
+                            1, math.ceil(self.deadline - time.monotonic())
+                        )
+                    }
                     if self.backend == "modal"
                     else {}
                 ),
@@ -155,23 +164,24 @@ class WorkerSession:
                 sha256=hashlib.sha256(code.encode()).hexdigest(),
             )
             try:
-                await asyncio.wait_for(self.start(), timeout=remaining)
-                environment = self.environment
-                if environment is None:
-                    raise RuntimeError("worker failed to initialize")
-                await environment.upload_file(source, "/app/" + job_id + ".py")
-                result = await asyncio.wait_for(
-                    environment.exec(
-                        "python /app/" + job_id + ".py",
-                        cwd="/app",
-                        user="agent",
-                        timeout_sec=self.worker.seconds,
-                    ),
-                    timeout=min(
-                        self.worker.seconds + 30,
-                        max(0, self.deadline - time.monotonic()),
-                    ),
-                )
+                async with asyncio.timeout_at(self.deadline):
+                    await self.start()
+                    environment = self.environment
+                    if environment is None:
+                        raise RuntimeError("worker failed to initialize")
+                    await environment.upload_file(source, "/app/" + job_id + ".py")
+                    result = await asyncio.wait_for(
+                        environment.exec(
+                            "python /app/" + job_id + ".py",
+                            cwd="/app",
+                            user="agent",
+                            timeout_sec=min(
+                                self.worker.seconds,
+                                max(0, self.deadline - time.monotonic()),
+                            ),
+                        ),
+                        timeout=self.worker.seconds + 30,
+                    )
                 payload = {
                     "job_id": job_id,
                     "return_code": result.return_code,
@@ -195,44 +205,59 @@ class WorkerSession:
         if not isinstance(relative, str):
             raise ValueError("checkpoint path must be text")
         async with self.lock:
-            environment = self.environment
-            if self.closed or environment is None:
-                raise RuntimeError("worker is not available for collection")
-            result = await environment.exec(
-                "python -I -S /opt/sprint-export.py " + shlex.quote(relative),
-                user="root",
-                timeout_sec=120,
-            )
-            if result.return_code != 0:
-                raise ValueError("checkpoint collection failed: " + str(result.stderr))
-            metadata = json.loads(result.stdout or "{}")
-            exported = metadata["path"]
-            if (
-                not isinstance(exported, str)
-                or not exported.startswith("/tmp/sprint-export-")
-                or "/" in exported.removeprefix("/tmp/")
-            ):
-                raise ValueError("invalid worker export path")
+            if self.deadline is None or self.deadline <= time.monotonic():
+                await self.close()
+                raise TimeoutError("worker lifetime exceeded")
             try:
-                await environment.download_file(exported, destination)
-                with Path(destination).open("rb") as stream:
-                    digest = hashlib.file_digest(stream, "sha256").hexdigest()
-                if digest != metadata["sha256"]:
-                    raise ValueError("collected checkpoint hash mismatch")
-                self.record(
-                    "checkpoint-collected",
-                    source=relative,
-                    sha256=digest,
-                    bytes=metadata["bytes"],
-                )
-                return {"sha256": digest, "bytes": metadata["bytes"]}
-            finally:
-                await environment.exec(
-                    "rm -f " + shlex.quote(exported), user="root", timeout_sec=30
-                )
+                async with asyncio.timeout_at(self.deadline):
+                    return await self._collect(relative, destination)
+            except ValueError:
+                raise
+            except BaseException:
+                await self.close()
+                raise
+
+    async def _collect(self, relative, destination):
+        """Collect under the caller's worker lock and lifetime deadline."""
+        environment = self.environment
+        if self.closed or environment is None:
+            raise RuntimeError("worker is not available for collection")
+        result = await environment.exec(
+            "python -I -S /opt/sprint-export.py " + shlex.quote(relative),
+            user="root",
+            timeout_sec=120,
+        )
+        if result.return_code != 0:
+            raise ValueError("checkpoint collection failed: " + str(result.stderr))
+        metadata = json.loads(result.stdout or "{}")
+        exported = metadata["path"]
+        if (
+            not isinstance(exported, str)
+            or not exported.startswith("/tmp/sprint-export-")
+            or "/" in exported.removeprefix("/tmp/")
+        ):
+            raise ValueError("invalid worker export path")
+        try:
+            await environment.download_file(exported, destination)
+            with Path(destination).open("rb") as stream:
+                digest = hashlib.file_digest(stream, "sha256").hexdigest()
+            if digest != metadata["sha256"]:
+                raise ValueError("collected checkpoint hash mismatch")
+            self.record(
+                "checkpoint-collected",
+                source=relative,
+                sha256=digest,
+                bytes=metadata["bytes"],
+            )
+            return {"sha256": digest, "bytes": metadata["bytes"]}
+        finally:
+            await environment.exec(
+                "rm -f " + shlex.quote(exported), user="root", timeout_sec=30
+            )
 
     async def close(self):
         """Destroy the sandbox, including any learner-created detached processes."""
+        self.closed = True
         if self.environment is not None:
             environment = self.environment
             await environment.stop(delete=True)

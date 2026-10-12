@@ -277,8 +277,13 @@ class LiveRun:
                     await self.broker.gate.acquire()
                     broker_locked = True
                     for worker_name, session in self.broker.sessions.items():
-                        if session.environment is None or session.closed:
-                            raise RuntimeError("cannot checkpoint a closed worker")
+                        if session.closed:
+                            worker_state[worker_name] = {"closed": True}
+                            continue
+                        if session.environment is None:
+                            raise RuntimeError(
+                                "cannot checkpoint an uninitialized worker"
+                            )
                         await self._freeze(session.environment, frozen)
                         trees["worker-" + worker_name] = await self._capture(
                             session.environment, session.worker.state_paths, store

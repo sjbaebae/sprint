@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Close worker restart/deadline bypasses, preserve terminal workers across resume,
+  prevent malformed filenames from starving the queue, and require complete rubric scorecards.
+
 - Add per-trial worker concurrency, configurable resource request limits and retained
   declared-rate lifetime spending reservations. Bound Modal sandbox survival after
   host loss and add a rubric helper requiring explained scores and resolved evidence.

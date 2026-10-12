@@ -18,9 +18,12 @@ def read_requests():
     requests = []
     directory = os.open(ROOT / "requests", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
-        for name in sorted(os.listdir(directory))[:32]:
-            if not re.fullmatch(r"[a-f0-9]{32}\.json", name):
-                continue
+        names = sorted(
+            name
+            for name in os.listdir(directory)
+            if re.fullmatch(r"[a-f0-9]{32}\.json", name)
+        )
+        for name in names[:32]:
             try:
                 fd = os.open(
                     name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory

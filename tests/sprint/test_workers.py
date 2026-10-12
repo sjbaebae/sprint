@@ -102,3 +102,53 @@ async def test_cleanup_attempts_all_resources_when_one_provider_fails():
     with pytest.raises(ExceptionGroup, match="cleanup failed"):
         await close_all([Resource("bad", True), Resource("good")])
     assert sorted(called) == ["bad", "good"]
+
+
+@pytest.mark.asyncio
+async def test_failed_worker_cannot_reprovision_on_existing_reservation(tmp_path):
+    env = FakeEnvironment()
+    env.fail = True
+    async with WorkerSession(
+        Worker(), directory=tmp_path / "worker", factory=lambda **kwargs: env
+    ) as session:
+        with pytest.raises(TimeoutError):
+            await session.run("print(1)")
+        env.fail = False
+        with pytest.raises(RuntimeError, match="closed"):
+            await session.run("print(2)")
+        assert env.starts == 1
+
+
+@pytest.mark.asyncio
+async def test_stalled_upload_is_bounded_by_lifetime(tmp_path):
+    import asyncio
+    import time
+
+    env = FakeEnvironment()
+
+    async def upload(*args):
+        await asyncio.Event().wait()
+
+    env.upload_file = upload
+    async with WorkerSession(
+        Worker(), directory=tmp_path / "worker", factory=lambda **kwargs: env
+    ) as session:
+        started = time.monotonic()
+        session.deadline = started + 0.05
+        with pytest.raises(TimeoutError):
+            await asyncio.wait_for(session.run("print(1)"), timeout=3)
+        assert time.monotonic() - started < 1
+        assert session.closed and env.stops == 1
+
+
+@pytest.mark.asyncio
+async def test_expired_collection_destroys_worker(tmp_path):
+    env = FakeEnvironment()
+    async with WorkerSession(
+        Worker(), directory=tmp_path / "worker", factory=lambda **kwargs: env
+    ) as session:
+        await session.run("print(1)")
+        session.deadline = 0
+        with pytest.raises(TimeoutError, match="lifetime"):
+            await session.collect("checkpoint", tmp_path / "artifact")
+        assert session.closed and env.stops == 1
