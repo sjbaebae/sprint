@@ -75,7 +75,8 @@ sandboxes before verification. The agent uses `sprint-resource run NAME SCRIPT.p
 --wait 60` and `sprint-resource status REQUEST_ID --wait 60`. Results include actual
 exit code, stdout/stderr, or an exception type and message. Only Python code is
 accepted; resource names must be explicitly granted. Resource requests are limited
-to 200 per trial. Jobs are currently serialized by the broker.
+to `Budget.resource_requests` (default 200). `Budget.worker_concurrency` bounds
+concurrent requests across workers; each worker executes one job at a time.
 
 ## Verified preflights
 
@@ -105,3 +106,10 @@ a restorable live checkpoint.
 
 The worker launcher adopts and reaps orphan descendants after stopping them, so
 repeated jobs do not accumulate their detached children as zombies under init.
+
+A terminal broker failure interrupts only its agent trial immediately. The original
+error and available records are retained; independent trials continue. The runtime
+then attempts resource cleanup. This trial is an infrastructure error, not a scored
+agent submission. Ordinary failed training jobs return feedback for further research.
+Run `uv run python examples/sprint/failure/service_preflight.py` to exercise this
+failure isolation with two Modal trials.

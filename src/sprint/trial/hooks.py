@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Awaitable, Callable, Literal
@@ -38,6 +39,9 @@ class TrialHookEvent(BaseModel):
 
     model_config = {"arbitrary_types_allowed": True}
 
+    # AGENT_START hooks may register long-lived services owned by the hook.
+    # Their termination interrupts only this trial; cleanup remains hook-owned.
+    services: list[asyncio.Task[Any]] = Field(default_factory=list, exclude=True)
     environment: Any = Field(default=None, exclude=True)
     event: TrialEvent
     task_name: str

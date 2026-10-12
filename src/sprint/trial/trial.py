@@ -478,7 +478,7 @@ class Trial(ABC):
 
         return environment.scoped_output_callback(emit)
 
-    async def _emit(self, event: TrialEvent) -> None:
+    async def _emit(self, event: TrialEvent) -> TrialHookEvent:
         hook_event = TrialHookEvent(
             event=event,
             task_name=self.task.name,
@@ -489,6 +489,7 @@ class Trial(ABC):
         )
         for hook in self._hooks[event]:
             await hook(hook_event)
+        return hook_event
 
     async def run(self) -> TrialResult:
         self._init_result()
@@ -592,7 +593,7 @@ class Trial(ABC):
         resume: bool = False,
         load: bool = False,
     ) -> None:
-        await self._emit(TrialEvent.AGENT_START)
+        start_event = await self._emit(TrialEvent.AGENT_START)
 
         target.agent_result = AgentContext()
         target.agent_execution = TimingInfo(started_at=self._now())
@@ -650,10 +651,13 @@ class Trial(ABC):
                                 enabled=self.user_agent is None,
                             ):
                                 await asyncio.wait_for(
-                                    run(
-                                        instruction=instruction,
-                                        environment=self.agent_environment,
-                                        context=target.agent_result,
+                                    supervise_services(
+                                        run(
+                                            instruction=instruction,
+                                            environment=self.agent_environment,
+                                            context=target.agent_result,
+                                        ),
+                                        start_event.services,
                                     ),
                                     timeout=timeout_sec,
                                 )
@@ -1942,3 +1946,26 @@ class Trial(ABC):
     @override
     def __repr__(self) -> str:
         return f"{type(self).__name__}(trial_name={self.config.trial_name!r})"
+
+
+async def supervise_services(
+    agent: Awaitable[Any], services: list[asyncio.Task[Any]]
+) -> Any:
+    """Stop an agent if an attached service ends; service owners perform cleanup."""
+    task = asyncio.ensure_future(agent)
+    try:
+        done, _ = await asyncio.wait(
+            [task, *services], return_when=asyncio.FIRST_COMPLETED
+        )
+        # Service failure takes precedence over simultaneous agent completion.
+        for service in services:
+            if service in done:
+                if service.cancelled():
+                    raise RuntimeError("Attached trial service was cancelled")
+                error = service.exception()
+                raise RuntimeError("Attached trial service terminated") from error
+        return await task
+    finally:
+        if not task.done():
+            task.cancel()
+        await asyncio.gather(task, return_exceptions=True)

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Stop affected agents promptly when an attached resource service terminates,
+  while preserving independent trials and hook-owned cleanup.
+
 - Publish worker feedback atomically with bounded delivery retries and retained
   failure events. Reap adopted worker children and reject checkpoints of failed brokers.
 

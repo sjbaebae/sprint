@@ -483,6 +483,8 @@ async def run(
                 if checkpoint is not None:
                     await broker.gate.acquire()
                 await broker.start()
+                if broker.task is not None:
+                    event.services.append(broker.task)
                 if checkpoint is not None:
                     try:
                         await restore_workers(
@@ -497,10 +499,11 @@ async def run(
         elif event.event == TrialEvent.AGENT_END:
             if control is not None:
                 await control.leaving()
-            broker = brokers.get(event.trial_name)
+            # Cleanup errors belong to this trial. Do not replay a dead service
+            # in campaign-final cleanup and discard independent trial results.
+            broker = brokers.pop(event.trial_name, None)
             if broker is not None:
                 await broker.close()
-                brokers.pop(event.trial_name, None)
 
     async def evidence(event):
         # Separate-mode hook runs after learner shutdown and log collection.
