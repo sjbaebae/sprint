@@ -138,6 +138,8 @@ def main():
         preexec_fn=enforce_no_new_privileges,
     )
     selector = selectors.DefaultSelector()
+    if child.stdout is None:
+        raise RuntimeError("supervised child stdout pipe was not created")
     selector.register(child.stdout, selectors.EVENT_READ)
     counter = TurnCounter()
     pending = b""
@@ -173,7 +175,7 @@ def main():
                 reason = "time_limit"
                 break
             for key, _ in selector.select(timeout=0.2):
-                block = os.read(key.fileobj.fileno(), 65536)
+                block = os.read(key.fd, 65536)
                 if not block:
                     selector.unregister(key.fileobj)
                     continue
