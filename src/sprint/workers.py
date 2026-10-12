@@ -4,6 +4,8 @@ import asyncio
 import hashlib
 import json
 import math
+import os
+import stat
 import shlex
 import time
 from datetime import datetime, timezone
@@ -278,25 +280,62 @@ class WorkerSession:
                 raise
 
     async def upload(self, content: bytes, relative: str):
-        """Copy a bounded learner file into /app without privileged writes there."""
+        """Copy a small learner payload; larger files use operator upload_file()."""
+        if not isinstance(content, bytes) or len(content) > 1024 * 1024:
+            raise ValueError("upload must contain at most 1 MiB")
+        source = self.directory / (uuid4().hex + ".inline")
+        source.write_bytes(content)
+        try:
+            return await self.upload_file(source, relative, max_bytes=1024 * 1024)
+        finally:
+            source.unlink(missing_ok=True)
+
+    async def upload_file(self, source: Path, relative: str, *, max_bytes=1024**3):
+        """Snapshot an operator-supplied regular file and upload it beneath /app.
+
+        This host API can transport screened datasets without putting their contents
+        in the learner RPC queue. No arbitrary host path is exposed to the learner.
+        """
         path = PurePosixPath(relative) if isinstance(relative, str) else None
         if path is None or path.is_absolute() or ".." in path.parts or not path.name:
             raise ValueError("upload destination must be a relative file beneath /app")
-        if not isinstance(content, bytes) or len(content) > 1024 * 1024:
-            raise ValueError("upload must contain at most 1 MiB")
+        if type(max_bytes) is not int or max_bytes < 1:
+            raise ValueError("upload limit must be a positive integer")
         async with self.lock:
             if self.closed or self.deadline is None:
                 raise RuntimeError("worker session is not active")
             staging = "/tmp/sprint-upload-" + uuid4().hex
-            source = self.directory / (uuid4().hex + ".upload")
-            source.write_bytes(content)
+            snapshot = self.directory / (uuid4().hex + ".upload")
             try:
+                descriptor = os.open(
+                    source, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+                )
+                with os.fdopen(descriptor, "rb") as stream:
+                    before = os.fstat(stream.fileno())
+                    if not stat.S_ISREG(before.st_mode) or before.st_size > max_bytes:
+                        raise ValueError("upload must be a bounded regular file")
+                    digest = hashlib.sha256()
+                    size = 0
+                    with snapshot.open("xb") as target:
+                        while block := stream.read(1024 * 1024):
+                            size += len(block)
+                            if size > max_bytes:
+                                raise ValueError("upload exceeds byte limit")
+                            digest.update(block)
+                            target.write(block)
+                    after = os.fstat(stream.fileno())
+                    if (before.st_size, before.st_mtime_ns, before.st_ctime_ns) != (
+                        after.st_size,
+                        after.st_mtime_ns,
+                        after.st_ctime_ns,
+                    ):
+                        raise ValueError("upload source changed during snapshot")
                 async with asyncio.timeout_at(self.deadline):
                     await self.start()
                     environment = self.environment
                     if environment is None:
                         raise RuntimeError("worker failed to initialize")
-                    await environment.upload_file(source, staging)
+                    await environment.upload_file(snapshot, staging)
                     result = await environment.exec(
                         "chmod 444 " + staging, user="root", timeout_sec=30
                     )
@@ -318,17 +357,17 @@ class WorkerSession:
                     )
                     if result.return_code != 0:
                         raise ValueError("worker upload failed: " + str(result.stderr))
-                    digest = hashlib.sha256(content).hexdigest()
+                    digest = digest.hexdigest()
                     self.record(
                         "file-uploaded",
                         path=str(path),
-                        bytes=len(content),
+                        bytes=size,
                         sha256=digest,
                     )
                     return {
                         "return_code": 0,
                         "path": "/app/" + str(path),
-                        "bytes": len(content),
+                        "bytes": size,
                         "sha256": digest,
                     }
             except ValueError:
@@ -337,7 +376,7 @@ class WorkerSession:
                 await self.close()
                 raise
             finally:
-                source.unlink(missing_ok=True)
+                snapshot.unlink(missing_ok=True)
                 if self.environment is not None:
                     await self.environment.exec(
                         "rm -f " + staging, user="root", timeout_sec=30

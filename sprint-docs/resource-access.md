@@ -23,6 +23,7 @@ created lazily and terminated at trial end.
 
 - `sprint-resource list`: names and permitted operations.
 - `sprint-resource upload train LOCAL_FILE code/train.py`: copy a file of at most 1 MiB into the worker workspace. Use read-only `Files` attachments for large initial datasets. Uploads are recorded with size and SHA-256; transfer does not establish what data training consumed.
+- Operator code can use `await session.upload_file(path, "data/train.jsonl", max_bytes=1024**3)` for larger files. Sprint freezes a bounded regular-file snapshot and records its hash before transfer. This host API does not expose host paths through learner RPC.
 - `sprint-resource run train script.py`: submit code to the named worker.
 - `sprint-resource exec train 'nvidia-smi'`: execute a shell command when the worker grants `shell=True`.
 - `sprint-resource status JOB`: status and full execution feedback.

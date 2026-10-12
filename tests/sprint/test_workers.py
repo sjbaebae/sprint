@@ -2,6 +2,7 @@
 
 from types import SimpleNamespace
 import json
+import hashlib
 
 import pytest
 
@@ -297,3 +298,27 @@ async def test_read_only_volume_grant_reaches_modal_provider(tmp_path):
     ) as session:
         await session.start()
         assert configs[0].kwargs["read_only_volumes"] == {"/base": "pinned-release"}
+
+
+@pytest.mark.asyncio
+async def test_operator_file_upload_snapshots_large_input_and_enforces_limit(tmp_path):
+    env = FakeEnvironment()
+
+    async def execute(*args, **kwargs):
+        return SimpleNamespace(return_code=0, stdout="", stderr="")
+
+    env.exec = execute
+    source = tmp_path / "dataset.jsonl"
+    content = b"data\n" * 220000
+    source.write_bytes(content)
+    async with WorkerSession(
+        Worker(), directory=tmp_path / "worker", factory=lambda **kwargs: env
+    ) as session:
+        with pytest.raises(ValueError, match="bounded"):
+            await session.upload_file(source, "data/train.jsonl", max_bytes=100)
+        assert env.starts == 0
+        result = await session.upload_file(source, "data/train.jsonl")
+        assert result["bytes"] == len(content)
+        assert result["sha256"] == hashlib.sha256(content).hexdigest()
+        assert source.read_bytes() == content
+        assert not list(session.directory.glob("*.upload"))
