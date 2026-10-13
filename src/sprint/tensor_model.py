@@ -45,53 +45,54 @@ class TensorModelSession:
     async def __aenter__(self):
         self.deadline = time.monotonic() + self.seconds
         try:
-            self.worker = WorkerSession(
-                Worker(
-                    sandbox=Sandbox(
-                        packages=(
-                            "torch==2.8.0",
-                            "transformers==4.57.0",
-                            "safetensors==0.6.2",
-                            "accelerate==1.10.1",
-                            "numpy==2.3.3",
-                            "peft==0.17.1",
+            async with asyncio.timeout_at(self.deadline):
+                self.worker = WorkerSession(
+                    Worker(
+                        sandbox=Sandbox(
+                            packages=(
+                                "torch==2.8.0",
+                                "transformers==4.57.0",
+                                "safetensors==0.6.2",
+                                "accelerate==1.10.1",
+                                "numpy==2.3.3",
+                                "peft==0.17.1",
+                            ),
+                            internet="none",
                         ),
-                        internet="none",
+                        resources=self.resources,
+                        backend="modal",
+                        shell=True,
+                        seconds=self.seconds,
+                        lifetime_seconds=self.seconds,
                     ),
-                    resources=self.resources,
-                    backend="modal",
-                    shell=True,
-                    seconds=self.seconds,
-                    lifetime_seconds=self.seconds,
-                ),
-                directory=self.directory,
-            )
-            await self.worker.__aenter__()
-            await self.worker.start()
-            await self.environment.upload_file(self.package, "/tmp/model.tar")
-            for name in ("tensor_model_worker.py", "tensor_model_package.py"):
-                await self.environment.upload_file(
-                    Path(__file__).with_name(name), "/tmp/" + name
+                    directory=self.directory,
                 )
-            # The model worker has no protected mounts. Submitted code runs as agent.
-            service_command = (
-                "python /tmp/tensor_model_worker.py "
-                "--package /tmp/model.tar --channel /app/channel "
-                f"--vocabulary-size {self.vocabulary_size} "
-                f"--device {'cuda' if self.resources.gpu else 'cpu'} "
-                "; status=$?; printf '%s\\n' \"$status\" > /app/channel/exited"
-            )
-            result = await self.environment.exec(
-                "mkdir -p /app/channel && nohup sh -c "
-                + shlex.quote(service_command)
-                + " > /app/channel/service.log 2>&1 < /dev/null &",
-                user="agent",
-                timeout_sec=30,
-            )
-            if result.return_code:
-                raise RuntimeError("model inference service failed to start")
-            await self.wait_file("/app/channel/ready")
-            return self
+                await self.worker.__aenter__()
+                await self.worker.start()
+                await self.environment.upload_file(self.package, "/tmp/model.tar")
+                for name in ("tensor_model_worker.py", "tensor_model_package.py"):
+                    await self.environment.upload_file(
+                        Path(__file__).with_name(name), "/tmp/" + name
+                    )
+                # The model worker has no protected mounts. Submitted code runs as agent.
+                service_command = (
+                    "python /tmp/tensor_model_worker.py "
+                    "--package /tmp/model.tar --channel /app/channel "
+                    f"--vocabulary-size {self.vocabulary_size} "
+                    f"--device {'cuda' if self.resources.gpu else 'cpu'} "
+                    "; status=$?; printf '%s\\n' \"$status\" > /app/channel/exited"
+                )
+                result = await self.environment.exec(
+                    "mkdir -p /app/channel && nohup sh -c "
+                    + shlex.quote(service_command)
+                    + " > /app/channel/service.log 2>&1 < /dev/null &",
+                    user="agent",
+                    timeout_sec=30,
+                )
+                if result.return_code:
+                    raise RuntimeError("model inference service failed to start")
+                await self.wait_file("/app/channel/ready")
+                return self
         except BaseException:
             await self.__aexit__(None, None, None)
             raise
@@ -118,6 +119,13 @@ class TensorModelSession:
         raise TimeoutError("model inference deadline reached")
 
     async def predict(self, rows, output_token_ids):
+        """Deliver inputs and validate outputs within the evaluation deadline."""
+        if self.deadline is None:
+            raise RuntimeError("model session has not started")
+        async with asyncio.timeout_at(self.deadline):
+            return await self._predict(rows, output_token_ids)
+
+    async def _predict(self, rows, output_token_ids):
         request_id = uuid.uuid4().hex
         request = self.directory / (request_id + ".json")
         request.write_text(

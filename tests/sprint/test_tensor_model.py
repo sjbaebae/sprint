@@ -66,3 +66,39 @@ async def test_model_worker_is_network_blocked_and_outputs_are_checked(
         "/tmp/tensor_model_worker.py",
         "/tmp/tensor_model_package.py",
     ]
+
+
+@pytest.mark.asyncio
+async def test_stalled_package_transfer_expires_and_cleans_up(tmp_path, monkeypatch):
+    import asyncio
+
+    closed = []
+
+    class Session:
+        def __init__(self, *args, **kwargs):
+            self.closed = False
+            self.environment = SimpleNamespace(upload_file=self.upload)
+
+        async def __aenter__(self):
+            return self
+
+        async def start(self):
+            pass
+
+        async def upload(self, *args):
+            await asyncio.Event().wait()
+
+        async def close(self):
+            self.closed = True
+            closed.append(True)
+
+    monkeypatch.setattr(inference_session, "WorkerSession", Session)
+    with pytest.raises(TimeoutError):
+        async with inference_session.TensorModelSession(
+            tmp_path / "model.tar",
+            directory=tmp_path / "worker",
+            vocabulary_size=7,
+            seconds=1,
+        ):
+            pytest.fail("a stalled transfer must not expose a ready session")
+    assert closed == [True]
