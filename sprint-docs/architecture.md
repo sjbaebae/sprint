@@ -22,9 +22,12 @@ verifier. Multiple named attachments should grant explicit operations, such as
 executing a job, reading a dataset or accessing a checkpoint. Capacity and access
 permissions are separate. Provider credentials stay on the operator side.
 
-The current release implements independent learner/verifier capacity, named read-only
-file attachments and persistent workers with a host-mediated run/exec/upload/status/collect queue.
-Workers are created lazily and destroyed before verification.
+Choose either brokered workers (`Env.attachments`) or ordinary learner SSH/SCP
+(`ModalWorker`). Both keep provider credentials outside the learner. Sprint owns
+provisioning, deadlines, observations, artifact collection and teardown; learner
+code owns its training loop and processes. Broker workers close before verification.
+A submitted model package runs in a fresh network-blocked worker, separately from
+the protected scorer.
 
 ## Implemented lifecycle
 
@@ -39,15 +42,14 @@ requires an explicit transport allowlist and preinstalled tools when appropriate
 
 ## Remaining integrations
 
-Automatic per-action workspace exports; screened download services;
-RL token/log-probability export. The bounded Codex adapter enforces action and
-single-agent limits with a managed sandbox profile; ordinary harness adapters
-retain their own capability limits.
-These are distinct from the verified initial lifecycle.
+The direct SSH lifecycle is currently an operator API, separate from
+`Env.attachments`. Broker request and spending limits do not govern direct SSH;
+its resource lifetime bounds access. Automatic per-action workspace exports and
+RL token/log-probability export remain unfinished.
 
-Harbor internals may change substantially to support this contract. End users
-should not need Harbor job models, Compose templates or provider scripts to
-author an ordinary environment.
+The bounded Codex adapter enforces action and single-agent limits; ordinary
+harness adapters retain their own capability limits. Environment-specific model
+evaluation and contamination policy belong in validation, not provider adapters.
 
 
 ## Mid-task state recovery
