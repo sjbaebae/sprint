@@ -63,7 +63,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "operation",
-        choices=["list", "run", "exec", "upload", "collect", "status", "_read"],
+        choices=[
+            "list",
+            "run",
+            "exec",
+            "connect",
+            "upload",
+            "collect",
+            "status",
+            "_read",
+        ],
     )
     parser.add_argument("target", nargs="?")
     parser.add_argument("script", nargs="?")
@@ -76,12 +85,14 @@ def main():
     if args.operation == "list":
         print((ROOT / "manifest.json").read_text())
         return
-    if args.operation in {"run", "exec", "upload", "collect"}:
-        if not args.script or not args.target:
+    if args.operation in {"run", "exec", "connect", "upload", "collect"}:
+        if not args.target or (args.operation != "connect" and not args.script):
             parser.error(
-                "run/exec/upload/collect requires a target and source/command/path"
+                "connect requires a target; run/exec/upload/collect also requires source/command/path"
             )
-        if args.operation == "run":
+        if args.operation == "connect":
+            payload = {"resource": args.target, "connect": True}
+        elif args.operation == "run":
             payload = {"resource": args.target, "code": Path(args.script).read_text()}
         elif args.operation == "exec":
             payload = {"resource": args.target, "command": args.script}

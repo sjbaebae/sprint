@@ -151,6 +151,7 @@ def _stock_mock_env() -> AsyncMock:
     """A mock env that won't fight the trial flow."""
     env = AsyncMock()
     env.default_user = None
+    env.stream_enabled = False
     env.capabilities.mounted = True
     env.os.value = "linux"
     env.exec.return_value = ExecResult(stdout="/", stderr="", return_code=0)

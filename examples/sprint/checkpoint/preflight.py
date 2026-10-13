@@ -1,5 +1,6 @@
 """Real logical-state restore with a worker, request lineage and remaining budget."""
 
+import argparse
 import asyncio
 import json
 import tempfile
@@ -9,7 +10,7 @@ from uuid import uuid4
 from sprint import Agent, Budget, Env, Experiment, Sandbox, Task, Validation, Worker
 
 
-async def main():
+async def main(*, ssh=False):
     directory = Path(".sprint/checkpoint-preflight") / uuid4().hex
     with tempfile.TemporaryDirectory(prefix="sprint-checkpoint-example-") as temporary:
         root = Path(temporary)
@@ -62,14 +63,55 @@ answer = int(Path("counter.txt").read_text()) + int(Path(r["artifact"]).read_tex
 Path("/app/submission/answer.txt").write_text(str(answer))
 PYCODE
 """)
+        if ssh:
+            # Reuse the same state calculation through the learner's ordinary SSH.
+            solution.write_text("""#!/bin/sh
+set -eu
+cd /app
+if [ ! -f ready ]; then
+  echo 7 > counter.txt
+  sprint-resource connect compute --wait 60 > connection.json
+  python - <<'PYCODE'
+import json
+from pathlib import Path
+r = json.loads(Path("connection.json").read_text())
+assert r["status"] == "completed", r
+Path("ssh-config.txt").write_text(r["ssh_config"])
+PYCODE
+  ssh -F "$(cat ssh-config.txt)" gpu 'echo 9 > /app/value.txt'
+  touch ready
+  sleep 90
+fi
+# Restore refreshes this saved config with the new worker's pinned endpoint.
+ssh -F "$(cat ssh-config.txt)" gpu 'value=$(cat /app/value.txt); echo "$((value + 1))" > /app/value.txt'
+ssh -F "$(cat ssh-config.txt)" gpu 'cat /app/value.txt' > worker-value.txt
+python - <<'PYCODE'
+from pathlib import Path
+answer = int(Path("counter.txt").read_text()) + int(Path("worker-value.txt").read_text())
+Path("/app/submission/answer.txt").write_text(str(answer))
+PYCODE
+""")
         experiment = Experiment(
             Task("Resume the staged calculation"),
             Validation(private, reference=solution),
             Agent("unused", harness="oracle"),
             Env(
-                sandbox=Sandbox(),
+                sandbox=Sandbox(
+                    internet="full" if ssh else "none",
+                    setup=(
+                        "apt-get update && apt-get install -y --no-install-recommends openssh-client",
+                    )
+                    if ssh
+                    else (),
+                ),
                 files=public,
-                attachments={"compute": Worker(lifetime_seconds=300)},
+                attachments={
+                    "compute": Worker(
+                        lifetime_seconds=300,
+                        shell=ssh,
+                        sandbox=Sandbox(internet="full" if ssh else "none"),
+                    )
+                },
             ),
             Budget(seconds=240),
         )
@@ -101,4 +143,10 @@ PYCODE
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--ssh",
+        action="store_true",
+        help="Exercise direct worker SSH and refreshed host pins",
+    )
+    asyncio.run(main(ssh=parser.parse_args().ssh))

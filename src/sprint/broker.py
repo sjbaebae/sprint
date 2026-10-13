@@ -4,11 +4,13 @@ import asyncio
 import base64
 import json
 import re
+import shlex
 import tempfile
 from pathlib import Path
 from datetime import UTC, datetime
 
 from .workers import WorkerSession, close_all
+from .learner_ssh import connection_files, create_identity
 
 
 class ResourceBroker:
@@ -140,10 +142,73 @@ class ResourceBroker:
                     directory=self.directory / name,
                     backend=self.backend,
                     context=self.contexts.get(name),
+                    learner_ssh_public_key=self.ssh_key(name),
                 )
                 await session.__aenter__()
                 self.sessions[name] = session
             return self.sessions[name]
+
+    def ssh_key(self, name):
+        """Keep worker-scoped identities in private, checkpointed broker state."""
+        worker = self.workers[name]
+        if (
+            worker.shell
+            and worker.sandbox.internet != "none"
+            and (worker.backend or self.backend) == "modal"
+        ):
+            return create_identity(self.directory / ("ssh-" + name))
+        return None
+
+    async def connect(self, name, session):
+        """Publish SSH access to a normal attached worker, including after restore."""
+        worker = self.workers[name]
+        if (
+            not worker.shell
+            or worker.sandbox.internet == "none"
+            or (worker.backend or self.backend) != "modal"
+        ):
+            raise ValueError("SSH requires a network-enabled Modal shell worker")
+        await session.start()
+        target = "/resources/control/connections/" + name
+        hosts, config = connection_files(
+            session.learner_ssh_endpoint, target + "/identity", target + "/known_hosts"
+        )
+        result = await self.environment.exec(
+            "mkdir -p -- " + shlex.quote(target), user="root", timeout_sec=30
+        )
+        if result.return_code:
+            raise RuntimeError("failed to prepare worker connection directory")
+        with tempfile.TemporaryDirectory(prefix="sprint-ssh-") as temporary:
+            local = Path(temporary)
+            (local / "known_hosts").write_text(hosts)
+            (local / "config").write_text(config)
+            for source, filename in (
+                (self.directory / ("ssh-" + name), "identity"),
+                (local / "known_hosts", "known_hosts"),
+                (local / "config", "config"),
+            ):
+                await self.environment.upload_file(source, target + "/" + filename)
+        result = await self.environment.exec(
+            "chown root:root "
+            + shlex.quote(target)
+            + " && chmod 755 "
+            + shlex.quote(target)
+            + " && chown agent:agent "
+            + shlex.quote(target + "/identity")
+            + " && chmod 400 "
+            + shlex.quote(target + "/identity")
+            + " && chmod 444 "
+            + shlex.join([target + "/config", target + "/known_hosts"]),
+            user="root",
+            timeout_sec=30,
+        )
+        if result.return_code:
+            raise RuntimeError("failed to protect worker connection files")
+        return {
+            "return_code": 0,
+            "ssh_config": target + "/config",
+            "command": "ssh -F " + shlex.quote(target + "/config") + " gpu",
+        }
 
     async def dispatch(self, request):
         request_id = request["request_id"]
@@ -186,15 +251,27 @@ class ResourceBroker:
                     {"resource", "code"},
                     {"resource", "command"},
                     {"resource", "content", "path"},
+                    {"resource", "connect"},
                 ):
                     raise ValueError(
-                        "request must contain resource and code, command, or content/path"
+                        "request must contain resource and connect, code, command, or content/path"
                     )
                 name = payload["resource"]
                 if not isinstance(name, str) or name not in self.workers:
                     raise ValueError("resource is not granted to this trial")
+                if "connect" in payload and (
+                    payload["connect"] is not True
+                    or not self.workers[name].shell
+                    or self.workers[name].sandbox.internet == "none"
+                    or (self.workers[name].backend or self.backend) != "modal"
+                ):
+                    raise ValueError(
+                        "SSH requires a network-enabled Modal shell worker"
+                    )
                 session = await self.session(name)
-                if "content" in payload:
+                if "connect" in payload:
+                    result = await self.connect(name, session)
+                elif "content" in payload:
                     encoded = payload["content"]
                     if not isinstance(encoded, str) or len(encoded) > 1400000:
                         raise ValueError("upload exceeds 1 MiB")

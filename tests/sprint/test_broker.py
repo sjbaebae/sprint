@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from sprint import Worker
+from sprint import Sandbox, Worker
 from sprint.broker import ResourceBroker
 from sprint import resource_client
 
@@ -21,14 +21,17 @@ def test_queue_rejects_links_special_files_and_malformed_json(tmp_path, monkeypa
     (queue / ("a" * 32 + ".json")).write_text('{"resource":"train","code":"print(1)"}')
     (queue / ("b" * 32 + ".json")).symlink_to("/etc/passwd")
     (queue / ("c" * 32 + ".json")).write_text("malformed")
+    for index in range(40):
+        (queue / f"000-invalid-{index}").write_text("junk")
     result = resource_client.read_requests()
     assert len(result) == 1
     assert result[0]["request_id"] == "a" * 32
-    assert [path.name for path in queue.iterdir()] == ["a" * 32 + ".json"]
+    assert sorted(path.name for path in queue.glob("*.json")) == ["a" * 32 + ".json"]
 
 
 @pytest.mark.asyncio
-async def test_unknown_resource_returns_failure_without_provisioning(tmp_path):
+@pytest.mark.parametrize("backend", ["docker", "modal"])
+async def test_unknown_resource_returns_failure_without_provisioning(tmp_path, backend):
     uploads = []
 
     async def upload(source, target):
@@ -36,9 +39,9 @@ async def test_unknown_resource_returns_failure_without_provisioning(tmp_path):
 
     broker = ResourceBroker(
         SimpleNamespace(upload_file=upload, exec=successful_exec),
-        {"train": Worker()},
+        {"train": Worker(shell=True)},
         directory=tmp_path,
-        backend="docker",
+        backend=backend,
     )
     await broker.dispatch(
         {"request_id": "a" * 32, "payload": {"resource": "other", "code": "print(1)"}}
@@ -48,6 +51,11 @@ async def test_unknown_resource_returns_failure_without_provisioning(tmp_path):
     assert uploads[0]["message"] == "resource is not granted to this trial"
     await broker.dispatch({"request_id": "a" * 32, "payload": {}})
     assert len(uploads) == 1
+    await broker.dispatch(
+        {"request_id": "b" * 32, "payload": {"resource": "train", "connect": True}}
+    )
+    assert uploads[-1]["message"] == "SSH requires a network-enabled Modal shell worker"
+    assert not broker.sessions and not broker.reservations
 
 
 def test_spending_reserves_full_lifetime_and_refuses_unknown_rates(tmp_path):
@@ -102,16 +110,6 @@ async def test_concurrent_batch_respects_slots(tmp_path):
         for _ in range(5):
             group.create_task(broker.bounded_dispatch({}))
     assert peak == 2
-
-
-def test_invalid_filenames_cannot_starve_valid_queue_entries(tmp_path, monkeypatch):
-    monkeypatch.setattr(resource_client, "ROOT", tmp_path)
-    queue = tmp_path / "requests"
-    queue.mkdir()
-    for index in range(40):
-        (queue / f"000-invalid-{index}").write_text("junk")
-    (queue / ("f" * 32 + ".json")).write_text('{"resource":"train","code":"print(1)"}')
-    assert len(resource_client.read_requests()) == 1
 
 
 @pytest.mark.asyncio
@@ -427,3 +425,55 @@ async def test_request_limit_bounds_host_lineage_and_records_with_explicit_feedb
     # An already admitted request remains deduplicated after exhaustion.
     await broker.dispatch({"request_id": f"{0:032x}", "payload": {}})
     assert len(feedback) == 20
+
+
+@pytest.mark.asyncio
+async def test_worker_connection_refreshes_pinned_endpoint_without_operator_key(
+    tmp_path,
+):
+    uploads, commands = {}, []
+
+    async def upload(source, target):
+        uploads[target] = source.read_text()
+
+    async def execute(command, **kwargs):
+        commands.append(command)
+        assert kwargs["user"] == "root"
+        return await successful_exec()
+
+    async def start():
+        pass
+
+    identity = tmp_path / "ssh-train"
+    identity.write_text("trial-scoped learner key")
+    broker = ResourceBroker(
+        SimpleNamespace(upload_file=upload, exec=execute),
+        {"train": Worker(shell=True, sandbox=Sandbox(internet="full"))},
+        directory=tmp_path,
+        backend="modal",
+    )
+    session = SimpleNamespace(
+        start=start,
+        learner_ssh_endpoint={
+            "host": "old.example",
+            "port": 22223,
+            "user": "agent",
+            "host_key": "ssh-ed25519 AAAA",
+        },
+    )
+    first = await broker.connect("train", session)
+    session.learner_ssh_endpoint = dict(
+        session.learner_ssh_endpoint,
+        host="restored.example",
+        host_key="ssh-ed25519 BBBB",
+    )
+    second = await broker.connect("train", session)
+    assert first == second  # Saved learner commands keep working after recovery.
+    root = "/resources/control/connections/train/"
+    assert uploads[root + "identity"] == identity.read_text()
+    assert (
+        uploads[root + "known_hosts"] == "[restored.example]:22223 ssh-ed25519 BBBB\n"
+    )
+    assert "StrictHostKeyChecking yes" in uploads[root + "config"]
+    assert "old.example" not in uploads[root + "config"]
+    assert "chmod 400" in commands[-1] and "chmod 444" in commands[-1]

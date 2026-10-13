@@ -48,6 +48,10 @@ startup and authentication happen again. Current support is Codex, Claude Code,
 bounded Codex, oracle and nop; provider implementations must support root execution and file
 transfer. Docker and Modal use the same logical-state format.
 
+Attached Modal shell workers support `sprint-resource connect NAME`. Recovery
+refreshes the saved SSH config with the recreated worker’s address and pinned
+host key before the agent resumes. Keep training state under `Worker.state_paths`.
+
 Processes restart. RAM, GPU memory and external API connections are not saved.
 Training must write model, optimizer, scheduler and RNG state to checkpointed
 files if it needs to continue exactly. Sprint does not replay interrupted shell
@@ -66,6 +70,8 @@ Real provider preflight:
 
 ```sh
 uv run --no-default-groups --extra modal python examples/sprint/checkpoint/preflight.py
+# Exercise direct SSH and refreshed host pins instead of brokered Python jobs:
+uv run --no-default-groups --extra modal python examples/sprint/checkpoint/preflight.py --ssh
 ```
 
 ## Validation
@@ -73,7 +79,11 @@ uv run --no-default-groups --extra modal python examples/sprint/checkpoint/prefl
 Real Modal tests cover restoring learner files, worker files, completed request
 IDs, subsequent worker execution and remaining time; and native Codex/Astra
 conversation resume in a fresh container. Both restored runs received the expected
-reward of 1.0. Claude Code and Docker share the recovery implementation but have
+reward of 1.0. The `--ssh` preflight also restored a Modal shell worker and
+reused the learner’s saved SSH config to read and update its restored files;
+its independent validation returned 1.0. This protocol check used CPU workers.
+Native Runpod learner recovery remains a separate integration check.
+Claude Code and Docker share the recovery implementation but have
 not yet received equivalent live restore tests.
 
 The native Codex check is also runnable:

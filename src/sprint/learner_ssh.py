@@ -26,12 +26,8 @@ def create_identity(path):
     return path.with_suffix(".pub").read_text().strip()
 
 
-def publish_connection(endpoint, identity, directory, *, uid, gid):
-    """Publish a host-key-pinned SSH/SCP config under the alias `gpu`.
-
-    The operator owns the directory and config. Only the copied identity is owned
-    by the learner. Repeated calls reuse the same immutable connection files.
-    """
+def connection_files(endpoint, identity, known_hosts):
+    """Build pinned SSH files for local or sandbox-side publication."""
     host = endpoint["host"]
     port = endpoint["port"]
     host_key = endpoint["host_key"]
@@ -43,7 +39,23 @@ def publish_connection(endpoint, identity, directory, *, uid, gid):
         or not re.fullmatch(r"ssh-ed25519 [A-Za-z0-9+/]+=*(?: [^\r\n]+)?", host_key)
     ):
         raise ValueError("invalid learner SSH endpoint")
+    hosts = f"[{host}]:{port} {host_key}\n"
+    config = (
+        f"Host gpu\n  HostName {host}\n  Port {port}\n  User agent\n"
+        f"  IdentityFile {json.dumps(str(identity))}\n"
+        f"  UserKnownHostsFile {json.dumps(str(known_hosts))}\n"
+        "  StrictHostKeyChecking yes\n  IdentitiesOnly yes\n"
+        "  BatchMode yes\n  ForwardAgent no\n"
+    )
+    return hosts, config
+
+
+def publish_connection(endpoint, identity, directory, *, uid, gid):
+    """Publish pinned SSH/SCP access; only the identity is learner-owned."""
     directory = Path(directory)
+    hosts, content = connection_files(
+        endpoint, directory / "identity", directory / "known_hosts"
+    )
     directory.mkdir(mode=0o755, exist_ok=True)
     config = directory / "config"
     if config.exists():
@@ -53,14 +65,8 @@ def publish_connection(endpoint, identity, directory, *, uid, gid):
     published_identity.chmod(0o400)
     os.chown(published_identity, uid, gid)
     known_hosts = directory / "known_hosts"
-    known_hosts.write_text(f"[{host}]:{port} {host_key}\n")
+    known_hosts.write_text(hosts)
     known_hosts.chmod(0o444)
-    config.write_text(
-        f"Host gpu\n  HostName {host}\n  Port {port}\n  User agent\n"
-        f"  IdentityFile {json.dumps(str(published_identity))}\n"
-        f"  UserKnownHostsFile {json.dumps(str(known_hosts))}\n"
-        "  StrictHostKeyChecking yes\n  IdentitiesOnly yes\n"
-        "  BatchMode yes\n  ForwardAgent no\n"
-    )
+    config.write_text(content)
     config.chmod(0o444)
     return config

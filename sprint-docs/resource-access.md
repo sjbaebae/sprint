@@ -4,7 +4,39 @@ The host runs orchestration and holds provider credentials. The learner runs its
 
 `Worker` declares hardware, image, tooling, network access and lifetime. Sprint owns provisioning, records, artifact snapshots and cleanup. The learner owns its experiments, processes and checkpoints.
 
-## Learner-controlled GPU
+## Attached GPU
+
+Declare a persistent shell worker in the environment:
+
+```python
+Env(attachments={
+    "train": Worker(
+        resources=Resources(gpu="L4"),
+        sandbox=Sandbox(internet="full"),
+        shell=True,
+        backend="modal",
+        lifetime_seconds=3600,
+    ),
+})
+```
+
+The learner requests its connection once, then uses ordinary SSH/SCP:
+
+```sh
+sprint-resource connect train --wait 60 > connection.json
+# Use the ssh_config path returned in connection.json:
+ssh -F /resources/control/connections/train/config gpu 'COMMAND'
+scp -F /resources/control/connections/train/config LOCAL_FILE gpu:/app/REMOTE_FILE
+```
+
+The learner image needs an SSH client and network access to the worker endpoint.
+Sprint provisions the worker lazily, keeps its identity private to the trial,
+pins the host key and destroys the worker during cleanup. Normal SSH exits leave
+worker files and background processes available. Checkpoint recovery restores
+its declared state directories and refreshes the saved connection config before
+resuming the agent. Processes and GPU memory are not restored.
+
+## External-host integration
 
 For an external CPU host, `ModalWorker` gives the learner ordinary SSH/SCP access:
 

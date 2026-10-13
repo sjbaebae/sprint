@@ -309,6 +309,10 @@ async def restore_workers(broker, checkpoint, records):
     broker.seen = set(checkpoint.metadata["broker"]["seen"])
     broker.completed = dict(checkpoint.metadata["broker"]["completed"])
     broker.reservations = dict(checkpoint.metadata["broker"].get("reservations", {}))
+    if records.is_dir():
+        for item in records.iterdir():
+            if item.is_file():
+                shutil.copyfile(item, broker.directory / item.name)
     for name, state in checkpoint.metadata["workers"].items():
         if name not in broker.workers:
             raise ValueError("checkpoint references an ungranted worker")
@@ -334,6 +338,7 @@ async def restore_workers(broker, checkpoint, records):
             directory=broker.directory / name,
             backend=broker.backend,
             context=broker.contexts[name],
+            learner_ssh_public_key=broker.ssh_key(name),
         )
         await session.__aenter__()
         broker.sessions[name] = session
@@ -348,10 +353,8 @@ async def restore_workers(broker, checkpoint, records):
             session.worker.state_paths,
         )
         session.record("worker-restored", parent=str(checkpoint.path))
-    if records.is_dir():
-        for item in records.iterdir():
-            if item.is_file():
-                shutil.copyfile(item, broker.directory / item.name)
+        if session.learner_ssh_public_key:
+            await broker.connect(name, session)
 
 
 async def run(
