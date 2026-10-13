@@ -10,18 +10,25 @@ import sprint.modal_worker as runtime
 
 def test_cleanup_deletes_volume_even_when_worker_stop_fails(tmp_path, monkeypatch):
     deleted = []
+
+    async def hydrate():
+        pass
+
     monkeypatch.setattr(runtime, "create_identity", lambda path: "ssh-ed25519 AAAA")
     monkeypatch.setattr(
         runtime.modal,
         "Volume",
         SimpleNamespace(
-            from_name=lambda *args, **kwargs: SimpleNamespace(hydrate=lambda: None),
+            from_name=lambda *args, **kwargs: SimpleNamespace(
+                hydrate=SimpleNamespace(aio=hydrate)
+            ),
             objects=SimpleNamespace(delete=lambda name, **kwargs: deleted.append(name)),
         ),
     )
 
     class Session:
-        def __init__(self, *args, **kwargs):
+        def __init__(self, worker, **kwargs):
+            assert worker.lifetime_seconds == 40
             self.environment = SimpleNamespace(
                 _sandbox=SimpleNamespace(object_id="sb-test")
             )
@@ -39,7 +46,7 @@ def test_cleanup_deletes_volume_even_when_worker_stop_fails(tmp_path, monkeypatc
 
     monkeypatch.setattr(runtime, "WorkerSession", Session)
     resource = runtime.ModalWorker(
-        Worker(shell=True),
+        Worker(shell=True, lifetime_seconds=40),
         state=tmp_path,
         connection_directory=tmp_path / "connection",
         deadline=runtime.time.time() + 60,

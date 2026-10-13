@@ -106,32 +106,40 @@ class ModalWorker:
         )
         try:
             public_key = create_identity(self.identity)
-            self.volume = "sprint-artifacts-" + uuid4().hex
+            volume_name = "sprint-artifacts-" + uuid4().hex
+            self.volume = volume_name
             # Record ownership before the provider call, including failed creation.
             self.volume_record.write_text(
                 json.dumps({"volume_name": self.volume, "deleted": False})
             )
-            modal.Volume.from_name(
-                self.volume, create_if_missing=True, version=2
-            ).hydrate()
-            session = WorkerSession(
-                replace(
-                    self.worker,
-                    seconds=min(self.worker.seconds, seconds),
-                    lifetime_seconds=min(self.worker.lifetime_seconds, seconds),
-                ),
-                directory=self.state / "gpu-worker",
-                backend="modal",
-                artifact_volume=self.volume,
-                learner_ssh_public_key=public_key,
-            )
-            self.session = session
 
             async def provision():
-                await session.__aenter__()
-                await session.start()
+                remaining = self.deadline - time.time()
+                async with asyncio.timeout(remaining):
+                    await modal.Volume.from_name(
+                        volume_name, create_if_missing=True, version=2
+                    ).hydrate.aio()
+                    seconds = int(self.deadline - time.time())
+                    if seconds < 1:
+                        raise TimeoutError("worker provisioning deadline reached")
+                    self.session = WorkerSession(
+                        replace(
+                            self.worker,
+                            seconds=min(self.worker.seconds, seconds),
+                            lifetime_seconds=min(self.worker.lifetime_seconds, seconds),
+                        ),
+                        directory=self.state / "gpu-worker",
+                        backend="modal",
+                        artifact_volume=self.volume,
+                        learner_ssh_public_key=public_key,
+                    )
+                    await self.session.__aenter__()
+                    await self.session.start()
 
             self.runner.run(provision())
+            session = self.session
+            if session is None:
+                raise RuntimeError("worker provisioning returned no session")
             environment = session.environment
             sandbox = getattr(environment, "_sandbox", None)
             if sandbox is None:
@@ -152,21 +160,18 @@ class ModalWorker:
             )
             return session
         except BaseException as error:
-            try:
-                self.close()
-            finally:
-                self.record.write_text(
-                    json.dumps(
-                        {
-                            "trial": self.trial,
-                            "status": "provisioning_failed",
-                            "provisioning_started_at": started,
-                            "provisioning_seconds": time.time() - started,
-                            "error": str(error),
-                            "terminated": self.session is None,
-                        }
-                    )
-                )
+            record = json.loads(self.record.read_text())
+            environment = getattr(self.session, "environment", None)
+            sandbox = getattr(environment, "_sandbox", None)
+            if sandbox is not None:
+                record["sandbox_id"] = sandbox.object_id
+            record.update(
+                status="provisioning_failed",
+                provisioning_seconds=time.time() - started,
+                error=str(error),
+            )
+            self.record.write_text(json.dumps(record))
+            self.close()
             raise
 
     def connect(self):
