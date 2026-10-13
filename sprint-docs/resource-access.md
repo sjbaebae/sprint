@@ -84,3 +84,16 @@ The queue stops admitting requests at its deadline and drains admitted work.
 Handlers must enforce their own provider deadlines and cancellation. Periodic idle
 observations run only when every group is idle. Grouping changes scheduling, not
 resource permissions or spending limits.
+
+## Recovery after a host interruption
+
+Keep operator-owned `*.call.json`, `*.sandbox.json` and `*.artifact-volume.json`
+records outside learner storage. `cleanup_resources(state)` cancels creating calls
+first, then stops sandboxes and deletes volumes. It retains failed work for retry.
+Use `terminate_containers: true` only for exclusively owned function containers.
+
+For remote inference, pre-record a fresh UUID as `session_id` before dispatch and
+pass it to `TensorModelSession(..., session_id=identity)`. Sprint attaches that ID
+to the Modal sandbox. Recovery can find it even if the host died before saving
+`sandbox_id`. A session record contains `{"session_id": "UUID_HEX", "terminated": false}`.
+Provider lifetime limits remain the fallback when recovery cannot reach Modal.

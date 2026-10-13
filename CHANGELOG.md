@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Resource recovery cancels creating calls before sandbox/volume cleanup. Pre-recorded worker session IDs support finding allocations when their provider IDs were lost during a host interruption.
+
 - External-host request handlers can use independent serial resource groups, so GPU setup and artifact collection need not wait for unrelated evaluation.
 
 - Allocated-host shell execution uses a shared account-aware runner. Learner processes and the Codex supervisor no longer implicitly inherit operator/provider environment credentials.

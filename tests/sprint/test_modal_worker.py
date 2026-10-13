@@ -29,6 +29,7 @@ def test_cleanup_deletes_volume_even_when_worker_stop_fails(tmp_path, monkeypatc
     class Session:
         def __init__(self, worker, **kwargs):
             assert worker.lifetime_seconds == 40
+            self.session_id = "0123456789abcdef0123456789abcdef"
             self.environment = SimpleNamespace(
                 _sandbox=SimpleNamespace(object_id="sb-test")
             )
@@ -102,3 +103,69 @@ def test_host_recovery_attempts_all_resources_and_retries_only_failures(
     runtime.cleanup_resources(tmp_path)
     assert json.loads(sandbox_record.read_text())["terminated"] is True
     assert deleted == ["artifact-test"]
+
+
+def test_recovery_cancels_creator_before_finding_unrecorded_sandbox(
+    tmp_path, monkeypatch
+):
+    import json
+
+    operations = []
+    (tmp_path / "evaluation.call.json").write_text(
+        json.dumps({"call_id": "fc-test", "terminate_containers": True})
+    )
+    (tmp_path / "evaluation.sandbox.json").write_text(
+        json.dumps({"session_id": "session-test", "terminated": False})
+    )
+
+    def failed_cancel(**kwargs):
+        operations.append(("cancel", kwargs))
+        raise RuntimeError("creator cancellation failed")
+
+    call = SimpleNamespace(
+        cancel=failed_cancel,
+        get_call_graph=lambda: [
+            SimpleNamespace(function_call_id="fc-child", children=[])
+        ],
+    )
+    child = SimpleNamespace(
+        cancel=lambda **kwargs: operations.append(("cancel-child", kwargs)),
+        get_call_graph=lambda: [],
+    )
+    sandbox = SimpleNamespace(
+        terminate=lambda **kwargs: operations.append(("terminate", kwargs))
+    )
+
+    def discover(*, app_id, tags):
+        assert app_id == "ap-workers"
+        assert tags == {"sprint.managed": "true", "sprint.session_id": "session-test"}
+        return [sandbox]
+
+    monkeypatch.setattr(
+        runtime.modal,
+        "FunctionCall",
+        SimpleNamespace(
+            from_id=lambda identity: call if identity == "fc-test" else child
+        ),
+    )
+    monkeypatch.setattr(runtime.modal, "Sandbox", SimpleNamespace(list=discover))
+    monkeypatch.setattr(
+        runtime.modal,
+        "App",
+        SimpleNamespace(lookup=lambda name: SimpleNamespace(app_id="ap-workers")),
+    )
+    with pytest.raises(ExceptionGroup, match="recovery failed"):
+        runtime.cleanup_resources(tmp_path)
+    record = json.loads((tmp_path / "evaluation.sandbox.json").read_text())
+    assert record["terminated"] is False
+    call.cancel = lambda **kwargs: operations.append(("cancel", kwargs))
+    runtime.cleanup_resources(tmp_path)
+    assert operations == [
+        ("cancel", {"terminate_containers": True}),
+        ("terminate", {"wait": True}),
+        ("cancel", {"terminate_containers": True}),
+        ("cancel-child", {"terminate_containers": True}),
+        ("terminate", {"wait": True}),
+    ]
+    runtime.cleanup_resources(tmp_path)
+    assert len(operations) == 5

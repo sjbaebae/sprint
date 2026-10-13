@@ -23,12 +23,22 @@ class TensorModelSession:
     are private; use temporary storage when evaluation examples must not persist.
     """
 
-    def __init__(self, package, *, directory, vocabulary_size, seconds, resources=None):
+    def __init__(
+        self,
+        package,
+        *,
+        directory,
+        vocabulary_size,
+        seconds,
+        resources=None,
+        session_id=None,
+    ):
         if type(vocabulary_size) is not int or vocabulary_size < 1:
             raise ValueError("vocabulary_size must be a positive integer")
         if type(seconds) is not int or seconds < 1:
             raise ValueError("seconds must be a positive integer")
         self.package = Path(package)
+        self.session_id = session_id
         self.directory = Path(directory)
         self.vocabulary_size = vocabulary_size
         self.seconds = seconds
@@ -66,6 +76,7 @@ class TensorModelSession:
                         lifetime_seconds=self.seconds,
                     ),
                     directory=self.directory,
+                    session_id=self.session_id,
                 )
                 await self.worker.__aenter__()
                 await self.worker.start()

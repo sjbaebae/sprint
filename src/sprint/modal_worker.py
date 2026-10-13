@@ -15,35 +15,86 @@ from uuid import uuid4
 import modal
 
 from sprint.learner_ssh import create_identity, publish_connection
-from sprint.workers import WorkerSession
+from sprint.workers import MODAL_WORKER_APP, WorkerSession
 from sprint.workspace_observations import collector_source
 
 
-def cleanup_resources(state):
-    """Recover recorded sandboxes and artifact volumes after a host interruption.
+def _cancel_call_tree(call_id, *, terminate_containers):
+    """Stop each creator before discovering any calls it already dispatched."""
+    pending = [call_id]
+    seen = set()
+    while pending:
+        identity = pending.pop()
+        if identity in seen:
+            continue
+        seen.add(identity)
+        call = modal.FunctionCall.from_id(identity)
+        call.cancel(terminate_containers=terminate_containers)
+        nodes = list(call.get_call_graph())
+        while nodes:
+            node = nodes.pop()
+            nodes.extend(node.children)
+            if node.function_call_id not in seen:
+                pending.append(node.function_call_id)
 
-    State must be operator-owned. Each successful cleanup is recorded separately;
-    failure of one provider operation does not prevent attempts on other resources.
-    Function-call cancellation remains the responsibility of the invoking service.
+
+def cleanup_resources(state):
+    """Cancel owned calls, then recover their sandboxes and artifact volumes.
+
+    State must be operator-owned. A pre-recorded session_id can identify a sandbox
+    even if its creating host died before recording the provider ID. Each cleanup
+    is retained independently; failures do not prevent attempts on other resources.
+    Set terminate_containers only for calls whose containers are exclusively owned.
     """
     state = Path(state)
     errors = []
-    for pattern, identity, done in (
-        ("*.sandbox.json", "sandbox_id", "terminated"),
-        ("*.artifact-volume.json", "volume_name", "deleted"),
+    creators_stopped = True
+    for pattern, done in (
+        ("*.call.json", "cancelled"),
+        ("*.sandbox.json", "terminated"),
+        ("*.artifact-volume.json", "deleted"),
     ):
         for path in sorted(state.glob(pattern)):
             try:
                 record = json.loads(path.read_text())
-                if record.get(done) or not record.get(identity):
+                if record.get(done):
                     continue
-                if identity == "sandbox_id":
-                    modal.Sandbox.from_id(record[identity]).terminate(wait=True)
+                if done == "cancelled":
+                    if not record.get("call_id"):
+                        continue
+                    _cancel_call_tree(
+                        record["call_id"],
+                        terminate_containers=record.get("terminate_containers", False),
+                    )
+                elif done == "terminated":
+                    if record.get("sandbox_id"):
+                        sandboxes = [modal.Sandbox.from_id(record["sandbox_id"])]
+                    elif record.get("session_id"):
+                        app = modal.App.lookup(record.get("app_name", MODAL_WORKER_APP))
+                        sandboxes = modal.Sandbox.list(
+                            app_id=app.app_id,
+                            tags={
+                                "sprint.managed": "true",
+                                "sprint.session_id": record["session_id"],
+                            },
+                        )
+                    else:
+                        continue
+                    for sandbox in sandboxes:
+                        sandbox.terminate(wait=True)
                 else:
-                    modal.Volume.objects.delete(record[identity], allow_missing=True)
-                record[done] = True
+                    if not record.get("volume_name"):
+                        continue
+                    modal.Volume.objects.delete(
+                        record["volume_name"], allow_missing=True
+                    )
+                # A failed creator cancellation can still allocate new resources.
+                # Retain recovery work until every owned creator is stopped.
+                record[done] = done == "cancelled" or creators_stopped
                 path.write_text(json.dumps(record))
             except Exception as error:
+                if done == "cancelled":
+                    creators_stopped = False
                 errors.append(error)
     if errors:
         raise ExceptionGroup("Modal resource recovery failed", errors)
@@ -133,6 +184,11 @@ class ModalWorker:
                         artifact_volume=self.volume,
                         learner_ssh_public_key=public_key,
                     )
+                    record = json.loads(self.record.read_text())
+                    record.update(
+                        session_id=self.session.session_id, app_name=MODAL_WORKER_APP
+                    )
+                    self.record.write_text(json.dumps(record))
                     await self.session.__aenter__()
                     await self.session.start()
 
@@ -151,6 +207,8 @@ class ModalWorker:
                         "status": "ready",
                         "persistent": True,
                         "sandbox_id": sandbox.object_id,
+                        "session_id": session.session_id,
+                        "app_name": MODAL_WORKER_APP,
                         "provisioning_started_at": started,
                         "provisioning_seconds": time.time() - started,
                         "started_at": time.time(),

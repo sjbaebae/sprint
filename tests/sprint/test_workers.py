@@ -51,13 +51,19 @@ async def test_worker_reuses_container_and_destroys_it(tmp_path):
         return env
 
     async with WorkerSession(
-        Worker(), directory=tmp_path / "worker", factory=factory
+        Worker(),
+        directory=tmp_path / "worker",
+        factory=factory,
+        session_id="0123456789abcdef0123456789abcdef",
     ) as session:
         first = await session.run("print(1)")
         second = await session.run("print(2)")
         assert first["job_id"] != second["job_id"]
         assert len(environments) == 1
         assert environments[0].starts == 1
+        assert (
+            environments[0].config["session_id"] == "0123456789abcdef0123456789abcdef"
+        )
         assert (
             environments[0].config["network_policy"].network_mode.value == "no-network"
         )

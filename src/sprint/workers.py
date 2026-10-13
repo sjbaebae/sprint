@@ -10,7 +10,7 @@ import shlex
 import time
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from sprint.environments.factory import EnvironmentFactory
 from sprint.models.task.config import (
@@ -26,6 +26,7 @@ from .backends.runtime import build_worker
 
 
 CLEANUP_SECONDS = 60
+MODAL_WORKER_APP = "sprint-workers"
 
 
 async def close_all(resources):
@@ -64,8 +65,12 @@ class WorkerSession:
         context=None,
         artifact_volume: str | None = None,
         learner_ssh_public_key: str | None = None,
+        session_id: str | None = None,
     ):
         self.worker = worker
+        self.session_id = (
+            UUID(session_id).hex if session_id is not None else uuid4().hex
+        )
         self.directory = Path(directory)
         self.backend = worker.backend or backend
         self.artifact_volume = artifact_volume
@@ -163,6 +168,7 @@ class WorkerSession:
                 type=EnvironmentType(self.backend),
                 kwargs=(
                     {
+                        "app_name": MODAL_WORKER_APP,
                         "read_only_volumes": self.worker.read_only_volumes,
                         "learner_ssh_public_key": self.learner_ssh_public_key,
                         "volumes": (
@@ -180,7 +186,7 @@ class WorkerSession:
             ),
             environment_dir=build,
             environment_name="worker-" + uuid4().hex[:12],
-            session_id=uuid4().hex,
+            session_id=self.session_id,
             trial_paths=paths,
             task_env_config=EnvironmentConfig(
                 cpus=request.cpus,

@@ -15,7 +15,7 @@ async def test_model_worker_is_network_blocked_and_outputs_are_checked(
     uploaded = []
 
     class Session:
-        def __init__(self, worker, *, directory):
+        def __init__(self, worker, *, directory, session_id=None):
             workers.append(self)
             self.worker = worker
             self.directory = directory
