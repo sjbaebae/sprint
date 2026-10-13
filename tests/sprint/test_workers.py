@@ -378,3 +378,23 @@ async def test_private_volume_export_commits_before_issuing_receipt(
             assert receipt["volume"] == "test-artifacts"
             assert calls[-1][0] == "sync /opt/sprint-artifacts"
         assert all(options["user"] == "root" for _, options in calls)
+
+
+@pytest.mark.asyncio
+async def test_direct_start_timeout_cleans_up_provider(tmp_path):
+    import asyncio
+    import time
+
+    env = FakeEnvironment()
+
+    async def stalled_start(**kwargs):
+        await asyncio.Event().wait()
+
+    env.start = stalled_start
+    async with WorkerSession(
+        Worker(), directory=tmp_path / "worker", factory=lambda **kwargs: env
+    ) as session:
+        session.deadline = time.monotonic() + 0.05
+        with pytest.raises(TimeoutError):
+            await session.start()
+        assert session.closed and env.stops == 1

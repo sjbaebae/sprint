@@ -122,7 +122,18 @@ class WorkerSession:
             )
 
     async def start(self):
-        """Provision once; apply the network policy at container creation."""
+        """Provision once within the resource lifetime, including provider setup."""
+        if self.deadline is None:
+            raise RuntimeError("worker session has not been entered")
+        try:
+            async with asyncio.timeout_at(self.deadline):
+                await self._start()
+        except BaseException:
+            await self.close()
+            raise
+
+    async def _start(self):
+        """Apply the network policy and protect storage before exposing a worker."""
         if self.closed:
             raise RuntimeError("worker session is closed")
         if self.deadline is None or self.deadline <= time.monotonic():

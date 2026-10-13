@@ -118,7 +118,7 @@ class ModalWorker:
                 replace(
                     self.worker,
                     seconds=min(self.worker.seconds, seconds),
-                    lifetime_seconds=seconds,
+                    lifetime_seconds=min(self.worker.lifetime_seconds, seconds),
                 ),
                 directory=self.state / "gpu-worker",
                 backend="modal",
