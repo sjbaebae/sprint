@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Operator worker sessions can freeze checkpoints directly into a private Modal v2 volume, avoiding a CPU-host download/upload relay.
+
 - Operator worker sessions can upload bounded dataset files without routing large contents through learner RPC.
 
 - Workers expose an operator-controlled checkpoint size limit, enforced during export and collection, for model artifacts larger than 1 GiB.

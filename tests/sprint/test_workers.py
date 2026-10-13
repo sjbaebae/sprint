@@ -322,3 +322,52 @@ async def test_operator_file_upload_snapshots_large_input_and_enforces_limit(tmp
         assert result["sha256"] == hashlib.sha256(content).hexdigest()
         assert source.read_bytes() == content
         assert not list(session.directory.glob("*.upload"))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("commit_fails", [False, True])
+async def test_private_volume_export_commits_before_issuing_receipt(
+    tmp_path, commit_fails
+):
+    env = FakeEnvironment()
+    calls = []
+
+    async def execute(command, **options):
+        calls.append((command, options))
+        if "--volume" in command:
+            return SimpleNamespace(
+                return_code=0,
+                stderr="",
+                stdout=json.dumps(
+                    {
+                        "path": "/opt/sprint-artifacts/sprint-export-test",
+                        "bytes": 10,
+                        "sha256": "a" * 64,
+                    }
+                ),
+            )
+        return SimpleNamespace(
+            return_code=int(commit_fails and command.startswith("sync")),
+            stdout="",
+            stderr="",
+        )
+
+    env.exec = execute
+    async with WorkerSession(
+        Worker(backend="modal"),
+        directory=tmp_path / "worker",
+        artifact_volume="test-artifacts",
+        factory=lambda **kwargs: env,
+    ) as session:
+        await session.start()
+        assert "chmod 700 /opt/sprint-artifacts" in calls[0][0]
+        if commit_fails:
+            with pytest.raises(RuntimeError, match="commit failed"):
+                await session.collect_to_volume("checkpoint")
+            assert session.closed
+        else:
+            receipt = await session.collect_to_volume("checkpoint")
+            assert receipt["path"] == "sprint-export-test"
+            assert receipt["volume"] == "test-artifacts"
+            assert calls[-1][0] == "sync /opt/sprint-artifacts"
+        assert all(options["user"] == "root" for _, options in calls)

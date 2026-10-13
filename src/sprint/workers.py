@@ -54,11 +54,21 @@ class WorkerSession:
     """
 
     def __init__(
-        self, worker, *, directory: Path, backend="docker", factory=None, context=None
+        self,
+        worker,
+        *,
+        directory: Path,
+        backend="docker",
+        factory=None,
+        context=None,
+        artifact_volume: str | None = None,
     ):
         self.worker = worker
         self.directory = Path(directory)
         self.backend = worker.backend or backend
+        self.artifact_volume = artifact_volume
+        if artifact_volume and self.backend != "modal":
+            raise ValueError("artifact_volume requires the Modal backend")
         if worker.read_only_volumes and self.backend != "modal":
             raise ValueError("read_only_volumes currently requires the Modal backend")
         self.factory = factory
@@ -124,6 +134,11 @@ class WorkerSession:
                 kwargs=(
                     {
                         "read_only_volumes": self.worker.read_only_volumes,
+                        "volumes": (
+                            {"/opt/sprint-artifacts": self.artifact_volume}
+                            if self.artifact_volume
+                            else {}
+                        ),
                         "sandbox_timeout_secs": max(
                             1, math.ceil(self.deadline - time.monotonic())
                         ),
@@ -145,7 +160,76 @@ class WorkerSession:
             network_policy=policy,
         )
         await self.environment.start(force_build=False)
+        if self.artifact_volume:
+            result = await self.environment.exec(
+                "chown root:root /opt/sprint-artifacts && chmod 700 /opt/sprint-artifacts",
+                user="root",
+                timeout_sec=30,
+            )
+            if result.return_code:
+                await self.close()
+                raise RuntimeError("could not protect artifact volume")
         self.record("worker-started")
+
+    async def collect_to_volume(self, relative: str):
+        """Freeze a checkpoint into a private Modal v2 volume without host relay.
+
+        The operator creates and owns the volume. Its root-only mount is never
+        exposed to agent commands. The caller owns retention and deletion.
+        """
+        if not self.artifact_volume:
+            raise ValueError("artifact_volume is not configured")
+        if not isinstance(relative, str):
+            raise ValueError("checkpoint path must be text")
+        async with self.lock:
+            if self.deadline is None or self.deadline <= time.monotonic():
+                await self.close()
+                raise TimeoutError("worker lifetime exceeded")
+            if self.closed or self.environment is None:
+                raise RuntimeError("worker is not available for collection")
+            try:
+                async with asyncio.timeout_at(self.deadline):
+                    result = await self.environment.exec(
+                        "python -I -S /opt/sprint-export.py "
+                        + shlex.quote(relative)
+                        + " "
+                        + str(self.worker.max_artifact_bytes)
+                        + " --volume",
+                        user="root",
+                        timeout_sec=120,
+                    )
+                    if result.return_code:
+                        raise ValueError(
+                            "checkpoint collection failed: " + str(result.stderr)
+                        )
+                    metadata = json.loads(result.stdout or "{}")
+                    path = PurePosixPath(metadata["path"])
+                    if path.parent != PurePosixPath(
+                        "/opt/sprint-artifacts"
+                    ) or not path.name.startswith("sprint-export-"):
+                        raise ValueError("invalid worker export path")
+                    committed = await self.environment.exec(
+                        "sync /opt/sprint-artifacts",
+                        user="root",
+                        timeout_sec=120,
+                    )
+                    if committed.return_code:
+                        raise RuntimeError("artifact volume commit failed")
+                    receipt = {
+                        "volume": self.artifact_volume,
+                        "path": path.name,
+                        "sha256": metadata["sha256"],
+                        "bytes": metadata["bytes"],
+                    }
+                    self.record(
+                        "checkpoint-collected-to-volume", source=relative, **receipt
+                    )
+                    return receipt
+            except ValueError:
+                raise
+            except BaseException:
+                await self.close()
+                raise
 
     async def run(self, code: str):
         """Execute source; return actual exit code/stdout/stderr and a host job ID.

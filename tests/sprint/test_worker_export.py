@@ -9,15 +9,22 @@ import pytest
 from sprint import worker_export
 
 
-def test_export_hashes_regular_file(tmp_path, monkeypatch):
+@pytest.mark.parametrize("volume", [False, True])
+def test_export_hashes_regular_file(tmp_path, monkeypatch, volume):
     monkeypatch.setattr(worker_export, "ROOT", str(tmp_path))
+    private = tmp_path / "private"
+    private.mkdir(mode=0o700)
+    monkeypatch.setattr(worker_export, "ARTIFACT_ROOT", str(private))
     (tmp_path / "checkpoint").write_bytes(b"checkpoint")
-    result = worker_export.snapshot("checkpoint")
+    result = worker_export.snapshot("checkpoint", volume=volume)
     exported = Path(result["path"])
     try:
         assert exported.read_bytes() == b"checkpoint"
         assert result["sha256"] == hashlib.sha256(b"checkpoint").hexdigest()
         assert result["bytes"] == 10
+        if volume:
+            assert exported.parent == private
+            assert exported.stat().st_mode & 0o777 == 0o600
     finally:
         exported.unlink()
 

@@ -155,3 +155,17 @@ attach protected evaluation data to a learner worker.
 
 The 2026-10-12 Modal L4 preflight with `--shell --volume NAME` passed
 with reward 1.0, including asset reads and a rejected write to the mounted volume.
+
+## Large checkpoint handoff
+
+For Modal-to-Modal validation, create a dedicated v2 volume and pass its name as
+`WorkerSession(..., artifact_volume=name)`. Then call
+`await session.collect_to_volume("output/model.safetensors")`. The receipt names
+the volume, snapshot file, byte count and SHA-256. The snapshot is committed before
+the receipt returns; no checkpoint bytes pass through the CPU host.
+
+Sprint protects this mount from the learner user and uses its regular-file
+exporter to reject symlinks and files changed during copying. The validator must
+independently verify the receipt's size/hash and load only trusted model code.
+The operator owns volume retention and deletion. Ordinary `collect()` remains
+available for local artifacts and other providers.

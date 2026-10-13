@@ -10,9 +10,10 @@ import tempfile
 
 LIMIT = 1024 * 1024 * 1024
 ROOT = "/app"
+ARTIFACT_ROOT = "/opt/sprint-artifacts"
 
 
-def snapshot(relative, max_bytes=None):
+def snapshot(relative, max_bytes=None, *, volume=False):
     """Copy a bounded regular file beneath /app, rejecting every symlink hop."""
     limit = LIMIT if max_bytes is None else max_bytes
     if type(limit) is not int or limit < 1:
@@ -41,7 +42,9 @@ def snapshot(relative, max_bytes=None):
             digest = hashlib.sha256()
             total = 0
             with tempfile.NamedTemporaryFile(
-                prefix="sprint-export-", delete=False
+                prefix="sprint-export-",
+                delete=False,
+                dir=ARTIFACT_ROOT if volume else None,
             ) as target:
                 temporary = target.name
                 while block := source.read(1024 * 1024):
@@ -69,6 +72,10 @@ def snapshot(relative, max_bytes=None):
 if __name__ == "__main__":
     print(
         json.dumps(
-            snapshot(sys.argv[1], int(sys.argv[2]) if len(sys.argv) > 2 else None)
+            snapshot(
+                sys.argv[1],
+                int(sys.argv[2]) if len(sys.argv) > 2 else None,
+                volume="--volume" in sys.argv[3:],
+            )
         )
     )
