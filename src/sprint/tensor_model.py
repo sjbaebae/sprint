@@ -4,6 +4,7 @@ No protected questions file, labels, scorer or credentials enter the sandbox.
 Only the selected package and public input tensors cross this boundary.
 """
 
+import asyncio
 import json
 import math
 import shlex
@@ -73,12 +74,17 @@ class TensorModelSession:
                     Path(__file__).with_name(name), "/tmp/" + name
                 )
             # The model worker has no protected mounts. Submitted code runs as agent.
-            result = await self.environment.exec(
-                "mkdir -p /app/channel && nohup python /tmp/tensor_model_worker.py "
+            service_command = (
+                "python /tmp/tensor_model_worker.py "
                 "--package /tmp/model.tar --channel /app/channel "
                 f"--vocabulary-size {self.vocabulary_size} "
                 f"--device {'cuda' if self.resources.gpu else 'cpu'} "
-                "> /app/channel/service.log 2>&1 < /dev/null &",
+                "; status=$?; printf '%s\\n' \"$status\" > /app/channel/exited"
+            )
+            result = await self.environment.exec(
+                "mkdir -p /app/channel && nohup sh -c "
+                + shlex.quote(service_command)
+                + " > /app/channel/service.log 2>&1 < /dev/null &",
                 user="agent",
                 timeout_sec=30,
             )
@@ -91,17 +97,23 @@ class TensorModelSession:
             raise
 
     async def wait_file(self, path):
-        import asyncio
-
         deadline = self.deadline
         if deadline is None:
             raise RuntimeError("model session has not started")
         while time.monotonic() < deadline:
             result = await self.environment.exec(
-                "test -f " + shlex.quote(path), user="root", timeout_sec=10
+                "if test -f "
+                + shlex.quote(path)
+                + "; then exit 0; elif test -f /app/channel/exited; "
+                "then exit 3; else exit 1; fi",
+                user="root",
+                timeout_sec=10,
             )
             if result.return_code == 0:
                 return
+            if result.return_code == 3:
+                # Never expose model-controlled logs from a protected evaluation.
+                raise RuntimeError("model inference service exited before responding")
             await asyncio.sleep(0.1)
         raise TimeoutError("model inference deadline reached")
 
