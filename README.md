@@ -96,6 +96,14 @@ uv run python environment.py
 
 The host orchestrates the trial; Modal runs its sandboxes. `Sandbox.setup` runs during image construction. Runtime networking is configured separately. The allowlist applies to every process in the learner sandbox, including the harness. Workers and validation default to no outbound internet. Harness options are adapter-specific; wall time is enforced by `Budget`, while action limits require harness support.
 
+For an enforced action budget, select `harness="bounded-codex"` and set
+`options={"max_turns": 200, ...}`. Sprint compiles its root-owned permissions
+profile, disables subagent features and preserves spent actions on checkpoint
+restore. Tool calls and agent messages count; reasoning summaries do not.
+The learner is told its exact remaining budget and the live status file path.
+The bounded adapter supports up to 200 actions and two hours per trial. Its managed
+policy follows the [Codex requirements format](https://learn.chatgpt.com/docs/config-file/config-reference).
+
 For repeated independent trials, use `trials=6, parallel=6` in `experiment.run(...)`. Use a new output directory for a new campaign. `experiment.compile(Path("compiled"))` writes the task for inspection without launching it.
 
 ### API-key billing: Codex or Claude Code

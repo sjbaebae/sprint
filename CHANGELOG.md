@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Compiled bounded-Codex environments include their managed permissions policy; authors no longer need a separate requirements file. Missing pricing metadata no longer interrupts native transcript conversion.
+
 - Attached Modal shell workers expose `sprint-resource connect NAME`; checkpoint restore refreshes the learner’s pinned SSH connection while preserving worker files and remaining budget.
 
 - `bounded-codex` is selectable through the authoring API. Its checkpoints retain spent actions and remaining wall time; restoring a session without trusted action-budget state is rejected rather than resetting the allowance.

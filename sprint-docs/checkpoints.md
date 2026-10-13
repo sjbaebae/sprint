@@ -31,8 +31,9 @@ Copy the entire `checkpoints/` directory, including `blobs/`, to move a snapshot
   counters and remaining worker/trial time.
 - For `Agent(..., harness="bounded-codex")`, the root-owned action counter. A
   restored run keeps the original total limit and only its remaining actions.
-  Missing, invalid or exhausted action state blocks restore. Its managed Codex
-  permission profile must already be provisioned on the learner host.
+  Missing, invalid or exhausted action state blocks restore. Sprint compilation
+  installs its root-owned managed Codex profile in the learner image; custom
+  external-host adapters must provision the equivalent policy themselves.
 - The compiled release, including private validation, for reproducible recovery.
 
 Choose additional persistent directories with `state_paths=(...)`. Paths must be
@@ -82,6 +83,8 @@ conversation resume in a fresh container. Both restored runs received the expect
 reward of 1.0. The `--ssh` preflight also restored a Modal shell worker and
 reused the learner’s saved SSH config to read and update its restored files;
 its independent validation returned 1.0. This protocol check used CPU workers.
+The bounded-Codex check also retained 4 spent actions, resumed with that offset,
+finished at 9 of 20 actions and reported complete process cleanup.
 Native Runpod learner recovery remains a separate integration check.
 Claude Code and Docker share the recovery implementation but have
 not yet received equivalent live restore tests.
@@ -90,6 +93,8 @@ The native Codex check is also runnable:
 
 ```sh
 uv run --no-default-groups --extra modal python examples/sprint/checkpoint/codex_preflight.py
+# Also retain and enforce spent actions:
+uv run --no-default-groups --extra modal python examples/sprint/checkpoint/codex_preflight.py --bounded
 ```
 
 Restore validates remaining trial/worker time against the original definition,

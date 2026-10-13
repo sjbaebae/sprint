@@ -3,6 +3,7 @@
 import json
 import math
 import os
+import re
 import shlex
 import shutil
 from pathlib import Path
@@ -27,6 +28,7 @@ def dockerfile(
     submission="/app/submission",
     attachments=(),
     workers=(),
+    managed_codex=False,
 ):
     """Build tooling once in the image; do not download dependencies during grading."""
     lines = [f"FROM {sandbox.image}", "WORKDIR /app"]
@@ -64,6 +66,12 @@ def dockerfile(
                 "chmod 755 /usr/local/bin/sprint-resource && chmod 444 /opt/sprint-resource.py",
                 "COPY resource_manifest.json /resources/control/manifest.json",
             ]
+        if managed_codex:
+            lines += [
+                "COPY codex-requirements.toml /etc/codex/requirements.toml",
+                "RUN chown root:root /etc/codex /etc/codex/requirements.toml && "
+                "chmod 755 /etc/codex && chmod 444 /etc/codex/requirements.toml",
+            ]
         lines.append("USER agent")
     return "\n".join(lines) + "\n"
 
@@ -94,6 +102,38 @@ def build_worker(worker, directory, files=None):
     return directory
 
 
+def codex_requirements(agent, sandbox):
+    """Generate the bounded harness policy; backend networking remains authoritative."""
+    profile = agent.options.get("permission_profile", "offline")
+    if not isinstance(profile, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", profile):
+        raise ValueError("invalid managed permission profile")
+    return {
+        "allowed_approval_policies": ["never"],
+        "allowed_web_search_modes": (
+            ["disabled", "cached", "live"]
+            if sandbox.internet == "full"
+            else ["disabled"]
+        ),
+        "allowed_permission_profiles": {profile: True},
+        "default_permissions": profile,
+        "permissions": {
+            profile: {
+                "filesystem": {":root": "write"},
+                "network": {"enabled": sandbox.internet != "none"},
+            }
+        },
+        "features": {
+            "multi_agent": False,
+            "multi_agent_v2": False,
+            "plugins": False,
+            "remote_plugin": False,
+            "apps": False,
+            "browser_use": False,
+            "computer_use": False,
+        },
+    }
+
+
 def compile_task(experiment, directory):
     """Emit a new task with separate verifier; refuse to overwrite authored state."""
     import toml
@@ -101,6 +141,11 @@ def compile_task(experiment, directory):
     from sprint.models.task.config import TaskConfig
 
     directory = Path(directory)
+    managed = (
+        codex_requirements(experiment.agent, experiment.env.sandbox)
+        if experiment.agent.harness == "bounded-codex"
+        else None
+    )
     if experiment.env.files is not None:
         public = Path(experiment.env.files).resolve()
         private = Path(experiment.validation.bundle).resolve()
@@ -157,6 +202,8 @@ def compile_task(experiment, directory):
         raise ValueError("validation entrypoint is missing")
     if validation.rubric and not (tests / "bundle" / validation.rubric).is_file():
         raise ValueError("rubric is missing")
+    if managed is not None:
+        (learner / "codex-requirements.toml").write_text(toml.dumps(managed))
     workers = {
         name: value
         for name, value in world.attachments.items()
@@ -172,7 +219,14 @@ def compile_task(experiment, directory):
                 {
                     name: {
                         "operations": ["run", "upload", "status", "collect"]
-                        + (["exec"] if value.shell else []),
+                        + (["exec"] if value.shell else [])
+                        + (
+                            ["connect"]
+                            if value.shell
+                            and value.sandbox.internet != "none"
+                            and value.backend in {None, "modal"}
+                            else []
+                        ),
                         "seconds": value.seconds,
                         "gpu": value.resources.gpu,
                     }
@@ -183,6 +237,7 @@ def compile_task(experiment, directory):
     (learner / "Dockerfile").write_text(
         dockerfile(
             world.sandbox,
+            managed_codex=managed is not None,
             copy_workspace=any((learner / "workspace").rglob("*")),
             workers=workers,
             submission=experiment.task.submission,

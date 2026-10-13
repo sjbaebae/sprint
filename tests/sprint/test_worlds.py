@@ -46,6 +46,45 @@ def test_compile_keeps_private_files_out_of_learner(tmp_path):
         experiment.compile(task)
 
 
+def test_bounded_harness_policy_is_operator_owned_and_matches_network(tmp_path):
+    from dataclasses import replace
+    from sprint import Worker
+
+    experiment = make_experiment(tmp_path)
+    for network in ("none", "full"):
+        sandbox = Sandbox(internet=network)
+        configured = replace(
+            experiment,
+            agent=Agent("test", harness="bounded-codex"),
+            env=replace(
+                experiment.env,
+                sandbox=sandbox,
+                attachments={
+                    "train": Worker(shell=True, backend="modal", sandbox=sandbox),
+                },
+            ),
+        )
+        task = configured.compile(tmp_path / network)
+        learner = task / "environment"
+        policy = tomllib.loads((learner / "codex-requirements.toml").read_text())
+        assert policy["permissions"]["offline"]["network"]["enabled"] == (
+            network == "full"
+        )
+        assert policy["features"]["multi_agent"] is False
+        assert policy["features"]["apps"] is False
+        assert policy["allowed_approval_policies"] == ["never"]
+        assert policy["allowed_permission_profiles"] == {"offline": True}
+        dockerfile = (learner / "Dockerfile").read_text()
+        assert dockerfile.index(
+            "chmod 444 /etc/codex/requirements.toml"
+        ) < dockerfile.index("USER agent")
+        operations = json.loads((learner / "resource_manifest.json").read_text())[
+            "train"
+        ]["operations"]
+        assert ("connect" in operations) == (network == "full")
+        assert not list((task / "tests").glob("codex-requirements.toml"))
+
+
 def test_compile_rejects_overlapping_public_private(tmp_path):
     pytest.importorskip("sprint")
     experiment = make_experiment(tmp_path)
