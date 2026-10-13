@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- External CPU hosts can use `LocalRequestQueue` for serialized task handlers, safe feedback and operator records without implementing queue transport per environment.
+
 - Shell command timeouts return exit code 124 without destroying the persistent worker; trial expiry and provider failures still trigger cleanup.
 
 - Operator worker sessions can freeze checkpoints directly into a private Modal v2 volume, avoiding a CPU-host download/upload relay.
