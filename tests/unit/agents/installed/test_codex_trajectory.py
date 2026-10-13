@@ -3,6 +3,8 @@
 import base64
 import hashlib
 import json
+import sys
+from types import SimpleNamespace
 
 import pytest
 
@@ -366,6 +368,25 @@ class TestCodexApiCallGrouping:
             "fallback query",
             "blank id query",
         ]
+
+    def test_missing_pricing_table_preserves_transcript(self, temp_dir, monkeypatch):
+        monkeypatch.setitem(sys.modules, "litellm", SimpleNamespace())
+        agent = Codex(logs_dir=temp_dir, model_name="openai/o3")
+        session_dir = self._write_session(
+            temp_dir,
+            [
+                self._assistant_message("Retained result."),
+                self._token_count_event(100, 20, 120),
+            ],
+        )
+
+        trajectory = agent._convert_events_to_trajectory(session_dir)
+
+        assert trajectory is not None
+        assert len(trajectory.steps) == 1
+        assert trajectory.steps[0].message == "Retained result."
+        assert trajectory.steps[0].metrics.prompt_tokens == 100
+        assert trajectory.steps[0].metrics.cost_usd is None
 
     def test_cumulative_usage_above_272k_keeps_per_call_short_context_pricing(
         self, temp_dir, monkeypatch

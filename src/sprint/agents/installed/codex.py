@@ -1098,12 +1098,19 @@ class Codex(BaseInstalledAgent, ACPAgentMixin):
             self.logger.debug("litellm not available; leaving codex cost_usd as None")
             return None
 
+        pricing_table = getattr(litellm, "model_cost", None)
+        if pricing_table is None:
+            self.logger.debug(
+                "LiteLLM pricing table unavailable; leaving codex cost_usd as None"
+            )
+            return None
+
         pricing_model_name: str | None = None
         for key in (
             resolved_model_name,
             resolved_model_name.split("/", 1)[-1],
         ):
-            if litellm.model_cost.get(key):
+            if pricing_table.get(key):
                 pricing_model_name = key
                 break
 
