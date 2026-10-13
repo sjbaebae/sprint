@@ -177,6 +177,34 @@ def collect(
     }
 
 
+def file_changes(payload, previous):
+    """Update known hashes; infer deletions only after a complete observation."""
+    added = []
+    modified = []
+    observed = {row["path"] for row in payload["files"]}
+    for row in payload["files"]:
+        fingerprint = row.get("sha256")
+        if fingerprint is None:
+            continue
+        path = row["path"]
+        if path not in previous:
+            added.append(path)
+        elif previous[path] != fingerprint:
+            modified.append(path)
+        previous[path] = fingerprint
+    deleted = []
+    if payload["complete"]:
+        deleted = sorted(set(previous) - observed)
+        for path in deleted:
+            del previous[path]
+    return {
+        "added": added,
+        "modified": modified,
+        "deleted": deleted,
+        "deletions_checked": payload["complete"],
+    }
+
+
 def collector_source():
     """Return stdlib-only collector source for an isolated remote Python process."""
     return Path(__file__).read_text()
