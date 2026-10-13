@@ -4,6 +4,7 @@ import concurrent.futures
 from contextlib import ExitStack
 import json
 import time
+import threading
 import traceback
 import uuid
 from pathlib import Path
@@ -55,6 +56,7 @@ class LocalRequestQueue:
         self.poll_seconds = poll_seconds
         self.idle_seconds = idle_seconds
         self.seen = set()
+        self.stopped = threading.Event()
         for name in ("requests", "responses"):
             (self.rpc / name).mkdir(parents=True, exist_ok=True)
 
@@ -82,12 +84,19 @@ class LocalRequestQueue:
             },
         )
 
+    def stop(self):
+        """Stop admission and drain prepared calls; safe from a signal handler."""
+        self.stopped.set()
+
+    def accepting(self):
+        return not self.stopped.is_set() and time.time() < self.deadline
+
     def run(self):
         pending = {}
         pools = {}
         next_idle = time.monotonic()
         with ExitStack() as cleanup:
-            while time.time() < self.deadline or pending:
+            while self.accepting() or pending:
                 for group, (active_id, future) in list(pending.items()):
                     if not future.done():
                         continue
@@ -96,11 +105,18 @@ class LocalRequestQueue:
                     except Exception as error:
                         self.fail(active_id, error, stage="service", status="failed")
                     del pending[group]
-                if not pending and self.idle and time.monotonic() >= next_idle:
+                if (
+                    self.accepting()
+                    and not pending
+                    and self.idle
+                    and time.monotonic() >= next_idle
+                ):
                     self.idle()
                     next_idle = time.monotonic() + self.idle_seconds
-                if time.time() < self.deadline:
+                if self.accepting():
                     for path in sorted((self.rpc / "requests").glob("*.json")):
+                        if not self.accepting():
+                            break
                         request_id = path.stem
                         if request_id in self.seen:
                             continue

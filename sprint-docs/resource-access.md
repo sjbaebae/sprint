@@ -81,6 +81,8 @@ A busy rejection names the active request and resource group. Fast metadata-only
 handlers can use `inline_kinds`; they must not block the host loop.
 
 The queue stops admitting requests at its deadline and drains admitted work.
+Call `queue.stop()` from a service termination handler for the same graceful drain,
+so outer audit and teardown code can run before the host's shutdown grace expires.
 Handlers must enforce their own provider deadlines and cancellation. Periodic idle
 observations run only when every group is idle. Grouping changes scheduling, not
 resource permissions or spending limits.

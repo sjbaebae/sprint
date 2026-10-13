@@ -124,3 +124,51 @@ def test_independent_resources_progress_while_same_resource_stays_serial(tmp_pat
     ]
     assert results[2]["resource_group"] == "gpu"
     assert results[2]["active_request_id"] == ids[1]
+
+
+def test_stop_drains_admitted_work_without_accepting_more(tmp_path):
+    import threading
+
+    state = tmp_path / "state"
+    state.mkdir()
+    stopping = threading.Event()
+
+    def prepare(request, request_id):
+        if request["kind"] == "stop":
+
+            def stop():
+                queue.stop()
+                stopping.set()
+                return {"stopped": True}
+
+            return stop
+
+        def execute():
+            if not stopping.wait(timeout=1):
+                raise RuntimeError("shutdown was not received")
+            return {"finished": True}
+
+        return execute
+
+    queue = LocalRequestQueue(
+        tmp_path / "rpc",
+        state,
+        deadline=time.time() + 60,
+        prepare=prepare,
+        completed=lambda result: None,
+        failure_feedback=lambda error, stage: {"failure_stage": stage},
+        inline_kinds=("stop",),
+        poll_seconds=0.001,
+    )
+    ids = [f"{index:032x}" for index in range(1, 4)]
+    for request_id, kind in zip(ids, ("run", "stop", "run")):
+        (queue.rpc / "requests" / (request_id + ".json")).write_text(
+            json.dumps({"kind": kind})
+        )
+    queue.run()
+    assert (
+        json.loads((queue.rpc / "responses" / (ids[0] + ".json")).read_text())["status"]
+        == "complete"
+    )
+    assert not (queue.rpc / "responses" / (ids[2] + ".json")).exists()
+    assert ids[2] not in queue.seen
