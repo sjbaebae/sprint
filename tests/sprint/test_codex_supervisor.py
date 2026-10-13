@@ -5,7 +5,17 @@ import os
 
 import pytest
 
-from sprint.agents.codex_supervisor import TurnCounter, write_status
+from sprint.agents.codex_supervisor import TurnCounter, child_environment, write_status
+
+
+def test_supervisor_passes_harness_auth_but_not_provider_credentials(monkeypatch):
+    monkeypatch.setenv("MODAL_TOKEN_SECRET", "synthetic operator secret")
+    monkeypatch.setenv("RUNPOD_API_KEY", "synthetic operator key")
+    monkeypatch.setenv("OPENAI_API_KEY", "synthetic harness key")
+    environment = child_environment()
+    assert "MODAL_TOKEN_SECRET" not in environment
+    assert "RUNPOD_API_KEY" not in environment
+    assert environment["OPENAI_API_KEY"] == "synthetic harness key"
 
 
 def test_actions_count_once_and_reasoning_does_not_count():

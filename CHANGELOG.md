@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Allocated-host shell execution uses a shared account-aware runner. Learner processes and the Codex supervisor no longer implicitly inherit operator/provider environment credentials.
+
 - Durable job supervision, safe host file transfers and exact failure-span validation/rendering are shared library utilities instead of research-task runtime copies.
 
 - External learner hosts can use `ModalWorker` for resource provisioning, learner SSH, bounded observations, immutable artifacts and cleanup without a task-owned GPU lifecycle implementation. Live validation is pending.

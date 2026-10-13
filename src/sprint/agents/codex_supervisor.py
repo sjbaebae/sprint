@@ -15,6 +15,36 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+def child_environment():
+    """Pass shell and harness settings, never implicit operator/provider secrets.
+
+    This script is copied into learner images and must remain stdlib-only.
+    Model API credentials are intentional harness credentials, unlike the host's
+    Modal, Runpod or storage credentials.
+    """
+    allowed = (
+        "PATH",
+        "LANG",
+        "LC_ALL",
+        "LC_CTYPE",
+        "TERM",
+        "TZ",
+        "CODEX_HOME",
+        "OPENAI_API_KEY",
+        "CODEX_API_KEY",
+        "OPENAI_BASE_URL",
+        "HTTP_PROXY",
+        "HTTPS_PROXY",
+        "ALL_PROXY",
+        "NO_PROXY",
+        "SSL_CERT_FILE",
+        "SSL_CERT_DIR",
+        "REQUESTS_CA_BUNDLE",
+        "NODE_EXTRA_CA_CERTS",
+    )
+    return {name: os.environ[name] for name in allowed if name in os.environ}
+
+
 def write_status(directory_fd, name, status):
     """Replace a directory entry without following learner symlinks/hardlinks."""
     temporary = ".sprint-budget-" + secrets.token_hex(16)
@@ -115,7 +145,7 @@ def main():
     a = p.parse_args()
     if os.geteuid() != 0 or a.max_turns < 1 or a.seconds <= 0:
         p.error("requires root and positive limits")
-    env = os.environ.copy()
+    env = child_environment()
     account = pwd.getpwuid(a.uid)
     env.update(HOME=account.pw_dir, USER=account.pw_name, LOGNAME=account.pw_name)
     status_path = Path(a.status)
