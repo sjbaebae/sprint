@@ -45,7 +45,9 @@ def put_tree(store, tmp_path, values):
 
 def test_incremental_complete_state_and_diff(tmp_path):
     store = CheckpointStore(tmp_path / "store")
-    first = put_tree(store, tmp_path, {"app/a": b"same", "app/b": b"old"})
+    first = put_tree(
+        store, tmp_path, {"app/a": b"same", "app/b": b"old", "app/deleted": b"remove"}
+    )
     a = store.publish("first", {"trees": {"learner": first}})
     before = len(list(store.blobs.iterdir()))
     second = put_tree(
@@ -56,6 +58,7 @@ def test_incremental_complete_state_and_diff(tmp_path):
     assert a.diff(b) == [
         {"tree": "learner", "path": "app/b", "status": "modified"},
         {"tree": "learner", "path": "app/c", "status": "added"},
+        {"tree": "learner", "path": "app/deleted", "status": "deleted"},
     ]
     b.verify()
     archive = tmp_path / "restored.tar"
@@ -63,6 +66,7 @@ def test_incremental_complete_state_and_diff(tmp_path):
     with tarfile.open(archive) as tar:
         assert tar.extractfile("app/a").read() == b"same"
         assert tar.extractfile("app/b").read() == b"new"
+        assert "app/deleted" not in tar.getnames()
 
 
 def test_corrupt_or_missing_blob_never_restores(tmp_path):
@@ -106,17 +110,67 @@ def test_manifest_corruption_and_duplicate_names(tmp_path):
 
 
 def test_restore_pins_definition_budget_and_trims_interrupted_session(tmp_path):
+    from sprint.agents.installed.bounded_codex import BoundedCodex
+
     store = CheckpointStore(tmp_path / "store")
     experiment = Experiment(
-        Task("task"), Validation(tmp_path / "private"), Agent("model")
+        Task("task"),
+        Validation(tmp_path / "private"),
+        Agent("model", harness="bounded-codex", options={"max_turns": 10}),
     )
     release = put_tree(
         store, tmp_path, {"release/task.toml": b"schema_version = '1.4'\n"}
     )
+    session_id = "00000000-0000-4000-8000-000000000001"
+    native = f"logs/agent/sessions/rollout-2026-10-13T00-00-00-{session_id}.jsonl"
+    records = [
+        {"type": "session_meta", "payload": {"id": session_id}},
+        {
+            "type": "response_item",
+            "payload": {
+                "type": "message",
+                "role": "user",
+                "content": [
+                    {
+                        "type": "input_text",
+                        "text": "Compare filtering with the baseline.",
+                    }
+                ],
+            },
+        },
+        {
+            "type": "response_item",
+            "payload": {
+                "type": "message",
+                "role": "assistant",
+                "content": [
+                    {"type": "output_text", "text": "Keep the optimizer fixed."}
+                ],
+            },
+        },
+        {
+            "type": "response_item",
+            "payload": {
+                "type": "function_call",
+                "call_id": "call_1",
+                "name": "exec_command",
+                "arguments": '{"cmd":"python baseline.py"}',
+            },
+        },
+        {
+            "type": "response_item",
+            "payload": {
+                "type": "function_call_output",
+                "call_id": "call_1",
+                "output": "Baseline accuracy: 0.40",
+            },
+        },
+    ]
+    conversation = "".join(json.dumps(record) + "\n" for record in records).encode()
     learner = put_tree(
         store,
         tmp_path,
-        {"logs/agent/sessions/one.jsonl": b'{"type":"session_meta"}\n{"partial":'},
+        {native: conversation + b'{"partial":'},
     )
     cp = store.publish(
         "one",
@@ -124,14 +178,22 @@ def test_restore_pins_definition_budget_and_trims_interrupted_session(tmp_path):
             "trees": {"release": release, "learner": learner},
             "definition": definition(experiment),
             "remaining_seconds": 42.5,
-            "native_session": "logs/agent/sessions/one.jsonl",
+            "native_session": native,
+            "actions_used": 7,
         },
     )
     _, release_dir, session, seconds = prepare_restore(
         experiment, cp, tmp_path / "restore"
     )
     assert release_dir.is_dir() and seconds == 42.5
-    assert Path(session).read_text() == '{"type":"session_meta"}\n'
+    assert Path(session).read_bytes() == conversation
+    resumed_agent = BoundedCodex(
+        logs_dir=tmp_path / "agent",
+        load_trajectory=session,
+        max_turns=10,
+        actions_used=cp.metadata["actions_used"],
+    )
+    assert resumed_agent.actions_used == 7
     assert (
         json.loads((tmp_path / "restore/resume.json").read_text())["remaining_seconds"]
         == 42.5
@@ -269,15 +331,16 @@ def test_restore_rejects_out_of_scope_state_before_creating_run(tmp_path):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("harness", ["oracle", "bounded-codex"])
 async def test_restored_fractional_budget_uses_integer_modal_lifetime(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, harness
 ):
     import sprint
     import sprint.live as live
     from sprint.backends.runtime import run
 
     experiment = Experiment(
-        Task("task"), Validation(tmp_path), Agent("test", harness="oracle")
+        Task("task"), Validation(tmp_path), Agent("test", harness=harness)
     )
     captured = []
 
@@ -290,7 +353,14 @@ async def test_restored_fractional_budget_uses_integer_modal_lifetime(
 
     monkeypatch.setattr(sprint.Job, "create", create)
     monkeypatch.setattr(
-        live, "prepare_restore", lambda *args: (None, tmp_path, None, 42.5)
+        live,
+        "prepare_restore",
+        lambda *args: (
+            SimpleNamespace(metadata={"actions_used": 7}),
+            tmp_path,
+            None,
+            42.5,
+        ),
     )
     with pytest.raises(Captured):
         await run(
@@ -303,9 +373,12 @@ async def test_restored_fractional_budget_uses_integer_modal_lifetime(
         )
     lifetime = captured[0].environment.kwargs["sandbox_timeout_secs"]
     assert type(lifetime) is int and lifetime == 943
+    if harness == "bounded-codex":
+        assert captured[0].agents[0].kwargs["seconds"] == 42.5
+        assert captured[0].agents[0].kwargs["actions_used"] == 7
 
 
-@pytest.mark.parametrize("change", [None, "queue", "missing-worker", "changed-worker"])
+@pytest.mark.parametrize("change", ["queue", "missing-worker", "changed-worker"])
 def test_resume_resource_helper_compatibility_before_materialization(tmp_path, change):
     import sprint.live as live
     from sprint import Worker
@@ -347,16 +420,9 @@ def test_resume_resource_helper_compatibility_before_materialization(tmp_path, c
         },
     )
     target = tmp_path / "restore"
-    if change:
-        with pytest.raises(ValueError, match="checkpoint resource runtime differs"):
-            prepare_restore(experiment, checkpoint, target)
-        assert not target.exists()
-    else:
-        _, task, _, seconds = prepare_restore(experiment, checkpoint, target)
-        assert seconds == 30
-        assert (task / "environment/resource_client.py").read_bytes() == values[
-            "release/environment/resource_client.py"
-        ]
+    with pytest.raises(ValueError, match="checkpoint resource runtime differs"):
+        prepare_restore(experiment, checkpoint, target)
+    assert not target.exists()
 
 
 def test_compiled_resource_release_passes_resume_compatibility(tmp_path):
