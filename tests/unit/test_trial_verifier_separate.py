@@ -196,6 +196,7 @@ async def _run_trial(
     fake_create,
     trial_name: str = "",
     environment: EnvironmentConfig | None = None,
+    verifier: VerifierConfig | None = None,
 ):
     config = TrialConfig(
         task=TrialTaskConfig(path=task_dir),
@@ -203,7 +204,7 @@ async def _run_trial(
         trials_dir=trials_dir,
         agent=AgentConfig(name="oracle"),
         environment=environment or EnvironmentConfig(type="docker", delete=False),
-        verifier=VerifierConfig(),
+        verifier=verifier or VerifierConfig(),
     )
     with (
         patch(
@@ -309,6 +310,33 @@ class TestSingleStepSeparateVerifierLifecycle:
             assert len(warning_messages) == 1
             assert "mounts" in warning_messages[0]
             assert "declare required agent outputs as artifacts" in warning_messages[0]
+
+    async def test_verifier_uses_its_own_backend_options_and_cleanup(self, tmp_path):
+        task = _single_step_task_with_separate_verifier(tmp_path)
+        agent_env, verifier_env = _stock_mock_env(), _stock_mock_env()
+        factory, calls = _make_factory_recorder(agent_env, [verifier_env])
+        await _run_trial(
+            task,
+            tmp_path / "trials",
+            factory,
+            environment=EnvironmentConfig(
+                type="docker", delete=False, kwargs={"learner_only": True}
+            ),
+            verifier=VerifierConfig(
+                environment=EnvironmentConfig(
+                    type="modal",
+                    delete=True,
+                    kwargs={"sandbox_timeout_secs": 120},
+                )
+            ),
+        )
+        assert calls[0]["config"].type.value == "docker"
+        private_runtime = calls[1]["config"]
+        assert private_runtime.type.value == "modal"
+        assert private_runtime.kwargs == {"sandbox_timeout_secs": 120}
+        assert not private_runtime.mounts and not private_runtime.extra_docker_compose
+        verifier_env.stop.assert_awaited_once_with(delete=True)
+        agent_env.stop.assert_awaited_once_with(delete=False)
 
     async def test_user_mount_at_harbor_log_target_is_not_relabelled(self):
         with tempfile.TemporaryDirectory() as tmp:

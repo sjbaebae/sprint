@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `Validation.backend` selects the private verifier independently of learner placement; explicit verifier runtime settings do not inherit learner-only provider options or cleanup policy.
+
 - Compiled bounded-Codex environments include their managed permissions policy; authors no longer need a separate requirements file. Missing pricing metadata no longer interrupts native transcript conversion.
 
 - Attached Modal shell workers expose `sprint-resource connect NAME`; checkpoint restore refreshes the learner’s pinned SSH connection while preserving worker files and remaining budget.

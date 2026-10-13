@@ -93,7 +93,7 @@ PYCODE
 """)
         experiment = Experiment(
             Task("Resume the staged calculation"),
-            Validation(private, reference=solution),
+            Validation(private, reference=solution, backend="modal"),
             Agent("unused", harness="oracle"),
             Env(
                 sandbox=Sandbox(

@@ -149,6 +149,8 @@ class Job:
             AgentFactory.run_preflight(config.user_agent)
         task_configs = await cls._resolve_task_configs(config)
         EnvironmentFactory.validate_resource_policies(config.environment)
+        if config.verifier.environment is not None:
+            EnvironmentFactory.validate_resource_policies(config.verifier.environment)
         metrics, datasets = await cls._resolve_metrics(config, task_configs)
 
         task_download_results = await cls._cache_tasks(task_configs)

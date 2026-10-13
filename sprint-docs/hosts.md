@@ -62,6 +62,20 @@ connection; the runtime cleans up its sandboxes. If that connection fails, inspe
 `host.cleanup-error.txt` and the retained remote directory. A lost host cannot
 provide a guarantee of immediate cleanup.
 
+## Independent validation placement
+
+Set `Validation(bundle=Path("validation"), backend="modal")` to choose the
+verifier backend separately from `experiment.run(backend=...)`. `None` keeps
+the existing behavior of inheriting the run backend. Explicit validation placement
+starts from its own runtime options, without learner-only kwargs or mounts;
+validation’s image, hardware and network policy still come from `Validation`.
+
+This separates placement; it does not implement a native Runpod learner provider.
+The host and learner still have the roles described above. Explicit Modal validation
+passed the live SSH checkpoint/restore preflight (reward 1.0); Docker-to-Modal
+selection and separate cleanup settings are covered by lifecycle tests, not a
+live mixed-provider trial.
+
 ## Different worker backends
 
 `Worker.backend` overrides the run's backend; `None` inherits it. For example, a

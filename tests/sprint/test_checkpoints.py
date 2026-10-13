@@ -340,7 +340,9 @@ async def test_restored_fractional_budget_uses_integer_modal_lifetime(
     from sprint.backends.runtime import run
 
     experiment = Experiment(
-        Task("task"), Validation(tmp_path), Agent("test", harness=harness)
+        Task("task"),
+        Validation(tmp_path, backend="docker"),
+        Agent("test", harness=harness),
     )
     captured = []
 
@@ -371,6 +373,8 @@ async def test_restored_fractional_budget_uses_integer_modal_lifetime(
             parallel=1,
             resume_from="checkpoint",
         )
+    assert captured[0].verifier.environment.type.value == "docker"
+    assert not captured[0].verifier.environment.kwargs
     lifetime = captured[0].environment.kwargs["sandbox_timeout_secs"]
     assert type(lifetime) is int and lifetime == 943
     if harness == "bounded-codex":

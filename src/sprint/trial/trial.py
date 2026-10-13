@@ -990,9 +990,9 @@ class Trial(ABC):
         plan: TrialNetworkPlan,
     ) -> AsyncGenerator[BaseEnvironment, None]:
         env_config = definition.config
-        verifier_runtime_config = self.config.environment.model_copy(
-            update={"extra_docker_compose": []}
-        )
+        verifier_runtime_config = (
+            self.config.verifier.environment or self.config.environment
+        ).model_copy(update={"extra_docker_compose": []})
         if plan.verifier_env_baseline is None:
             raise RuntimeError(
                 "separate verifier env requires a verifier baseline in the network plan"
@@ -1030,7 +1030,7 @@ class Trial(ABC):
             yield env
         finally:
             try:
-                await asyncio.shield(env.stop(delete=self.config.environment.delete))
+                await asyncio.shield(env.stop(delete=verifier_runtime_config.delete))
             except Exception as exc:
                 self.logger.debug(f"Failed to stop verifier env '{key}': {exc}")
 

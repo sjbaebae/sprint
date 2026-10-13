@@ -325,6 +325,10 @@ class EnvironmentConfig(BaseModel):
 
 
 class VerifierConfig(BaseModel):
+    environment: EnvironmentConfig | None = Field(
+        default=None,
+        description="Optional separate verifier runtime; None inherits the learner backend.",
+    )
     override_timeout_sec: float | None = None
     max_timeout_sec: float | None = None
     include_logs: list[str] = Field(

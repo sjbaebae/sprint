@@ -285,8 +285,16 @@ def compile_task(experiment, directory):
             else ""
         )
         + (
-            "\nWorkers that list exec permit sprint-resource exec NAME 'SHELL COMMAND' --wait 60. Successful shell commands preserve background processes; redirect their output to files. Timeout or cancellation destroys the worker.\n"
+            "\nWorkers that list exec permit sprint-resource exec NAME 'SHELL COMMAND' --wait 60. Shell commands preserve background processes, including after an ordinary command timeout (exit 124); redirect output to files. Lifetime expiry, cancellation or provider failure closes the worker.\n"
             if any(worker.shell for worker in workers.values())
+            else ""
+        )
+        + (
+            "\nWorkers that list connect provide ordinary SSH/SCP: sprint-resource connect NAME --wait 60 returns a pinned ssh_config path. Use ssh -F CONFIG gpu 'COMMAND' or scp -F CONFIG LOCAL_FILE gpu:/app/REMOTE_FILE.\n"
+            if any(
+                worker.shell and worker.sandbox.internet != "none"
+                for worker in workers.values()
+            )
             else ""
         )
         + f"\n\nWrite your final artifact under {experiment.task.submission}.\n"
@@ -429,6 +437,7 @@ async def run(
         JobConfig,
         TrialAgentConfig,
         TrialEnvironmentConfig,
+        TrialVerifierConfig,
         TrialTaskConfig,
     )
 
@@ -465,7 +474,7 @@ async def run(
             {
                 "host": {"hostname": socket.gethostname(), "pid": os.getpid()},
                 "learner_backend": backend,
-                "verifier_backend": backend,
+                "verifier_backend": experiment.validation.backend or backend,
                 "workers": {
                     name: value.backend or backend
                     for name, value in experiment.env.attachments.items()
@@ -496,6 +505,16 @@ async def run(
                 override_timeout_sec=seconds,
             )
         ],
+        verifier=TrialVerifierConfig(
+            environment=TrialEnvironmentConfig(
+                type=experiment.validation.backend,
+                kwargs={"sandbox_timeout_secs": experiment.validation.seconds + 300}
+                if experiment.validation.backend == "modal"
+                else {},
+            )
+            if experiment.validation.backend is not None
+            else None,
+        ),
         environment=TrialEnvironmentConfig(
             type=backend,
             kwargs={

@@ -39,6 +39,9 @@ def verify(context):
     return {"score": float(correct), "metrics": {"correct": correct}}
 ```
 
+Set `Validation(..., backend="modal")` or `backend="docker"` to place validation
+independently; the default inherits the run backend.
+
 The validation bundle is copied only into the separate verifier. Put hidden answers and test data here. Public workspace files belong in `Env(files=Path("workspace"))`; never place private evaluation data there.
 
 ## 3. Define and run the environment
