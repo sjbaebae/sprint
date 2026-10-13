@@ -226,6 +226,8 @@ uv run --no-default-groups --with pytest --with pytest-asyncio pytest tests/spri
 
 - [Authoring details](sprint-docs/README.md)
 - [Architecture](sprint-docs/architecture.md)
+- [Checkpoint and recovery](sprint-docs/checkpoints.md)
+- [Read-only judge evidence](sprint-docs/evidence.md)
 - [Runnable examples and preflights](examples/sprint)
 - [Implementation](src/sprint)
 
