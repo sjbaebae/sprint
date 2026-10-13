@@ -151,6 +151,37 @@ For interactive GPU experimentation, set `Worker(..., shell=True)` and use `spri
 
 The broker returns execution output and checkpoint collection feedback without giving the learner provider credentials. See [resource access](sprint-docs/resource-access.md) for limits and lifecycle details.
 
+### Direct learner SSH on Modal
+
+An operator can give the learner ordinary SSH/SCP access instead of routing commands through the resource broker:
+
+```python
+from sprint import Resources, Sandbox, Worker
+from sprint.learner_ssh import create_identity, publish_connection
+from sprint.workers import WorkerSession
+
+identity = private_state / "learner-key"
+public_key = create_identity(identity)
+async with WorkerSession(
+    Worker(
+        sandbox=Sandbox(internet="full"), resources=Resources(gpu="L4"),
+        shell=True, lifetime_seconds=3600,
+    ),
+    backend="modal", directory=private_state / "worker",
+    learner_ssh_public_key=public_key,
+) as session:
+    await session.start()
+    config = publish_connection(
+        session.learner_ssh_endpoint, identity, public_connection_directory,
+        uid=1000, gid=1000,
+    )
+    # Give the learner this path and keep the session open for the trial:
+    # ssh -F CONFIG gpu 'COMMAND'
+    # scp -F CONFIG LOCAL_FILE gpu:/app/REMOTE_FILE
+```
+
+Run this setup as the operator. `private_state` must be private; the parent of `public_connection_directory` must be learner-readable and operator-owned. The latter contains a learner-owned key and an operator-owned config with a pinned host key. It grants only the sandbox's `agent` account; root login and forwarding are disabled. Preinstall OpenSSH server in the worker image for network-blocked workers. Provider credentials stay on the operator host. Direct SSH does not create broker command records: retain the agent transcript and configure workspace observations when needed. Live Modal SSH validation is pending.
+
 ## Evaluate a submitted model
 
 `TensorModelSession` runs a complete model package in a separate network-blocked Modal sandbox, without labels, scorer files or operator credentials. The package contains `model.json` (`{"format":"tensor-model-v1","entrypoint":"model.py"}`), an entrypoint exporting `load_model(directory, device)`, and all required local assets. The returned callable accepts `input_ids` and `attention_mask` and returns finite `[batch, vocabulary]` logits for the final position. Internal architecture and inference are model-owned.
