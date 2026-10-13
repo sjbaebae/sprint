@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Operator-held evidence can be delivered through `sprint.evidence`: an intact transcript plus exact, paginated read-only access to large referenced sections, without shell or network tools.
+
 - Resource recovery cancels creating calls before sandbox/volume cleanup. Pre-recorded worker session IDs support finding allocations when their provider IDs were lost during a host interruption.
 
 - External-host request handlers can use independent serial resource groups, so GPU setup and artifact collection need not wait for unrelated evaluation.
