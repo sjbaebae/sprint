@@ -15,7 +15,7 @@ def test_workspace_json_is_bounded_and_rejects_symlink_parents(tmp_path):
         read_regular_json(source, 2, workspace)
     outside = tmp_path / "private"
     outside.mkdir()
-    (outside / "secret.json").write_text('{}')
+    (outside / "secret.json").write_text("{}")
     (workspace / "alias").symlink_to(outside, target_is_directory=True)
     with pytest.raises(OSError):
         read_regular_json(workspace / "alias/secret.json", 100, workspace)

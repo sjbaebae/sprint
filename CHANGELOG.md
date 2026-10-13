@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Complete custom model packages can run behind a tensor interface in an isolated, network-blocked `TensorModelSession`; protected scorers retain labels outside the model worker. Live provider validation is pending.
+
 - External CPU hosts can use `LocalRequestQueue` for serialized task handlers, safe feedback and operator records without implementing queue transport per environment.
 
 - Shell command timeouts return exit code 124 without destroying the persistent worker; trial expiry and provider failures still trigger cleanup.

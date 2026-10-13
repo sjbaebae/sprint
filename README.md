@@ -151,6 +151,23 @@ For interactive GPU experimentation, set `Worker(..., shell=True)` and use `spri
 
 The broker returns execution output and checkpoint collection feedback without giving the learner provider credentials. See [resource access](sprint-docs/resource-access.md) for limits and lifecycle details.
 
+## Evaluate a submitted model
+
+`TensorModelSession` runs a complete model package in a separate network-blocked Modal sandbox, without labels, scorer files or operator credentials. The package contains `model.json` (`{"format":"tensor-model-v1","entrypoint":"model.py"}`), an entrypoint exporting `load_model(directory, device)`, and all required local assets. The returned callable accepts `input_ids` and `attention_mask` and returns finite `[batch, vocabulary]` logits for the final position. Internal architecture and inference are model-owned.
+
+```python
+from sprint.tensor_model import TensorModelSession
+
+async with TensorModelSession(
+    package_path, directory=private_scratch, vocabulary_size=vocabulary_size,
+    seconds=600, resources=Resources(gpu="L4"),
+) as model:
+    values = await model.predict(input_id_rows, output_token_ids)
+# Compare numeric outputs with hidden labels here, outside the model worker.
+```
+
+Use private temporary storage for `private_scratch`: it contains input tensors. Package import must only inspect structure and hashes; execute package code inside the isolated session. This provider path has local contract tests; live validation is pending.
+
 ## Add judge scoring and violations
 
 ```python
