@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Shell command timeouts return exit code 124 without destroying the persistent worker; trial expiry and provider failures still trigger cleanup.
+
 - Operator worker sessions can freeze checkpoints directly into a private Modal v2 volume, avoiding a CPU-host download/upload relay.
 
 - Operator worker sessions can upload bounded dataset files without routing large contents through learner RPC.

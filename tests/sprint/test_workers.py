@@ -229,7 +229,11 @@ async def test_shell_reuses_worker_and_cleans_up_on_timeout(tmp_path):
             assert kwargs["cwd"] == "/app"
             if self.fail:
                 raise TimeoutError("command timeout")
-            return SimpleNamespace(return_code=0, stdout="running", stderr="")
+            return SimpleNamespace(
+                return_code=124 if "sleep 2" in command else 0,
+                stdout="running",
+                stderr="",
+            )
 
     denied = WorkerSession(Worker(), directory=tmp_path / "denied")
     with pytest.raises(PermissionError):
@@ -242,6 +246,9 @@ async def test_shell_reuses_worker_and_cleans_up_on_timeout(tmp_path):
         second = await session.shell("cat /app/process.log")
         assert first["job_id"] != second["job_id"]
         assert env.starts == 1 and env.stops == 0
+        expired = await session.shell("sleep 2", seconds=1)
+        assert expired["return_code"] == 124
+        assert not session.closed and env.stops == 0
         env.fail = True
         with pytest.raises(TimeoutError):
             await session.shell("sleep 999")

@@ -48,8 +48,9 @@ async def close_all(resources):
 class WorkerSession:
     """Own one lazy worker and serialize its Python jobs or granted shell commands.
 
-    Files survive successful calls; shell calls may also retain processes. Any execution
-    exception destroys the worker: a timeout must not leave detached code running.
+    Files survive successful calls; shell calls may also retain processes. Shell command
+    deadlines return a process exit status; provider errors and lifetime expiry
+    destroy the worker. Python jobs retain their per-job process cleanup.
     Use as an async context manager so trial cancellation also tears it down.
     """
 
@@ -309,7 +310,8 @@ class WorkerSession:
         """Run a bounded shell command in the persistent learner workspace.
 
         Unlike Python jobs, successful shell calls leave background processes
-        running. The entire worker is destroyed on timeout or cancellation.
+        running. A command timeout returns exit code 124 and preserves the workspace.
+        Provider failures, trial expiry and cancellation destroy the worker.
         Provider credentials remain exclusively on the orchestration host.
         """
         if not self.worker.shell:
@@ -339,12 +341,13 @@ class WorkerSession:
                     )
                     result = await asyncio.wait_for(
                         self.environment.exec(
+                            f"timeout --signal=TERM --kill-after=5 {seconds}s "
                             "/bin/bash -o pipefail -c " + shlex.quote(command),
                             cwd="/app",
                             user="agent",
-                            timeout_sec=seconds,
+                            timeout_sec=seconds + 10,
                         ),
-                        timeout=seconds + 10,
+                        timeout=seconds + 20,
                     )
                 payload = {
                     "job_id": job_id,
