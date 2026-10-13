@@ -1,6 +1,7 @@
 """Operator-side file transport for task handlers on an external CPU host."""
 
 import concurrent.futures
+from contextlib import ExitStack
 import json
 import time
 import traceback
@@ -11,11 +12,12 @@ from .file_io import read_regular_json
 
 
 class LocalRequestQueue:
-    """Serialize prepared calls and publish bounded, task-redacted feedback.
+    """Serialize calls per resource group and publish task-redacted feedback.
 
     ``prepare(request, request_id)`` validates on the host thread and returns a
-    zero-argument callable. Normal calls run on one worker thread; explicitly
-    inline kinds run on the host thread, even while a worker call is pending.
+    zero-argument callable. By default all calls share one worker thread. Optional
+    ``groups`` maps request kinds to independent, serial resource groups. Inline
+    kinds run on the host thread, even while worker calls are pending.
     Provider deadlines and cancellation belong to the supplied handlers. The
     queue stops admission at its wall-clock deadline and drains admitted work.
     """
@@ -31,6 +33,7 @@ class LocalRequestQueue:
         failure_feedback,
         idle=None,
         inline_kinds=(),
+        groups=None,
         poll_seconds=0.5,
         idle_seconds=60,
     ):
@@ -42,6 +45,13 @@ class LocalRequestQueue:
         self.failure_feedback = failure_feedback
         self.idle = idle
         self.inline_kinds = frozenset(inline_kinds)
+        self.groups = dict(groups or {})
+        if any(
+            not isinstance(value, str) or not value
+            for pair in self.groups.items()
+            for value in pair
+        ):
+            raise ValueError("request groups must map nonempty kinds to group names")
         self.poll_seconds = poll_seconds
         self.idle_seconds = idle_seconds
         self.seen = set()
@@ -73,18 +83,20 @@ class LocalRequestQueue:
         )
 
     def run(self):
-        pending = None
-        active_id = None
+        pending = {}
+        pools = {}
         next_idle = time.monotonic()
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            while time.time() < self.deadline or pending is not None:
-                if pending is not None and pending.done():
+        with ExitStack() as cleanup:
+            while time.time() < self.deadline or pending:
+                for group, (active_id, future) in list(pending.items()):
+                    if not future.done():
+                        continue
                     try:
-                        self.finish(active_id, pending.result())
+                        self.finish(active_id, future.result())
                     except Exception as error:
                         self.fail(active_id, error, stage="service", status="failed")
-                    pending = None
-                if pending is None and self.idle and time.monotonic() >= next_idle:
+                    del pending[group]
+                if not pending and self.idle and time.monotonic() >= next_idle:
                     self.idle()
                     next_idle = time.monotonic() + self.idle_seconds
                 if time.time() < self.deadline:
@@ -102,14 +114,16 @@ class LocalRequestQueue:
                                 json.dumps(request, allow_nan=False)
                             )
                             inline = request.get("kind") in self.inline_kinds
-                            if pending is not None and not inline:
+                            group = self.groups.get(request.get("kind"), "default")
+                            if group in pending and not inline:
                                 self.publish(
                                     request_id,
                                     {
                                         "status": "rejected",
                                         "failure_stage": "busy",
-                                        "active_request_id": active_id,
-                                        "message": "Request was not started because another job is active.",
+                                        "active_request_id": pending[group][0],
+                                        "resource_group": group,
+                                        "message": "Request was not started because another job is active in this resource group.",
                                     },
                                 )
                                 continue
@@ -117,8 +131,13 @@ class LocalRequestQueue:
                             if inline:
                                 self.finish(request_id, call(), validate=False)
                             else:
-                                pending = pool.submit(call)
-                                active_id = request_id
+                                if group not in pools:
+                                    pools[group] = cleanup.enter_context(
+                                        concurrent.futures.ThreadPoolExecutor(
+                                            max_workers=1
+                                        )
+                                    )
+                                pending[group] = (request_id, pools[group].submit(call))
                                 self.publish(request_id, {"status": "running"})
                         except Exception as error:
                             self.fail(

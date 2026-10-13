@@ -2,15 +2,17 @@
 
 ## Unreleased
 
+- External-host request handlers can use independent serial resource groups, so GPU setup and artifact collection need not wait for unrelated evaluation.
+
 - Allocated-host shell execution uses a shared account-aware runner. Learner processes and the Codex supervisor no longer implicitly inherit operator/provider environment credentials.
 
 - Durable job supervision, safe host file transfers and exact failure-span validation/rendering are shared library utilities instead of research-task runtime copies.
 
-- External learner hosts can use `ModalWorker` for resource provisioning, learner SSH, bounded observations, immutable artifacts and cleanup without a task-owned GPU lifecycle implementation. Live validation is pending.
+- External learner hosts can use `ModalWorker` for resource provisioning, learner SSH, bounded observations, immutable artifacts and cleanup without a task-owned GPU lifecycle implementation. Verified on a Runpod CPU host with Modal L4.
 
-- Modal shell workers support a separate learner SSH/SFTP endpoint using a caller-supplied public key, without granting operator root access. Live provider validation is pending.
+- Modal shell workers support a separate learner SSH/SFTP endpoint using a caller-supplied public key, without granting operator root access. SSH/SCP and process control verified on Modal L4.
 
-- Complete custom model packages can run behind a tensor interface in an isolated, network-blocked `TensorModelSession`; protected scorers retain labels outside the model worker. Live provider validation is pending.
+- Complete custom model packages can run behind a tensor interface in an isolated, network-blocked `TensorModelSession`; protected scorers retain labels outside the model worker. Live baseline reproduction and cleanup verified; the calling host requires provider blob transport.
 
 - External CPU hosts can use `LocalRequestQueue` for serialized task handlers, safe feedback and operator records without implementing queue transport per environment.
 

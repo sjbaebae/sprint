@@ -77,3 +77,50 @@ def test_queue_redacts_validation_errors(tmp_path):
     response = (queue.rpc / "responses" / (request_id + ".json")).read_text()
     assert "private diagnostic" not in response
     assert "private diagnostic" in (state / (request_id + ".error.txt")).read_text()
+
+
+def test_independent_resources_progress_while_same_resource_stays_serial(tmp_path):
+    import threading
+
+    state = tmp_path / "state"
+    state.mkdir()
+    connected = threading.Event()
+
+    def prepare(request, request_id):
+        def execute():
+            if request["kind"] == "evaluate":
+                if not connected.wait(timeout=1):
+                    raise RuntimeError("GPU connection was blocked by evaluation")
+            else:
+                connected.set()
+            return {"kind": request["kind"]}
+
+        return execute
+
+    queue = LocalRequestQueue(
+        tmp_path / "rpc",
+        state,
+        deadline=time.time() + 0.1,
+        prepare=prepare,
+        completed=lambda result: None,
+        failure_feedback=lambda error, stage: {"failure_stage": stage},
+        groups={"evaluate": "evaluation", "connect": "gpu", "collect": "gpu"},
+        poll_seconds=0.001,
+    )
+    ids = [f"{index:032x}" for index in range(1, 4)]
+    for request_id, kind in zip(ids, ("evaluate", "connect", "collect")):
+        (queue.rpc / "requests" / (request_id + ".json")).write_text(
+            json.dumps({"kind": kind})
+        )
+    queue.run()
+    results = [
+        json.loads((queue.rpc / "responses" / (request_id + ".json")).read_text())
+        for request_id in ids
+    ]
+    assert [value["status"] for value in results] == [
+        "complete",
+        "complete",
+        "rejected",
+    ]
+    assert results[2]["resource_group"] == "gpu"
+    assert results[2]["active_request_id"] == ids[1]

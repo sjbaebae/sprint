@@ -180,7 +180,7 @@ async with WorkerSession(
     # scp -F CONFIG LOCAL_FILE gpu:/app/REMOTE_FILE
 ```
 
-Run this setup as the operator. `private_state` must be private; the parent of `public_connection_directory` must be learner-readable and operator-owned. The latter contains a learner-owned key and an operator-owned config with a pinned host key. It grants only the sandbox's `agent` account; root login and forwarding are disabled. Preinstall OpenSSH server in the worker image for network-blocked workers. Provider credentials stay on the operator host. Direct SSH does not create broker command records: retain the agent transcript and configure workspace observations when needed. Live Modal SSH validation is pending.
+Run this setup as the operator. `private_state` must be private; the parent of `public_connection_directory` must be learner-readable and operator-owned. The latter contains a learner-owned key and an operator-owned config with a pinned host key. It grants only the sandbox's `agent` account; root login and forwarding are disabled. Preinstall OpenSSH server in the worker image for network-blocked workers. Provider credentials stay on the operator host. Direct SSH does not create broker command records: retain the agent transcript and configure workspace observations when needed. Learner SSH/SCP and process control have been checked on a live Modal L4.
 
 ## Evaluate a submitted model
 
@@ -197,7 +197,7 @@ async with TensorModelSession(
 # Compare numeric outputs with hidden labels here, outside the model worker.
 ```
 
-Use private temporary storage for `private_scratch`: it contains input tensors. Package import must only inspect structure and hashes; execute package code inside the isolated session. This provider path has local contract tests; live validation is pending.
+Use private temporary storage for `private_scratch`: it contains input tensors. Package import must only inspect structure and hashes; execute package code inside the isolated session. The calling host needs outbound Modal/blob transport for package uploads; the model sandbox stays network-blocked. A live Runpod → Modal check reproduced the pinned model baseline through this interface and verified cleanup.
 
 ## Add judge scoring and violations
 

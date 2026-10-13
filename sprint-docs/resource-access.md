@@ -69,4 +69,18 @@ Submit complete artifacts to separate validation. Model packages can use `Tensor
 
 ## Verification status
 
-The older brokered L4 preflight in `examples/sprint/worker/preflight.py` verified job submission, checkpoint reuse, file collection, teardown and independent grading. Direct SSH and custom-model evaluation have local boundary tests; their current combined live preflight is still pending. Before a campaign, verify the configured networking, account boundaries, failure feedback, artifact handoff and cleanup on the selected provider.
+The older brokered L4 preflight in `examples/sprint/worker/preflight.py` verified job submission, checkpoint reuse, file collection, teardown and independent grading. Direct SSH/SCP, process control, artifact import and isolated custom-model evaluation have also been checked with a Runpod CPU host and Modal L4. The exported baseline reproduced its development accuracy, and inference cleanup was verified. Before a campaign, verify the configured networking, account boundaries, failure feedback, artifact handoff and cleanup on the selected provider.
+
+## External-host request handling
+
+`LocalRequestQueue` supplies file request/response transport for host-side handlers.
+It serializes calls by default. Set `groups={"evaluate": "evaluation", "connect": "gpu", "collect": "gpu"}`
+to let independent resources progress concurrently while keeping each resource serial.
+Each group has one dedicated thread; completion callbacks run on the host thread.
+A busy rejection names the active request and resource group. Fast metadata-only
+handlers can use `inline_kinds`; they must not block the host loop.
+
+The queue stops admitting requests at its deadline and drains admitted work.
+Handlers must enforce their own provider deadlines and cancellation. Periodic idle
+observations run only when every group is idle. Grouping changes scheduling, not
+resource permissions or spending limits.
