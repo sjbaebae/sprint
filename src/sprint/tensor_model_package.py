@@ -29,6 +29,9 @@ def unpack_model(archive, destination):
                 if files > MAX_FILES:
                     raise ValueError("model package exceeds limits")
                 relative = PurePosixPath(member.name)
+                # `tar -cf model.tar .` includes the package directory itself.
+                if member.name in {".", "./"} and member.isdir():
+                    continue
                 if (
                     relative.is_absolute()
                     or ".." in relative.parts

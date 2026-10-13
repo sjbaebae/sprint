@@ -2032,3 +2032,24 @@ class TestSSH:
             await modal_mod.start_ssh(environment)
         environment.exec.assert_awaited_once()
         sandbox.filesystem.copy_from_local.aio.assert_not_awaited()
+
+    async def test_learner_ssh_excludes_operator_access(self, environment, sandbox):
+        environment.learner_ssh_public_key = "ssh-ed25519 AAAA learner"
+        sandbox.tunnels.aio.return_value = {
+            22223: SimpleNamespace(tcp_socket=("tunnel.modal.host", 34568))
+        }
+        endpoint = await modal_mod.start_learner_ssh(environment)
+        assert endpoint == {
+            "host": "tunnel.modal.host",
+            "port": 34568,
+            "user": "agent",
+            "host_key": "ssh-ed25519 AAAA host",
+        }
+        command = environment.exec.await_args.args[0]
+        assert "AllowUsers agent\nPermitRootLogin no\n" in command
+        assert "DisableForwarding yes\n" in command
+        assert "/run/harbor-ssh" not in command
+        assert "ssh-ed25519 AAAA learner" in command
+        environment.exec.return_value = ExecResult(return_code=1)
+        with pytest.raises(SSHAccessError):
+            await modal_mod.start_learner_ssh(environment)

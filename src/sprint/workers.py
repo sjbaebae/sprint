@@ -63,11 +63,15 @@ class WorkerSession:
         factory=None,
         context=None,
         artifact_volume: str | None = None,
+        learner_ssh_public_key: str | None = None,
     ):
         self.worker = worker
         self.directory = Path(directory)
         self.backend = worker.backend or backend
         self.artifact_volume = artifact_volume
+        self.learner_ssh_public_key = learner_ssh_public_key
+        if learner_ssh_public_key and (self.backend != "modal" or not worker.shell):
+            raise ValueError("learner SSH requires a Modal shell worker")
         if artifact_volume and self.backend != "modal":
             raise ValueError("artifact_volume requires the Modal backend")
         if worker.read_only_volumes and self.backend != "modal":
@@ -84,6 +88,20 @@ class WorkerSession:
         self.directory.chmod(0o700)
         self.deadline = time.monotonic() + self.worker.lifetime_seconds
         return self
+
+    @property
+    def learner_ssh_endpoint(self):
+        """Return learner-only connection details after start; never a private key.
+
+        The caller owns the matching private key and must pin the returned host
+        key in its SSH known_hosts file. The endpoint expires with this worker.
+        """
+        if self.closed or self.environment is None:
+            raise RuntimeError("worker is not running")
+        endpoint = getattr(self.environment, "learner_ssh_endpoint", None)
+        if endpoint is None:
+            raise RuntimeError("learner SSH is not configured")
+        return dict(endpoint)
 
     async def __aexit__(self, *_):
         self.closed = True
@@ -135,6 +153,7 @@ class WorkerSession:
                 kwargs=(
                     {
                         "read_only_volumes": self.worker.read_only_volumes,
+                        "learner_ssh_public_key": self.learner_ssh_public_key,
                         "volumes": (
                             {"/opt/sprint-artifacts": self.artifact_volume}
                             if self.artifact_volume

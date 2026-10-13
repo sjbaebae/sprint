@@ -20,9 +20,12 @@ def test_custom_model_package_roundtrip(tmp_path):
         "    return lambda input_ids, attention_mask: torch.ones((input_ids.shape[0], 7), device=device)\n",
     }
     with tarfile.open(archive, "w") as bundle:
+        root = tarfile.TarInfo("./")
+        root.type = tarfile.DIRTYPE
+        bundle.addfile(root)
         for name, text in files.items():
             data = text.encode()
-            member = tarfile.TarInfo(name)
+            member = tarfile.TarInfo("./" + name)
             member.size = len(data)
             bundle.addfile(member, io.BytesIO(data))
     directory = unpack_model(archive, tmp_path / "unpacked")

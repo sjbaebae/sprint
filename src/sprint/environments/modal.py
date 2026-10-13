@@ -944,6 +944,7 @@ class ModalEnvironment(ComposeServiceOpsMixin, BaseEnvironment):
         extra_docker_compose: list[Path] | None = None,
         network_policy: NetworkPolicy | None = None,
         phase_network_policies: Sequence[NetworkPolicy] | None = None,
+        learner_ssh_public_key: str | None = None,
         *args,
         **kwargs,
     ):
@@ -983,6 +984,12 @@ class ModalEnvironment(ComposeServiceOpsMixin, BaseEnvironment):
                 - ``modal_vm_runtime=true``: Use vm_runtime (alpha feature).
                   See https://modal.com/docs/guide/vm-sandboxes for more details.
         """
+        if learner_ssh_public_key is not None and not re.fullmatch(
+            r"ssh-ed25519 [A-Za-z0-9+/]+=*(?: [^\r\n]+)?", learner_ssh_public_key
+        ):
+            raise ValueError("learner SSH requires a single Ed25519 public key")
+        self.learner_ssh_public_key = learner_ssh_public_key
+        self.learner_ssh_endpoint = None
         self._vm_runtime_enabled = parse_bool_env_value(
             kwargs.get("modal_vm_runtime", False), name="modal_vm_runtime"
         )
@@ -1189,6 +1196,8 @@ class ModalEnvironment(ComposeServiceOpsMixin, BaseEnvironment):
         kwargs: dict[str, Any] = {}
         if self.stream_enabled:
             kwargs["unencrypted_ports"] = [SSH_PORT]
+        if self.learner_ssh_public_key:
+            kwargs.setdefault("unencrypted_ports", []).append(22223)
         if experimental_options:
             kwargs["experimental_options"] = experimental_options
         if (cpu := self._cpu_config()) is not None:
@@ -1532,6 +1541,8 @@ class ModalEnvironment(ComposeServiceOpsMixin, BaseEnvironment):
         await self._strategy.start(force_build)
         if self.stream_enabled:
             self._stream_handle = await start_ssh(self)
+        if self.learner_ssh_public_key:
+            self.learner_ssh_endpoint = await start_learner_ssh(self)
 
     @property
     @override
@@ -1673,6 +1684,47 @@ async def connect_ssh(handle: StreamHandle) -> AsyncIterator[SSHAccess]:
         with contextlib.suppress(Exception):
             async with asyncio.timeout(5):
                 await sandbox.detach.aio()
+
+
+async def start_learner_ssh(environment: "ModalEnvironment") -> dict[str, Any]:
+    """Expose only the learner account; keep operator SSH and keys separate."""
+    sandbox = environment._sandbox
+    if sandbox is None or not environment.learner_ssh_public_key:
+        raise RuntimeError("learner SSH requires a running sandbox and public key")
+    await install_ssh_server(environment)
+    directory = "/run/sprint-learner-ssh"
+    config = (
+        "Port 22223\nListenAddress 0.0.0.0\n"
+        f"HostKey {directory}/host_key\n"
+        f"AuthorizedKeysFile {directory}/authorized_keys\n"
+        f"PidFile {directory}/sshd.pid\n"
+        "AllowUsers agent\nPermitRootLogin no\n"
+        "AuthenticationMethods publickey\nPasswordAuthentication no\n"
+        "KbdInteractiveAuthentication no\nUsePAM yes\n"
+        "DisableForwarding yes\nPermitTunnel no\nX11Forwarding no\n"
+        "StrictModes yes\nSubsystem sftp internal-sftp\n"
+    )
+    result = await environment.exec(
+        f"set -eu\nmkdir -p /run/sshd {directory}\n"
+        f"chmod 755 {directory}\n"
+        f"printf %s {shlex.quote(config)} > {directory}/sshd_config\n"
+        f"printf '%s\\n' {shlex.quote(environment.learner_ssh_public_key)} "
+        f"> {directory}/authorized_keys\n"
+        f"chmod 644 {directory}/authorized_keys\n"
+        f"ssh-keygen -q -t ed25519 -N '' -f {directory}/host_key\n"
+        f"/usr/sbin/sshd -t -f {directory}/sshd_config\n"
+        f"/usr/sbin/sshd -f {directory}/sshd_config -E {directory}/sshd.log",
+        user="root",
+        timeout_sec=30,
+    )
+    if result.return_code:
+        raise SSHAccessError("Could not start learner SSH")
+    tunnel = (await sandbox.tunnels.aio()).get(22223)
+    if tunnel is None:
+        raise SSHAccessError("Learner SSH tunnel is unavailable")
+    host, port = tunnel.tcp_socket
+    host_key = await sandbox.filesystem.read_text.aio(f"{directory}/host_key.pub")
+    return {"host": host, "port": port, "user": "agent", "host_key": host_key.strip()}
 
 
 async def start_ssh(environment: "ModalEnvironment") -> StreamHandle:
