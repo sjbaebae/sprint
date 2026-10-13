@@ -156,11 +156,11 @@ The broker returns execution output and checkpoint collection feedback without g
 `TensorModelSession` runs a complete model package in a separate network-blocked Modal sandbox, without labels, scorer files or operator credentials. The package contains `model.json` (`{"format":"tensor-model-v1","entrypoint":"model.py"}`), an entrypoint exporting `load_model(directory, device)`, and all required local assets. The returned callable accepts `input_ids` and `attention_mask` and returns finite `[batch, vocabulary]` logits for the final position. Internal architecture and inference are model-owned.
 
 ```python
-from sprint.tensor_model import TensorModelSession
+from sprint import TensorModelSession
 
 async with TensorModelSession(
     package_path, directory=private_scratch, vocabulary_size=vocabulary_size,
-    seconds=600, resources=Resources(gpu="L4"),
+    seconds=600,
 ) as model:
     values = await model.predict(input_id_rows, output_token_ids)
 # Compare numeric outputs with hidden labels here, outside the model worker.

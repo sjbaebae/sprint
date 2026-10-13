@@ -11,7 +11,7 @@ import time
 import uuid
 from pathlib import Path
 
-from sprint import Resources, Sandbox, Worker
+from sprint.spec import Resources, Sandbox, Worker
 from sprint.workers import WorkerSession
 
 
