@@ -13,10 +13,16 @@ class BoundedCodexOptions(CodexOptions):
     live_status: str = "/run/sprint/budget.json"
     max_turns: int = Field(default=200, ge=1, le=200)
     seconds: float = Field(default=7200, gt=0, le=7200)
+    actions_used: int | None = Field(default=None, ge=0)
 
 
 class BoundedCodex(Codex):
     options_model = BoundedCodexOptions
+
+    @staticmethod
+    @override
+    def name() -> str:
+        return "bounded-codex"
 
     @override
     async def setup(self, environment):
@@ -36,6 +42,7 @@ class BoundedCodex(Codex):
         seconds=7200,
         permission_profile="offline",
         live_status="/run/sprint/budget.json",
+        actions_used=None,
         **kwargs,
     ):
         if type(max_turns) is not int or not 1 <= max_turns <= 200:
@@ -51,6 +58,11 @@ class BoundedCodex(Codex):
         self.permission_profile = permission_profile
         self.live_status = live_status
         super().__init__(*args, **kwargs)
+        if self.load_trajectory is not None and actions_used is None:
+            raise ValueError("bounded Codex resume requires restored actions_used")
+        self.actions_used = 0 if actions_used is None else actions_used
+        if type(self.actions_used) is not int or not 0 <= self.actions_used < max_turns:
+            raise ValueError("restored Codex action budget is invalid or exhausted")
 
     async def before_supervised_exec(self, environment):
         """Optional task adapter hook; Sprint does not start task services."""
@@ -77,7 +89,8 @@ class BoundedCodex(Codex):
         """Tell the learner the exact limits enforced by its supervisor."""
         limits = (
             f"\n\nExecution budget (enforced): {self.seconds:g} seconds and "
-            f"{self.max_turns} actions. These limits override task defaults. "
+            f"{self.max_turns - self.actions_used} remaining actions "
+            f"({self.actions_used} already used of {self.max_turns}). These limits override task defaults. "
             "Tool calls and agent messages count as actions; reasoning summaries do not. "
             f"Read {self.live_status} for current budget status. No subagents."
         )
@@ -122,6 +135,7 @@ class BoundedCodex(Codex):
             "python "
             + supervisor
             + f" --max-turns {self.max_turns} --seconds {self.seconds} "
+            f"--actions-used {self.actions_used} "
             f"--live-status {shlex.quote(self.live_status)} "
             f"--uid {int(uid)} --gid {int(gid)} "
             f"--status {shlex.quote(str(self.environment_logs_dir / 'budget.json'))} "

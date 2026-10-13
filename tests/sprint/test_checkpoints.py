@@ -13,6 +13,22 @@ from sprint.checkpoint_store import Checkpoint, CheckpointStore
 from sprint.live import LiveRun, definition, prepare_restore
 
 
+def test_bounded_checkpoint_preserves_and_validates_action_budget(tmp_path):
+    from sprint.live import validate_resume_limits
+
+    experiment = Experiment(
+        Task("task"),
+        Validation(tmp_path / "private"),
+        Agent("model", harness="bounded-codex", options={"max_turns": 10}),
+    )
+    validate_resume_limits(experiment, {"remaining_seconds": 30, "actions_used": 7})
+    for used in (None, -1, 10):
+        with pytest.raises(ValueError, match="action budget"):
+            validate_resume_limits(
+                experiment, {"remaining_seconds": 30, "actions_used": used}
+            )
+
+
 def put_tree(store, tmp_path, values):
     archive = tmp_path / "export.tar"
     with tarfile.open(archive, "w") as tar:

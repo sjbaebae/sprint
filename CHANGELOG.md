@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `bounded-codex` is selectable through the authoring API. Its checkpoints retain spent actions and remaining wall time; restoring a session without trusted action-budget state is rejected rather than resetting the allowance.
+
 - Operator-held evidence can be delivered through `sprint.evidence`: an intact transcript plus exact, paginated read-only access to large referenced sections, without shell or network tools.
 
 - Resource recovery cancels creating calls before sandbox/volume cleanup. Pre-recorded worker session IDs support finding allocations when their provider IDs were lost during a host interruption.

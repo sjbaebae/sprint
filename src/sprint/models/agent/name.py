@@ -13,6 +13,7 @@ class AgentName(str, Enum):
     TERMINUS_2 = "terminus-2"
     AIDER = "aider"
     CODEX = "codex"
+    BOUNDED_CODEX = "bounded-codex"
     CURSOR_CLI = "cursor-cli"
     GEMINI_CLI = "gemini-cli"
     ANTIGRAVITY_CLI = "antigravity-cli"

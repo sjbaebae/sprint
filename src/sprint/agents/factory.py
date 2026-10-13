@@ -47,6 +47,7 @@ class AgentFactory:
         AgentName.AIDER: "sprint.agents.installed.aider:Aider",
         AgentName.CLINE_CLI: "sprint.agents.installed.cline:ClineCli",
         AgentName.CODEX: "sprint.agents.installed.codex:Codex",
+        AgentName.BOUNDED_CODEX: "sprint.agents.installed.bounded_codex:BoundedCodex",
         AgentName.CORTEX_CODE: "sprint.agents.installed.cortex_code:CortexCode",
         AgentName.CURSOR_CLI: "sprint.agents.installed.cursor_cli:CursorCli",
         AgentName.GEMINI_CLI: "sprint.agents.installed.gemini_cli:GeminiCli",

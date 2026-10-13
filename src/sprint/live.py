@@ -70,6 +70,17 @@ def validate_resume_limits(experiment, metadata):
     """Reject inconsistent budgets and lineage before provisioning any sandbox."""
     from .spec import Worker
 
+    if experiment.agent.harness == "bounded-codex":
+        maximum = experiment.agent.options.get("max_turns", 200)
+        used = metadata.get("actions_used")
+        if (
+            type(maximum) is not int
+            or not 1 <= maximum <= 200
+            or type(used) is not int
+            or not 0 <= used < maximum
+        ):
+            raise ValueError("checkpoint action budget is invalid or exhausted")
+
     remaining = metadata.get("remaining_seconds")
     if (
         type(remaining) not in (int, float)
@@ -297,12 +308,13 @@ class LiveRun:
     async def __aenter__(self):
         if self.experiment.agent.harness not in {
             "codex",
+            "bounded-codex",
             "claude-code",
             "oracle",
             "nop",
         }:
             raise ValueError(
-                "checkpointed runs currently support Codex, Claude Code, oracle and nop"
+                "checkpointed runs currently support Codex, bounded Codex, Claude Code, oracle and nop"
             )
         from .backends.runtime import run
 
@@ -497,11 +509,39 @@ class LiveRun:
                     default=None,
                 )
                 if (
-                    self.experiment.agent.harness in {"codex", "claude-code"}
+                    self.experiment.agent.harness
+                    in {"codex", "bounded-codex", "claude-code"}
                     and native is None
                 ):
                     raise RuntimeError(
                         "agent has not written a resumable native session yet"
+                    )
+                harness_state = {}
+                if self.experiment.agent.harness == "bounded-codex":
+                    status_path = self.experiment.agent.options.get(
+                        "live_status", "/run/sprint/budget.json"
+                    )
+                    status = json.loads(
+                        await checked(
+                            self.environment,
+                            "cat -- " + shlex.quote(status_path),
+                            timeout=30,
+                        )
+                    )
+                    maximum = self.experiment.agent.options.get("max_turns", 200)
+                    if status.get("maximum_actions") != maximum:
+                        raise ValueError(
+                            "checkpoint action limit differs from definition"
+                        )
+                    harness_state["actions_used"] = status.get("actions_used")
+                    validate_resume_limits(
+                        self.experiment,
+                        {
+                            "remaining_seconds": remaining,
+                            "actions_used": harness_state["actions_used"],
+                            "workers": worker_state,
+                            "broker": broker_state,
+                        },
                     )
                 checkpoint = store.publish(
                     name,
@@ -516,6 +556,7 @@ class LiveRun:
                         "broker": broker_state,
                         "trees": trees,
                         "native_session": native,
+                        **harness_state,
                         "recovery": "processes and API connections restart; interrupted commands require agent inspection",
                     },
                 )

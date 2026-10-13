@@ -269,7 +269,11 @@ class Agent:
     def __post_init__(self):
         if self.auth not in {"auto", "api-key"}:
             raise ValueError("agent auth must be auto or api-key")
-        if self.auth == "api-key" and self.harness not in {"codex", "claude-code"}:
+        if self.auth == "api-key" and self.harness not in {
+            "codex",
+            "bounded-codex",
+            "claude-code",
+        }:
             raise ValueError("explicit API-key auth supports codex and claude-code")
 
 

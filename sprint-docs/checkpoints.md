@@ -29,6 +29,10 @@ Copy the entire `checkpoints/` directory, including `blobs/`, to move a snapshot
   resume interface. Oracle and nop runs restart against the restored files.
 - Completed and pending broker request records, collected artifacts, request
   counters and remaining worker/trial time.
+- For `Agent(..., harness="bounded-codex")`, the root-owned action counter. A
+  restored run keeps the original total limit and only its remaining actions.
+  Missing, invalid or exhausted action state blocks restore. Its managed Codex
+  permission profile must already be provisioned on the learner host.
 - The compiled release, including private validation, for reproducible recovery.
 
 Choose additional persistent directories with `state_paths=(...)`. Paths must be
@@ -41,7 +45,7 @@ files are temporary implementation details, not application state.
 Restore requires the same experiment definition and an unused output directory.
 Each restore creates a separate branch with the saved remaining time; provider
 startup and authentication happen again. Current support is Codex, Claude Code,
-oracle and nop; provider implementations must support root execution and file
+bounded Codex, oracle and nop; provider implementations must support root execution and file
 transfer. Docker and Modal use the same logical-state format.
 
 Processes restart. RAM, GPU memory and external API connections are not saved.

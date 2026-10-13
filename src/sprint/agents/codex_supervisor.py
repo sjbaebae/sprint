@@ -110,14 +110,21 @@ def stop_trial_processes(uid):
 
 
 class TurnCounter:
-    def __init__(self):
+    def __init__(self, actions_used=0):
+        if type(actions_used) is not int or actions_used < 0:
+            raise ValueError("invalid restored action count")
+        self.actions_used = actions_used
         self.ids = set()
+
+    @property
+    def used(self):
+        return self.actions_used + len(self.ids)
 
     def observe(self, line):
         try:
             event = json.loads(line)
         except (ValueError, TypeError):
-            return len(self.ids)
+            return self.used
         if event.get("type") in ("item.started", "item.completed"):
             item = event.get("item", {})
             if item.get("type") in (
@@ -130,7 +137,7 @@ class TurnCounter:
             ):
                 if item.get("id") is not None:
                     self.ids.add(item["id"])
-        return len(self.ids)
+        return self.used
 
 
 def main():
@@ -142,9 +149,12 @@ def main():
     p.add_argument("--status", required=True)
     p.add_argument("--command", required=True)
     p.add_argument("--live-status", default="/run/sprint/budget.json")
+    p.add_argument("--actions-used", type=int, default=0)
     a = p.parse_args()
     if os.geteuid() != 0 or a.max_turns < 1 or a.seconds <= 0:
         p.error("requires root and positive limits")
+    if not 0 <= a.actions_used < a.max_turns:
+        p.error("restored action budget is invalid or exhausted")
     env = child_environment()
     account = pwd.getpwuid(a.uid)
     env.update(HOME=account.pw_dir, USER=account.pw_name, LOGNAME=account.pw_name)
@@ -171,7 +181,7 @@ def main():
     if child.stdout is None:
         raise RuntimeError("supervised child stdout pipe was not created")
     selector.register(child.stdout, selectors.EVENT_READ)
-    counter = TurnCounter()
+    counter = TurnCounter(a.actions_used)
     pending = b""
     started = time.monotonic()
     reason = "completed"
@@ -179,13 +189,13 @@ def main():
 
     def progress():
         elapsed = time.monotonic() - started
-        remaining = max(0, a.max_turns - len(counter.ids))
+        remaining = max(0, a.max_turns - counter.used)
         write_status(
             live_fd,
             live_path.name,
             {
                 "state": "running",
-                "actions_used": len(counter.ids),
+                "actions_used": counter.used,
                 "actions_remaining": remaining,
                 "maximum_actions": a.max_turns,
                 "seconds_remaining": max(0, a.seconds - elapsed),
@@ -247,7 +257,8 @@ def main():
             child.wait()
         status = {
             "reason": reason,
-            "turns": len(counter.ids),
+            "turns": counter.used,
+            "actions_used_before_resume": a.actions_used,
             "max_turns": a.max_turns,
             "turn_definition": "unique native tool/action or assistant-message items; reasoning excluded",
             "seconds": time.monotonic() - started,
@@ -267,7 +278,7 @@ def main():
             {
                 **status,
                 "state": "finished",
-                "actions_remaining": max(0, a.max_turns - len(counter.ids)),
+                "actions_remaining": max(0, a.max_turns - counter.used),
             },
         )
         os.close(live_fd)

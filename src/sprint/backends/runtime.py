@@ -286,11 +286,15 @@ def agent_auth_env(agent):
     """Select API billing explicitly without persisting keys in author definitions."""
     if agent.auth == "auto":
         return {}
-    name = "OPENAI_API_KEY" if agent.harness == "codex" else "ANTHROPIC_API_KEY"
+    name = (
+        "OPENAI_API_KEY"
+        if agent.harness in {"codex", "bounded-codex"}
+        else "ANTHROPIC_API_KEY"
+    )
     key = os.environ.get(name, "").strip()
     if not key:
         raise ValueError(f"{name} must be set on the host for API-key authentication")
-    if agent.harness == "codex":
+    if agent.harness in {"codex", "bounded-codex"}:
         return {name: key, "CODEX_AUTH_JSON_PATH": "", "CODEX_FORCE_AUTH_JSON": "0"}
     return {name: key, "CLAUDE_CODE_OAUTH_TOKEN": "", "CLAUDE_FORCE_OAUTH": "0"}
 
@@ -413,6 +417,12 @@ async def run(
             indent=2,
         )
     )
+    agent_options = dict(experiment.agent.options)
+    if experiment.agent.harness == "bounded-codex":
+        agent_options["seconds"] = seconds
+        agent_options["actions_used"] = (
+            checkpoint.metadata["actions_used"] if checkpoint else 0
+        )
     config = JobConfig(
         jobs_dir=directory / "runs",
         n_attempts=trials,
@@ -422,7 +432,7 @@ async def run(
             TrialAgentConfig(
                 name=experiment.agent.harness,
                 model_name=experiment.agent.model,
-                kwargs=experiment.agent.options,
+                kwargs=agent_options,
                 env=auth_env,
                 load_trajectory=trajectory,
                 override_timeout_sec=seconds,

@@ -72,5 +72,29 @@ async def test_learner_receives_enforced_budget(tmp_path, monkeypatch):
     await agent.run("Research task", object(), object())
     prompt = run.call_args.args[0]
     assert prompt.startswith("Research task")
-    assert "120 seconds and 10 actions" in prompt
+    assert "120 seconds and 10 remaining actions" in prompt
     assert agent.live_status in prompt
+
+
+def test_restored_counter_preserves_spent_actions_without_reusing_item_ids():
+    counter = TurnCounter(actions_used=7)
+    event = json.dumps(
+        {
+            "type": "item.completed",
+            "item": {"id": "item_0", "type": "command_execution"},
+        }
+    )
+    assert counter.observe(event) == 8
+    assert counter.observe(event) == 8
+    assert counter.used == 8
+
+
+def test_bounded_resume_requires_trusted_action_count(tmp_path):
+    from sprint.agents.installed.bounded_codex import BoundedCodex
+
+    native = tmp_path / "rollout-2026-10-13T00-00-00-session.jsonl"
+    native.write_text('{"type":"session_meta"}\n')
+    with pytest.raises(ValueError, match="restored actions_used"):
+        BoundedCodex(logs_dir=tmp_path, load_trajectory=native)
+    agent = BoundedCodex(logs_dir=tmp_path, load_trajectory=native, actions_used=7)
+    assert agent.actions_used == 7
