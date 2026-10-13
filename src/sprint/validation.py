@@ -97,12 +97,8 @@ def validate_violation_groups(value):
     return value
 
 
-def evaluate(module, context, *, weights=(1.0, 0.0), rubric=None):
-    """Disqualifications gate grading; suspicion or grader errors remain unscored.
-
-    Deterministic checks must supply evidence for confirmed violations. Model
-    allegations alone belong in suspected. Failures never receive a default score.
-    """
+def validate_weights(weights):
+    """Reject invalid scoring configuration before invoking any verifier."""
     if (
         len(weights) != 2
         or any(
@@ -112,6 +108,32 @@ def evaluate(module, context, *, weights=(1.0, 0.0), rubric=None):
         or not math.isclose(sum(weights), 1)
     ):
         raise ValueError("grading weights must be finite, nonnegative and sum to one")
+
+
+def combine_components(verifier, judge=None, *, weights=(1.0, 0.0)):
+    """Compose measured verifier/judge results using the same rules as evaluation.
+
+    Useful when remote evaluation and judging have already completed. Callers
+    must resolve integrity dispositions first; this function only combines valid
+    normalized components and never manufactures a missing judge score.
+    """
+    validate_weights(weights)
+    result: dict[str, Any] = {"verifier": component(verifier)}
+    if weights[1]:
+        result["judge"] = component(judge)
+    result["reward"] = weights[0] * result["verifier"]["score"] + weights[
+        1
+    ] * result.get("judge", {}).get("score", 0)
+    return result
+
+
+def evaluate(module, context, *, weights=(1.0, 0.0), rubric=None):
+    """Disqualifications gate grading; suspicion or grader errors remain unscored.
+
+    Deterministic checks must supply evidence for confirmed violations. Model
+    allegations alone belong in suspected. Failures never receive a default score.
+    """
+    validate_weights(weights)
     result: dict[str, Any] = {
         "status": "graded",
         "violations": {"confirmed": [], "suspected": []},
@@ -134,13 +156,9 @@ def evaluate(module, context, *, weights=(1.0, 0.0), rubric=None):
             return {**result, "status": "disqualified", "reward": 0.0}
         if violations["suspected"]:
             return {**result, "status": "quarantined"}
-    result["verifier"] = component(module.verify(context))
-    if weights[1]:
-        result["judge"] = component(module.judge(context, rubric))
-    result["reward"] = weights[0] * result["verifier"]["score"] + weights[
-        1
-    ] * result.get("judge", {}).get("score", 0)
-    return result
+    verifier = component(module.verify(context))
+    judge = module.judge(context, rubric) if weights[1] else None
+    return {**result, **combine_components(verifier, judge, weights=weights)}
 
 
 def main(config_path):

@@ -19,6 +19,36 @@ from sprint.workers import WorkerSession
 from sprint.workspace_observations import collector_source
 
 
+def cleanup_resources(state):
+    """Recover recorded sandboxes and artifact volumes after a host interruption.
+
+    State must be operator-owned. Each successful cleanup is recorded separately;
+    failure of one provider operation does not prevent attempts on other resources.
+    Function-call cancellation remains the responsibility of the invoking service.
+    """
+    state = Path(state)
+    errors = []
+    for pattern, identity, done in (
+        ("*.sandbox.json", "sandbox_id", "terminated"),
+        ("*.artifact-volume.json", "volume_name", "deleted"),
+    ):
+        for path in sorted(state.glob(pattern)):
+            try:
+                record = json.loads(path.read_text())
+                if record.get(done) or not record.get(identity):
+                    continue
+                if identity == "sandbox_id":
+                    modal.Sandbox.from_id(record[identity]).terminate(wait=True)
+                else:
+                    modal.Volume.objects.delete(record[identity], allow_missing=True)
+                record[done] = True
+                path.write_text(json.dumps(record))
+            except Exception as error:
+                errors.append(error)
+    if errors:
+        raise ExceptionGroup("Modal resource recovery failed", errors)
+
+
 class ModalWorker:
     """Synchronous resource lifecycle for a host using LocalRequestQueue.
 

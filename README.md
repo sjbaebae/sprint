@@ -213,6 +213,8 @@ Implement `judge(context, rubric)` alongside `verify(context)`. Both return `{"s
 
 Optional `disqualify(context)` returns `{"confirmed": [...], "suspected": [...]}`; every violation needs an `id` and `evidence`. Confirmed violations yield zero reward. Suspected violations and grader errors quarantine the result without a final reward. Final reward is the weighted sum of verifier and judge scores.
 
+When remote evaluation and judging have already completed, use `sprint.validation.combine_components(verifier, judge, weights=(0.8, 0.2))` to apply the same normalized-score and weighting rules. Resolve integrity dispositions before combining; missing or malformed required components raise an error rather than receiving a fallback score.
+
 ## Develop Sprint
 
 ```sh

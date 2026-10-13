@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from sprint import Agent, Experiment, Sandbox, StateTracker, Task, Validation, Env
-from sprint.validation import Context, evaluate
+from sprint.validation import Context, combine_components, evaluate
 
 
 def make_experiment(tmp_path):
@@ -90,6 +90,12 @@ def test_verifier_and_judge_weighting(tmp_path):
     )
     assert result["reward"] == pytest.approx(0.6)
     assert result["judge"]["evidence"] == ["rubric"]
+    combined = combine_components(
+        result["verifier"], result["judge"], weights=(0.8, 0.2)
+    )
+    assert combined["reward"] == result["reward"]
+    with pytest.raises(TypeError):
+        combine_components({"score": 0.5}, weights=(0.8, 0.2))
 
 
 @pytest.mark.parametrize("score", [math.nan, math.inf, -1, 2, True, "0.5", None])

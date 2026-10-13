@@ -56,3 +56,42 @@ def test_cleanup_deletes_volume_even_when_worker_stop_fails(tmp_path, monkeypatc
     assert resource.session is None
     resource.close()
     assert len(deleted) == 1
+
+
+def test_host_recovery_attempts_all_resources_and_retries_only_failures(
+    tmp_path, monkeypatch
+):
+    import json
+
+    sandbox_record = tmp_path / "worker.sandbox.json"
+    volume_record = tmp_path / "worker.artifact-volume.json"
+    sandbox_record.write_text(
+        json.dumps({"sandbox_id": "sb-test", "terminated": False})
+    )
+    volume_record.write_text(
+        json.dumps({"volume_name": "artifact-test", "deleted": False})
+    )
+    deleted = []
+
+    def fail_stop(**kwargs):
+        raise RuntimeError("transient provider failure")
+
+    sandbox = SimpleNamespace(terminate=fail_stop)
+    monkeypatch.setattr(
+        runtime.modal, "Sandbox", SimpleNamespace(from_id=lambda identifier: sandbox)
+    )
+    monkeypatch.setattr(
+        runtime.modal,
+        "Volume",
+        SimpleNamespace(
+            objects=SimpleNamespace(delete=lambda name, **kwargs: deleted.append(name))
+        ),
+    )
+    with pytest.raises(ExceptionGroup, match="recovery failed"):
+        runtime.cleanup_resources(tmp_path)
+    assert json.loads(volume_record.read_text())["deleted"] is True
+    assert json.loads(sandbox_record.read_text())["terminated"] is False
+    sandbox.terminate = lambda **kwargs: None
+    runtime.cleanup_resources(tmp_path)
+    assert json.loads(sandbox_record.read_text())["terminated"] is True
+    assert deleted == ["artifact-test"]
