@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Durable job supervision, safe host file transfers and exact failure-span validation/rendering are shared library utilities instead of research-task runtime copies.
+
 - External learner hosts can use `ModalWorker` for resource provisioning, learner SSH, bounded observations, immutable artifacts and cleanup without a task-owned GPU lifecycle implementation. Live validation is pending.
 
 - Modal shell workers support a separate learner SSH/SFTP endpoint using a caller-supplied public key, without granting operator root access. Live provider validation is pending.
