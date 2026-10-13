@@ -153,34 +153,30 @@ The broker returns execution output and checkpoint collection feedback without g
 
 ### Direct learner SSH on Modal
 
-An operator can give the learner ordinary SSH/SCP access instead of routing commands through the resource broker:
+Use an attached network-enabled shell worker:
 
 ```python
-from sprint import Resources, Sandbox, Worker
-from sprint.learner_ssh import create_identity, publish_connection
-from sprint.workers import WorkerSession
-
-identity = private_state / "learner-key"
-public_key = create_identity(identity)
-async with WorkerSession(
-    Worker(
-        sandbox=Sandbox(internet="full"), resources=Resources(gpu="L4"),
-        shell=True, lifetime_seconds=3600,
-    ),
-    backend="modal", directory=private_state / "worker",
-    learner_ssh_public_key=public_key,
-) as session:
-    await session.start()
-    config = publish_connection(
-        session.learner_ssh_endpoint, identity, public_connection_directory,
-        uid=1000, gid=1000,
-    )
-    # Give the learner this path and keep the session open for the trial:
-    # ssh -F CONFIG gpu 'COMMAND'
-    # scp -F CONFIG LOCAL_FILE gpu:/app/REMOTE_FILE
+"train": Worker(
+    sandbox=Sandbox(internet="full"),
+    resources=Resources(gpu="L4"),
+    backend="modal", shell=True, lifetime_seconds=3600,
+)
 ```
 
-Run this setup as the operator. `private_state` must be private; the parent of `public_connection_directory` must be learner-readable and operator-owned. The latter contains a learner-owned key and an operator-owned config with a pinned host key. It grants only the sandbox's `agent` account; root login and forwarding are disabled. Preinstall OpenSSH server in the worker image for network-blocked workers. Provider credentials stay on the operator host. Direct SSH does not create broker command records: retain the agent transcript and configure workspace observations when needed. Learner SSH/SCP and process control have been checked on a live Modal L4.
+The learner requests its connection and uses ordinary SSH/SCP:
+
+```sh
+sprint-resource connect train --wait 60
+ssh -F /resources/control/connections/train/config gpu 'COMMAND'
+scp -F /resources/control/connections/train/config LOCAL_FILE gpu:/app/REMOTE_FILE
+```
+
+Install an SSH client in the learner image and permit network access to the worker.
+Sprint owns provisioning, trial-scoped keys, pinned host configuration and cleanup.
+Checkpoint restore refreshes the same config path before resuming the agent.
+Worker files survive; processes and GPU memory must be restarted from saved files.
+Direct SSH commands appear in the agent transcript, rather than broker execution
+records. For custom external-host integration, see [resource access](sprint-docs/resource-access.md).
 
 ## Evaluate a submitted model
 
