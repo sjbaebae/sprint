@@ -38,7 +38,9 @@ Edit the task in `demo/environment.py` and scoring in
 The scaffold includes a single-agent Codex configuration, a one-hour budget,
 full learner internet and private performance-only evaluation. Sign in with
 `codex login` before launching. Resource attachments and research judging are
-optional additions. Existing directories are never overwritten.
+optional additions. Sprint installs the selected Codex or Claude Code CLI in its
+default image during build; `Sandbox.packages` and `setup` are for your task tools.
+Existing directories are never overwritten.
 For independent trials, add `--trials 6 --parallel 6` to `env run`.
 
 ## Edit the task and evaluation
@@ -95,7 +97,7 @@ env = Env(
 )
 ```
 
-Pass this as `Experiment(env=env, ...)`. Use a preinstalled harness image or the `Sandbox.setup` from the full example above.
+Pass this as `Experiment(env=env, ...)`. The default image installs the selected harness automatically. Custom images retain the adapter's runtime installation behavior; preinstall the CLI when runtime network access is restricted.
 
 `Files` mounts read-only public data at `/resources/data` in the learner and workers. A named worker is created on first use and retains its workspace until the trial ends. Configure its sandbox packages/image for your training stack. The learner submits Python scripts using:
 

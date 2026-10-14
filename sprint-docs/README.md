@@ -26,9 +26,9 @@ result = await experiment.run(directory=Path(".sprint/trial"), backend="modal")
 print(result.rewards)
 ```
 
-The default sandbox denies outbound traffic. A live harness needs a preinstalled
-image, authentication and an explicit model-API allowlist. This configuration
-example does not supply those deployment settings. Provider credentials stay on
+The default sandbox denies outbound traffic. Sprint installs Codex and Claude Code
+in the default image at build time. A live harness still needs authentication and
+an explicit model-API allowlist or full internet. This example omits those settings. Provider credentials stay on
 the host. Do not put secrets or protected evaluation files in public assets.
 
 ## Evaluation

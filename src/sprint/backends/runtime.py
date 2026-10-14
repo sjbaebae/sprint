@@ -21,6 +21,31 @@ def copy_tree(source, target):
     shutil.copytree(source, target)
 
 
+def harness_setup(agent, sandbox):
+    """Prepare supported CLIs in the default image, independently of task tools.
+
+    Custom images retain adapter installation behavior. No credentials belong in
+    these build steps; authentication is injected only when the trial starts.
+    """
+    packages = {
+        "codex": "@openai/codex",
+        "bounded-codex": "@openai/codex",
+        "claude-code": "@anthropic-ai/claude-code",
+    }
+    package = packages.get(agent.harness) if agent is not None else None
+    if package is None or sandbox.image != "python:3.12-slim":
+        return ()
+    version = agent.options.get("version")
+    if version:
+        package += "@" + str(version)
+    return (
+        "apt-get update && apt-get install -y --no-install-recommends "
+        "bash curl ca-certificates git nodejs npm procps ripgrep "
+        "&& rm -rf /var/lib/apt/lists/*",
+        "npm install -g " + shlex.quote(package),
+    )
+
+
 def dockerfile(
     sandbox,
     *,
@@ -30,9 +55,11 @@ def dockerfile(
     attachments=(),
     workers=(),
     managed_codex=False,
+    agent=None,
 ):
     """Build tooling once in the image; do not download dependencies during grading."""
     lines = [f"FROM {sandbox.image}", "WORKDIR /app"]
+    lines.extend("RUN " + command for command in harness_setup(agent, sandbox))
     lines.extend("RUN " + command for command in sandbox.setup)
     if sandbox.packages:
         lines.append(
@@ -238,6 +265,7 @@ def compile_task(experiment, directory):
     (learner / "Dockerfile").write_text(
         dockerfile(
             world.sandbox,
+            agent=experiment.agent,
             managed_codex=managed is not None,
             copy_workspace=any((learner / "workspace").rglob("*")),
             workers=workers,

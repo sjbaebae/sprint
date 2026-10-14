@@ -48,10 +48,6 @@ async def main():
 
     experiment = Experiment(
         env=Env(sandbox=Sandbox(
-            setup=(
-                "apt-get update && apt-get install -y --no-install-recommends nodejs npm ca-certificates && rm -rf /var/lib/apt/lists/*",
-                "npm install -g @openai/codex@0.162.1",
-            ),
             internet="allowlist",
             allowed_hosts=("chatgpt.com", "auth.openai.com", "api.openai.com"),
         )),
@@ -103,7 +99,7 @@ claude = Agent(model="YOUR_CLAUDE_MODEL_ID", harness="claude-code", auth="api-ke
 
 Codex uses `OPENAI_API_KEY`; Claude Code uses `ANTHROPIC_API_KEY`. `auth="api-key"` requires the key before provisioning and suppresses subscription authentication for that trial. Default `auth="auto"` retains the existing adapter authentication behavior, including the Codex sign-in setup above.
 
-Choose the agent in `Experiment(agent=codex, ...)` or `Experiment(agent=claude, ...)`. For Codex API access allow `api.openai.com`; for Claude Code allow `api.anthropic.com`. Preinstall the corresponding CLI in the image (`@openai/codex` or `@anthropic-ai/claude-code`) or provide build-time installation in `Sandbox.setup`. Use a model ID available to your API account. API-key billing is separate from subscription usage. See [Codex authentication](https://learn.chatgpt.com/docs/auth).
+Choose the agent in `Experiment(agent=codex, ...)` or `Experiment(agent=claude, ...)`. For Codex API access allow `api.openai.com`; for Claude Code allow `api.anthropic.com`. Sprint installs the selected CLI when using the default image. Pin `Agent.options["version"]` for reproducible builds. With custom images, preinstall the CLI or allow the adapter's runtime installer network access. Use a model ID available to your API account. API-key billing is separate from subscription usage. See [Codex authentication](https://learn.chatgpt.com/docs/auth).
 
 Credentials are injected into the harness at runtime and redacted from serialized agent configuration. They are accessible inside its sandbox; this is not a credential-isolating inference proxy. Worker jobs do not inherit harness credentials.
 

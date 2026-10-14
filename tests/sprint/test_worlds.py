@@ -365,3 +365,29 @@ def test_claude_api_auth_suppresses_oauth_and_serialization_redacts(monkeypatch)
     config = AgentConfig(name="claude-code", model_name="test", env=env)
     assert "test-key-not-real" not in config.model_dump_json()
     assert agent_auth_env(Agent("test")) == {}
+
+
+def test_default_harness_bootstrap_preserves_custom_images(tmp_path):
+    from dataclasses import replace
+
+    base = make_experiment(tmp_path)
+    experiment = replace(
+        base, agent=Agent("test", harness="claude-code", options={"version": "2.0.0"})
+    )
+    compiled = experiment.compile(tmp_path / "claude")
+    assert (
+        "npm install -g @anthropic-ai/claude-code@2.0.0"
+        in (compiled / "environment/Dockerfile").read_text()
+    )
+    assert "npm install" not in (compiled / "tests/Dockerfile").read_text()
+    custom = replace(
+        experiment,
+        env=replace(
+            experiment.env,
+            sandbox=Sandbox(image="custom/tools:1", setup=("echo task-tools",)),
+        ),
+    )
+    compiled_custom = custom.compile(tmp_path / "custom")
+    docker = (compiled_custom / "environment/Dockerfile").read_text()
+    assert "FROM custom/tools:1" in docker and "RUN echo task-tools" in docker
+    assert "apt-get" not in docker and "npm install" not in docker

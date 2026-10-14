@@ -9,15 +9,7 @@ ROOT = Path(__file__).resolve().parent
 experiment = Experiment(
     task=Task("Compute 6 × 7. Write the answer to /app/submission/answer.txt."),
     validation=Validation(ROOT / "validation"),  # Performance only; no judge.
-    env=Env(
-        sandbox=Sandbox(
-            internet="full",
-            setup=(
-                "apt-get update && apt-get install -y --no-install-recommends nodejs npm ca-certificates && rm -rf /var/lib/apt/lists/*",
-                "npm install -g @openai/codex@0.162.1",
-            ),
-        )
-    ),
+    env=Env(sandbox=Sandbox(internet="full")),
     agent=Agent(
         "gpt-6-astra",
         harness="bounded-codex",

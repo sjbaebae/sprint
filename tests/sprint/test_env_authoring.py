@@ -20,6 +20,12 @@ def test_scaffold_compiles_private_evaluation_and_preserves_existing_work(tmp_pa
     assert not list((compiled / "environment/workspace").iterdir())
     assert (compiled / "environment/codex-requirements.toml").is_file()
     assert experiment.validation.weights == (1.0, 0.0)
+    assert not experiment.env.sandbox.setup
+    assert (
+        "npm install -g @openai/codex@0.162.1"
+        in (compiled / "environment/Dockerfile").read_text()
+    )
+    assert "npm install" not in (compiled / "tests/Dockerfile").read_text()
     original = source.read_bytes()
     with pytest.raises(FileExistsError):
         create_environment(directory)
