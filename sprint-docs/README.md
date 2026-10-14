@@ -1,7 +1,10 @@
 # Sprint
 
+Start with the [two-file workflow](../README.md#create-an-environment). This page
+explains the underlying API for custom environments.
+
 Author a task and its evaluation. Reuse a sandbox, attach resources and choose an
-agent harness. Sprint is one root package. See [installation](../README.md#install-with-uv).
+agent harness. Sprint is one root package. See [installation](../README.md#1-install).
 
 ```python
 from pathlib import Path
