@@ -50,7 +50,7 @@ EXEC_COMMAND_HELP = (
     "Verification: use --print-config to inspect auto-inferred artifacts, --artifact "
     "to override them, or --disable-verification to skip existence-only checks."
 )
-EXPERIMENTAL_WARNING = "`harbor exec` is experimental; flags and behavior may change."
+EXPERIMENTAL_WARNING = "`sprint exec` is experimental; flags and behavior may change."
 
 KNOWN_EXTS = (
     "md|txt|pdf|png|jpg|jpeg|gif|svg|csv|json|jsonl|xml|yaml|yml|toml|"
@@ -658,7 +658,7 @@ def _execute_and_render(
         _render_result(result)
         return
 
-    with tempfile.TemporaryDirectory(prefix="harbor-exec-map-tasks-") as temp_dir:
+    with tempfile.TemporaryDirectory(prefix="sprint-exec-map-tasks-") as temp_dir:
         run_config = config.model_copy(deep=True)
         _set_task_output_dir(run_config, Path(temp_dir))
         result = run_async(
@@ -1244,7 +1244,7 @@ def _default_reduce_job_name(timestamp: str) -> str:
 
 
 def _temporary_task_output_dir(phase: str) -> Path:
-    return Path(tempfile.gettempdir()) / f"harbor-exec-{phase}-tasks-{uuid4().hex}"
+    return Path(tempfile.gettempdir()) / f"sprint-exec-{phase}-tasks-{uuid4().hex}"
 
 
 def _reject_config_flag_mix(**flags) -> None:

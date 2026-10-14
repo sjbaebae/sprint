@@ -106,7 +106,7 @@ class Executor:
         if not map_job_result.trial_results:
             raise ValueError("Cannot reduce a map job with no trial results.")
 
-        with tempfile.TemporaryDirectory(prefix="harbor-exec-reduce-") as temp_dir:
+        with tempfile.TemporaryDirectory(prefix="sprint-exec-reduce-") as temp_dir:
             map_artifacts_dir = Path(temp_dir) / REDUCE_ARTIFACTS_DIRNAME
             map_artifacts_dir.mkdir()
             self._stage_map_artifacts(map_job_result.trial_results, map_artifacts_dir)

@@ -103,7 +103,7 @@ class ExecReduceConfig(BaseModel):
 
 
 class ExecConfig(BaseModel):
-    """Configuration for `harbor exec` compile/job/reduce workflows."""
+    """Configuration for `sprint exec` compile/job/reduce workflows."""
 
     model_config = ConfigDict(extra="forbid")
 
