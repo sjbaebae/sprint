@@ -15,6 +15,7 @@ from uuid import uuid4
 import modal
 
 from sprint.learner_ssh import create_identity, publish_connection
+from sprint.live import checked, remote_helper
 from sprint.workers import MODAL_WORKER_APP, WorkerSession
 from sprint.workspace_observations import collector_source
 
@@ -130,15 +131,20 @@ class ModalWorker:
         self.session = None
         self.runner = asyncio.Runner()
         self.closed = False
+        self.quiesce_status = None
         self.volume = None
         self.identity = self.state / "learner-ssh"
         self.record = self.state / "persistent.sandbox.json"
         self.volume_record = self.state / "persistent.artifact-volume.json"
 
     def start(self):
-        """Provision lazily, with the remaining trial budget as provider lifetime."""
+        """Provision lazily, bounded by the remaining resource lifetime."""
         if self.closed:
             raise RuntimeError("worker is closed")
+        if self.quiesce_status is not None:
+            raise RuntimeError(
+                "worker is quiescing; only observation and cleanup remain"
+            )
         if self.session is not None:
             return self.session
         seconds = int(self.deadline - time.time())
@@ -260,6 +266,56 @@ class ModalWorker:
         """Freeze a learner-selected artifact in private provider storage."""
         session = self.start()
         return self.runner.run(session.collect_to_volume(relative_path))
+
+    def quiesce(self):
+        """Revoke learner SSH and pause its processes for final inspection.
+
+        This is irreversible for this resource. Observe the remaining files, then
+        call close(). It does not save process memory or prove data provenance.
+        Calls must be serialized with all other worker operations.
+        """
+        if self.quiesce_status == "complete":
+            return
+        if self.quiesce_status is not None:
+            raise RuntimeError("worker quiesce did not complete; close the resource")
+        if self.closed:
+            raise RuntimeError("worker is closed")
+        if self.session is None:
+            return
+        environment = self.session.environment
+        if environment is None:
+            raise RuntimeError("worker has no running environment")
+        self.quiesce_status = "pending"
+
+        async def pause():
+            # This file is root-owned, outside the saved learner workspace.
+            await checked(
+                environment,
+                "rm -f -- /run/sprint-learner-ssh/authorized_keys",
+                timeout=30,
+            )
+            helper = await remote_helper(environment)
+            try:
+                await checked(
+                    environment,
+                    f"python -I -S {shlex.quote(helper)} freeze",
+                    timeout=30,
+                )
+            finally:
+                await checked(
+                    environment, "rm -f -- " + shlex.quote(helper), timeout=30
+                )
+
+        try:
+            self.runner.run(pause())
+            self.quiesce_status = "complete"
+        except BaseException:
+            self.quiesce_status = "failed"
+            raise
+        finally:
+            record = json.loads(self.record.read_text())
+            record["quiesce_status"] = self.quiesce_status
+            self.record.write_text(json.dumps(record))
 
     def close(self):
         """Attempt both worker teardown and volume deletion, retaining failed IDs."""

@@ -8,6 +8,44 @@ from sprint import Worker
 import sprint.modal_worker as runtime
 
 
+def test_failed_quiesce_cannot_reopen_learner_operations(tmp_path, monkeypatch):
+    import json
+    import time
+
+    async def helper(environment):
+        return "/helper.py"
+
+    async def checked(environment, command, **kwargs):
+        if command.endswith(" freeze"):
+            raise RuntimeError("pause failed")
+        return ""
+
+    async def close():
+        pass
+
+    monkeypatch.setattr(runtime, "remote_helper", helper)
+    monkeypatch.setattr(runtime, "checked", checked)
+    resource = runtime.ModalWorker(
+        Worker(shell=True),
+        state=tmp_path,
+        connection_directory=tmp_path / "connection",
+        deadline=time.time() + 60,
+        trial="test",
+    )
+    resource.session = SimpleNamespace(environment=object(), close=close)
+    resource.record.write_text("{}")
+    try:
+        with pytest.raises(RuntimeError, match="pause failed"):
+            resource.quiesce()
+        with pytest.raises(RuntimeError, match="quiescing"):
+            resource.connect()
+        with pytest.raises(RuntimeError, match="did not complete"):
+            resource.quiesce()
+        assert json.loads(resource.record.read_text())["quiesce_status"] == "failed"
+    finally:
+        resource.close()
+
+
 def test_cleanup_deletes_volume_even_when_worker_stop_fails(tmp_path, monkeypatch):
     deleted = []
 

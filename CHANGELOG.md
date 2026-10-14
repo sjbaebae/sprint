@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- External Modal workers can revoke learner SSH and pause its processes for final inspection before teardown; incomplete quiesce cannot reopen learner operations.
+
 - `sprint env init DIRECTORY` creates a two-file Python environment with private evaluation, bounded Codex and compile-before-launch inspection; it refuses to overwrite existing work.
 
 - External task queues can explicitly resume private request history without replaying provider calls; interrupted requests expose unknown outcomes instead of appearing newly runnable.

@@ -95,6 +95,23 @@ live checkpoint API on Runpod, run that Python driver on Runpod directly. Remote
 
 ## Live preflight
 
+For an external host using `sprint.modal_worker.ModalWorker`, final inspection
+can stop learner writes before collecting observations:
+
+```python
+try:
+    worker.quiesce()
+    evidence = worker.observe()
+finally:
+    worker.close()
+```
+
+Quiesce revokes new learner SSH authentication and pauses its current processes.
+It is irreversible for that worker; only observation and cleanup remain.
+The host must stop admitting learner requests first and may reserve a short worker
+lifetime grace for this inspection. It does not save process memory or establish
+contamination-free training.
+
 ```sh
 uv run --no-default-groups --extra modal python examples/sprint/worker/preflight.py \
   --host root@RUNPOD_PUBLIC_IP --port RUNPOD_SSH_PORT \
