@@ -366,7 +366,7 @@ async def restore_workers(broker, checkpoint, records):
     """Restore logical worker state and request lineage before polling resumes."""
     import math
     from dataclasses import replace
-    from ..live import restore_tree
+    from ..state_transfer import restore_tree
     from ..workers import WorkerSession
 
     broker.seen = set(checkpoint.metadata["broker"]["seen"])
@@ -594,7 +594,7 @@ async def run(
     async def resources(event):
         if event.event == TrialEvent.AGENT_START:
             if checkpoint is not None:
-                from ..live import restore_tree
+                from ..state_transfer import restore_tree
 
                 await restore_tree(
                     event.environment, checkpoint, "learner", experiment.env.state_paths

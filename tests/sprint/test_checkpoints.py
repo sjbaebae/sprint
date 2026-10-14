@@ -110,6 +110,38 @@ def test_refuses_path_traversal_links_and_special_files(tmp_path):
     assert set(store.blobs.iterdir()) == before
 
 
+def test_capture_preserves_cache_hardlinks_without_following_symlinks(tmp_path):
+    import os
+    import subprocess
+    from sprint.remote_state import pack
+
+    work = tmp_path / "work"
+    work.mkdir()
+    original = work / "cache-file"
+    original.write_bytes(b"cached package bytes")
+    os.link(original, work / "installed-file")
+    private = tmp_path / "private-file"
+    private.write_text("must not be captured")
+    (work / "outside-link").symlink_to(private)
+    source = tmp_path / "source.tar"
+    pack([str(work)], source)
+    store = CheckpointStore(tmp_path / "store")
+    entries = store.import_archive(source)
+    assert sum(entry["kind"] == "hardlink" for entry in entries.values()) == 1
+    assert sum(entry["kind"] == "file" for entry in entries.values()) == 1
+    archive = tmp_path / "restored.tar"
+    store.export_archive(entries, archive)
+    destination = tmp_path / "restored"
+    destination.mkdir()
+    subprocess.run(["tar", "-xpf", str(archive), "-C", str(destination)], check=True)
+    restored = destination / str(work).lstrip("/")
+    assert (restored / "cache-file").read_bytes() == b"cached package bytes"
+    assert (restored / "cache-file").stat().st_ino == (
+        restored / "installed-file"
+    ).stat().st_ino
+    assert (restored / "outside-link").readlink() == private
+
+
 def test_manifest_corruption_and_duplicate_names(tmp_path):
     store = CheckpointStore(tmp_path / "store")
     checkpoint = store.publish("one", {"trees": {}})

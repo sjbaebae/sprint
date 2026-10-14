@@ -3,6 +3,7 @@
 import hashlib
 import io
 import json
+import math
 import os
 import re
 import tarfile
@@ -113,6 +114,8 @@ class CheckpointStore:
                     entry["kind"] = "directory"
                 elif member.issym():
                     entry.update(kind="symlink", target=member.linkname)
+                elif member.islnk():
+                    entry.update(kind="hardlink", target=member.linkname)
                 elif member.isfile():
                     file = stream.extractfile(member)
                     if file is None:
@@ -138,10 +141,46 @@ class CheckpointStore:
 
     @staticmethod
     def validate_tree(entries):
+        if not isinstance(entries, dict):
+            raise ValueError("checkpoint tree must be an object")
         for name, entry in entries.items():
             safe_name(name)
-            if entry.get("kind") not in {"directory", "symlink", "file"}:
+            if not isinstance(entry, dict):
+                raise ValueError("checkpoint entry must be an object")
+            if entry.get("kind") not in {"directory", "symlink", "hardlink", "file"}:
                 raise ValueError("unknown checkpoint entry kind")
+            if (
+                type(entry.get("mode")) is not int
+                or not 0 <= entry["mode"] <= 0o777
+                or any(
+                    type(entry.get(key)) is not int or entry[key] < 0
+                    for key in ("uid", "gid")
+                )
+                or type(entry.get("mtime", 0)) not in (int, float)
+                or not math.isfinite(entry.get("mtime", 0))
+            ):
+                raise ValueError("invalid checkpoint entry metadata")
+            if entry["kind"] == "symlink" and (
+                not isinstance(entry.get("target"), str) or not entry["target"]
+            ):
+                raise ValueError("invalid checkpoint link target")
+            if entry["kind"] == "hardlink":
+                target = entry.get("target")
+                if not isinstance(target, str):
+                    raise ValueError("invalid checkpoint hard link")
+                safe_name(target)
+                if entries.get(target, {}).get("kind") != "file":
+                    raise ValueError(
+                        "checkpoint hard link must reference a captured regular file"
+                    )
+            if entry["kind"] == "file" and (
+                type(entry.get("size")) is not int
+                or entry["size"] < 0
+                or not isinstance(entry.get("sha256"), str)
+                or not re.fullmatch(r"[a-f0-9]{64}", entry["sha256"])
+                or not isinstance(entry.get("chunks"), list)
+            ):
+                raise ValueError("invalid checkpoint file metadata")
             for parent in PurePosixPath(name).parents:
                 ancestor = entries.get(str(parent))
                 if ancestor and ancestor["kind"] != "directory":
@@ -153,7 +192,12 @@ class CheckpointStore:
         with tarfile.open(destination, "w") as archive:
             # Parent directories first; links cannot have archive descendants.
             for name, entry in sorted(
-                entries.items(), key=lambda item: (item[0].count("/"), item[0])
+                entries.items(),
+                key=lambda item: (
+                    item[1]["kind"] == "hardlink",
+                    item[0].count("/"),
+                    item[0],
+                ),
             ):
                 info = tarfile.TarInfo(name)
                 info.mode, info.uid, info.gid = (
@@ -167,6 +211,9 @@ class CheckpointStore:
                     archive.addfile(info)
                 elif entry["kind"] == "symlink":
                     info.type, info.linkname = tarfile.SYMTYPE, entry["target"]
+                    archive.addfile(info)
+                elif entry["kind"] == "hardlink":
+                    info.type, info.linkname = tarfile.LNKTYPE, entry["target"]
                     archive.addfile(info)
                 else:
                     info.size = entry["size"]
@@ -192,12 +239,19 @@ class CheckpointStore:
         if total != entry["size"] or checksum.hexdigest() != entry["sha256"]:
             raise ValueError("checkpoint file integrity failure")
 
-    def publish(self, name, metadata):
-        if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_-]*", name):
+    def ensure_new_name(self, name):
+        """Validate before pausing writers; publication still refuses races."""
+        if not isinstance(name, str) or not re.fullmatch(
+            r"[a-zA-Z0-9][a-zA-Z0-9_-]*", name
+        ):
             raise ValueError("checkpoint name must be a simple identifier")
         target = self.directory / (name + ".json")
         if target.exists():
             raise FileExistsError(target)
+        return target
+
+    def publish(self, name, metadata):
+        target = self.ensure_new_name(name)
         payload = {"schema_version": 1, **metadata}
         canonical = json.dumps(payload, sort_keys=True, allow_nan=False).encode()
         payload["manifest_sha256"] = digest(canonical)

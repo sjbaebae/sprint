@@ -5,19 +5,37 @@ observations, immutable artifact collection and teardown; it never runs training
 """
 
 import asyncio
+import hashlib
 import json
+import math
 import shlex
 import time
-from dataclasses import replace
+from dataclasses import asdict, replace
 from pathlib import Path
 from uuid import uuid4
 
 import modal
 
+from sprint.checkpoint_store import Checkpoint, CheckpointStore
 from sprint.learner_ssh import create_identity, publish_connection
-from sprint.live import checked, remote_helper
+from sprint.state_transfer import capture_tree, checked, remote_helper, restore_tree
 from sprint.workers import MODAL_WORKER_APP, WorkerSession
 from sprint.workspace_observations import collector_source
+
+
+def state_runtime_hashes():
+    """Pin transfer and execution helpers rather than silently changing recovery."""
+    root = Path(__file__).parent
+    return {
+        name: hashlib.sha256((root / name).read_bytes()).hexdigest()
+        for name in (
+            "remote_state.py",
+            "state_transfer.py",
+            "checkpoint_store.py",
+            "worker_run.py",
+            "worker_export.py",
+        )
+    }
 
 
 def _cancel_call_tree(call_id, *, terminate_containers):
@@ -266,6 +284,89 @@ class ModalWorker:
         """Freeze a learner-selected artifact in private provider storage."""
         session = self.start()
         return self.runner.run(session.collect_to_volume(relative_path))
+
+    def checkpoint(self, directory, name):
+        """Pause this worker and save logical state; close the original afterward.
+
+        The caller must first stop learner requests and pause the CPU agent.
+        Saved files, specification and remaining lifetime use the ordinary Sprint
+        checkpoint store. Processes and provider connections are not saved.
+        """
+        if self.closed or self.session is None or self.session.environment is None:
+            raise RuntimeError("checkpoint requires a running worker")
+        store = CheckpointStore(directory)
+        store.ensure_new_name(name)
+        self.quiesce()
+        entries = self.runner.run(
+            capture_tree(self.session.environment, self.worker.state_paths, store)
+        )
+        remaining = min(
+            self.deadline - time.time(), self.session.deadline - time.monotonic()
+        )
+        if remaining <= 0:
+            raise RuntimeError("worker lifetime expired during checkpoint")
+        return store.publish(
+            name,
+            {
+                "kind": "external-worker",
+                "worker_definition": json.loads(json.dumps(asdict(self.worker))),
+                "runtime_hashes": state_runtime_hashes(),
+                "remaining_seconds": remaining,
+                "trees": {"worker": entries},
+            },
+        )
+
+    def restore(self, source):
+        """Restore into a fresh worker and return refreshed learner SSH access."""
+        if (
+            self.closed
+            or self.session is not None
+            or self.record.exists()
+            or self.quiesce_status is not None
+        ):
+            raise RuntimeError("restore requires a fresh worker state directory")
+        saved = source if isinstance(source, Checkpoint) else Checkpoint(source)
+        saved.verify()
+        metadata = saved.metadata
+        expected = json.loads(json.dumps(asdict(self.worker)))
+        if (
+            metadata.get("kind") != "external-worker"
+            or metadata.get("worker_definition") != expected
+        ):
+            raise ValueError("checkpoint belongs to a different worker definition")
+        if metadata.get("runtime_hashes") != state_runtime_hashes():
+            raise ValueError(
+                "checkpoint state helper differs; use the original Sprint build"
+            )
+        remaining = metadata.get("remaining_seconds")
+        if (
+            type(remaining) not in (int, float)
+            or not math.isfinite(remaining)
+            or not 0 < remaining <= self.worker.lifetime_seconds
+        ):
+            raise ValueError("invalid checkpoint worker lifetime")
+        trees = metadata.get("trees", {})
+        roots = tuple(path.lstrip("/") for path in self.worker.state_paths)
+        if set(trees) != {"worker"} or any(
+            not any(path == root or path.startswith(root + "/") for root in roots)
+            for path in trees["worker"]
+        ):
+            raise ValueError("checkpoint state escapes its worker roots")
+        self.deadline = min(self.deadline, time.time() + remaining)
+        try:
+            session = self.start()
+            self.runner.run(
+                restore_tree(
+                    session.environment, saved, "worker", self.worker.state_paths
+                )
+            )
+            record = json.loads(self.record.read_text())
+            record["restored_from"] = str(saved.path)
+            self.record.write_text(json.dumps(record))
+            return self.connect()
+        except BaseException:
+            self.close()
+            raise
 
     def quiesce(self):
         """Revoke learner SSH and pause its processes for final inspection.

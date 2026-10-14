@@ -8,6 +8,53 @@ from sprint import Worker
 import sprint.modal_worker as runtime
 
 
+@pytest.mark.parametrize("invalid", ["lifetime", "roots", "metadata"])
+def test_worker_restore_rejects_invalid_state_before_provisioning(
+    tmp_path, monkeypatch, invalid
+):
+    import json
+    import time
+    from dataclasses import asdict
+    from sprint.checkpoint_store import CheckpointStore
+
+    worker = Worker(shell=True, lifetime_seconds=300)
+    store = CheckpointStore(tmp_path / "checkpoints")
+    metadata = {
+        "kind": "external-worker",
+        "worker_definition": json.loads(json.dumps(asdict(worker))),
+        "runtime_hashes": runtime.state_runtime_hashes(),
+        "remaining_seconds": 301 if invalid == "lifetime" else 100,
+        "trees": {"worker": {}},
+    }
+    if invalid != "lifetime":
+        metadata["trees"]["worker"]["etc" if invalid == "roots" else "app"] = {
+            "kind": "directory",
+            "mode": "bad" if invalid == "metadata" else 0o755,
+            "uid": 0,
+            "gid": 0,
+        }
+    saved = store.publish("invalid", metadata)
+    state = tmp_path / "state"
+    state.mkdir()
+    resource = runtime.ModalWorker(
+        worker,
+        state=state,
+        connection_directory=tmp_path / "connection",
+        deadline=time.time() + 300,
+        trial="test",
+    )
+
+    def forbidden():
+        raise AssertionError("invalid restore must not provision resources")
+
+    monkeypatch.setattr(resource, "start", forbidden)
+    try:
+        with pytest.raises(ValueError, match=invalid):
+            resource.restore(saved)
+    finally:
+        resource.close()
+
+
 def test_failed_quiesce_cannot_reopen_learner_operations(tmp_path, monkeypatch):
     import json
     import time

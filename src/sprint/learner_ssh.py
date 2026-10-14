@@ -7,9 +7,11 @@ private key grants only the worker's learner account and expires with the worker
 import json
 import os
 import re
-import shutil
 import subprocess
+import tempfile
 from pathlib import Path
+
+from sprint.file_transfer import copy_file
 
 
 def create_identity(path):
@@ -51,22 +53,23 @@ def connection_files(endpoint, identity, known_hosts):
 
 
 def publish_connection(endpoint, identity, directory, *, uid, gid):
-    """Publish pinned SSH/SCP access; only the identity is learner-owned."""
-    directory = Path(directory)
+    """Publish or refresh pinned SSH access, including a recreated worker's keys."""
+    directory = Path(directory).absolute()
     hosts, content = connection_files(
         endpoint, directory / "identity", directory / "known_hosts"
     )
-    directory.mkdir(mode=0o755, exist_ok=True)
+    directory.mkdir(mode=0o755, parents=True, exist_ok=True)
     config = directory / "config"
-    if config.exists():
-        return config
-    published_identity = directory / "identity"
-    shutil.copyfile(identity, published_identity)
-    published_identity.chmod(0o400)
-    os.chown(published_identity, uid, gid)
-    known_hosts = directory / "known_hosts"
-    known_hosts.write_text(hosts)
-    known_hosts.chmod(0o444)
-    config.write_text(content)
-    config.chmod(0o444)
+    with tempfile.TemporaryDirectory(prefix="sprint-connection-") as temporary:
+        staged = Path(temporary).resolve()
+        copy_file(identity, staged / "identity")
+        (staged / "identity").chmod(0o400)
+        (staged / "known_hosts").write_text(hosts)
+        (staged / "config").write_text(content)
+        for name in ("identity", "known_hosts", "config"):
+            target = directory / name
+            copy_file(staged / name, target)
+            target.chmod(0o400 if name == "identity" else 0o444)
+            if name == "identity":
+                os.chown(target, uid, gid)
     return config

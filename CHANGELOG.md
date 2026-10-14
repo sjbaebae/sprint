@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- External Modal workers checkpoint and restore declared files and remaining lifetime using Sprint's checkpoint store; recreated workers refresh pinned SSH access. Capture now preserves regular-file hard links used by uv caches.
+
 - External Modal workers can revoke learner SSH and pause its processes for final inspection before teardown; incomplete quiesce cannot reopen learner operations.
 
 - `sprint env init DIRECTORY` creates a two-file Python environment with private evaluation, bounded Codex and compile-before-launch inspection; it refuses to overwrite existing work.

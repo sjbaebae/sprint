@@ -43,6 +43,8 @@ Choose additional persistent directories with `state_paths=(...)`. Paths must be
 absolute, nonoverlapping directories outside `/proc`, `/sys` and `/dev`.
 Special files such as sockets and pipes cause capture to fail. Operator transfer
 files are temporary implementation details, not application state.
+Regular-file hard links, including shared uv cache files, are retained without
+following symlinks outside the captured roots.
 
 ## Recovery behavior
 
@@ -62,6 +64,43 @@ files if it needs to continue exactly. Sprint does not replay interrupted shell
 commands. The agent must inspect the restored files and feedback before retrying.
 External side effects cannot be rolled back.
 
+Capture waits for active worker requests to finish and temporarily pauses writers.
+That time counts against the trial budget. A failed capture publishes no manifest
+and attempts to resume the original branch. Integrity failures block restore.
+
+Keep checkpoints private: harness files can contain credentials, and the compiled
+release contains protected validation data. The content hashes detect corruption;
+they do not authenticate a store against its operator.
+
+## External workers
+
+An adapter using `ModalWorker` can use the same checkpoint store:
+
+```python
+saved = worker.checkpoint(Path(".sprint/worker-checkpoints"), "mid-task")
+worker.close()
+config = replacement.restore(saved)
+```
+
+First stop learner requests and pause the CPU agent. Unlike `LiveRun.checkpoint`,
+this worker-only checkpoint leaves the original paused; close it afterward.
+`replacement` must be a fresh `ModalWorker` with the same `Worker` definition and
+an empty private state directory. Restore verifies files, roots, runtime helpers
+and remaining lifetime before provisioning, then refreshes SSH at its configured
+connection directory. Reusing the original public connection path is supported.
+
+This saves worker files and lifetime, not CPU conversation or task-service state.
+Large captures still stage complete archives and need sufficient operator storage.
+The live CPU-worker preflight checks deletion/hard-link preservation, SSH refresh,
+continued file updates, remaining lifetime and cleanup:
+
+```sh
+uv run --extra modal python examples/sprint/checkpoint/external_worker_preflight.py \
+  --records /tmp/unique-worker-restore
+```
+
+## Task-service recovery
+
 External task services using `LocalRequestQueue(..., resume=True)` can rebuild
 their indexes and republish feedback from private request/result records.
 `completed(result)` runs again to rebuild those indexes; it must not dispatch
@@ -72,13 +111,7 @@ The operator must stop the original service and recover its provider resources
 before restarting. This queue option does not capture service or GPU state and
 is not automatically connected to `LiveRun` checkpoints.
 
-Capture waits for active worker requests to finish and temporarily pauses writers.
-That time counts against the trial budget. A failed capture publishes no manifest
-and attempts to resume the original branch. Integrity failures block restore.
-
-Keep checkpoints private: harness files can contain credentials, and the compiled
-release contains protected validation data. The content hashes detect corruption;
-they do not authenticate a store against its operator.
+## Live checks
 
 Real provider preflight:
 

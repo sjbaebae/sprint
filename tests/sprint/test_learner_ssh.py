@@ -30,6 +30,19 @@ def test_published_connection_is_pinned_and_reusable(tmp_path, monkeypatch):
         )
         == config
     )
+    identity.write_text("new synthetic learner key")
+    learner_ssh.publish_connection(
+        dict(endpoint, host="restored.example", host_key="ssh-ed25519 AAAB"),
+        identity,
+        directory,
+        uid=1000,
+        gid=1000,
+    )
+    assert "HostName restored.example" in config.read_text()
+    assert (
+        directory / "known_hosts"
+    ).read_text() == "[restored.example]:22223 ssh-ed25519 AAAB\n"
+    assert (directory / "identity").read_text() == "new synthetic learner key"
     with pytest.raises(ValueError, match="endpoint"):
         learner_ssh.publish_connection(
             dict(endpoint, user="root"), identity, directory, uid=1000, gid=1000
