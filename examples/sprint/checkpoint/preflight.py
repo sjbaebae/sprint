@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import json
+import shlex
 import tempfile
 from pathlib import Path
 from uuid import uuid4
@@ -20,7 +21,12 @@ from sprint import (
 )
 
 
-async def main(*, ssh=False, allocated=False, service=False):
+PENDING_REQUEST_ID = "d" * 32
+
+
+async def main(*, ssh=False, allocated=False, service=False, pending=False):
+    if pending and not service:
+        raise ValueError("--pending requires --service")
     backend = "allocated" if allocated else "modal"
     workspace = "/app"
     state_paths = None
@@ -156,6 +162,13 @@ PYCODE
                 "SERVICECHECK\n"
                 "touch /app/submission/service-valid\n"
             )
+            if pending:
+                text = text.replace(
+                    "sprint-resource call counter service-input.json --wait 60 > service-second.json",
+                    "sprint-resource status "
+                    + "d" * 32
+                    + " --wait 60 > service-second.json",
+                )
             solution.write_text(text)
         solution.write_text(
             solution.read_text()
@@ -204,7 +217,43 @@ PYCODE
                 await asyncio.sleep(1)
             else:
                 raise RuntimeError("original did not reach its staged checkpoint")
+            if pending:
+                capture = run._capture
+                payload = json.dumps(
+                    {
+                        "service": "counter",
+                        "input": {},
+                    }
+                )
+
+                async def capture_with_pending(environment, roots, store):
+                    # Inject at the quiescent boundary: admitted calls have drained,
+                    # but this valid queued request has not yet been admitted.
+                    if environment is run.environment:
+                        command = (
+                            "printf %s "
+                            + shlex.quote(payload)
+                            + " > /resources/control/requests/"
+                            + PENDING_REQUEST_ID
+                            + ".json"
+                        )
+                        injected = await environment.exec(
+                            command, user="root", timeout_sec=10
+                        )
+                        if injected.return_code != 0:
+                            raise RuntimeError("could not inject pending request")
+                    return await capture(environment, roots, store)
+
+                run._capture = capture_with_pending
             checkpoint = await run.checkpoint("staged")
+            if pending:
+                if PENDING_REQUEST_ID in checkpoint.metadata["broker"]["seen"]:
+                    raise RuntimeError("pending request was already admitted")
+                saved_path = (
+                    "resources/control/requests/" + PENDING_REQUEST_ID + ".json"
+                )
+                if saved_path not in checkpoint.metadata["trees"]["learner"]:
+                    raise RuntimeError("pending request was not captured")
             print("checkpoint:", checkpoint.path, flush=True)
         restored = await experiment.run(
             directory=directory / "restored", backend=backend, resume_from=checkpoint
@@ -236,5 +285,17 @@ if __name__ == "__main__":
         action="store_true",
         help="Recover private task-service state with worker state",
     )
+    parser.add_argument(
+        "--pending",
+        action="store_true",
+        help="Inject a queued service request at the snapshot boundary",
+    )
     args = parser.parse_args()
-    asyncio.run(main(ssh=args.ssh, allocated=args.allocated, service=args.service))
+    asyncio.run(
+        main(
+            ssh=args.ssh,
+            allocated=args.allocated,
+            service=args.service,
+            pending=args.pending,
+        )
+    )

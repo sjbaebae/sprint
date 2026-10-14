@@ -156,6 +156,8 @@ uv run --no-default-groups --extra modal python examples/sprint/checkpoint/prefl
 uv run --no-default-groups --extra modal python examples/sprint/checkpoint/preflight.py --ssh
 # Restore a private native service alongside learner and worker state:
 uv run --extra modal python examples/sprint/checkpoint/preflight.py --service
+# Capture an unadmitted request and verify one execution after resume:
+uv run --extra modal python examples/sprint/checkpoint/preflight.py --service --pending
 # CPU-only process-kill check for external task-service request recovery:
 uv run python examples/sprint/checkpoint/queue_preflight.py --records /tmp/queue-check
 ```
@@ -203,3 +205,7 @@ that do not change the protocol.
 The native service preflight passed on Runpod → Modal with CPU learner and worker:
 service state advanced from 1 to 2 after restore and the verifier returned 1.0.
 This does not verify migration of the external research broker or GPU training state.
+
+The `--pending` CPU preflight injects a valid request after the broker drains
+active calls, confirms it is saved but unadmitted, then verifies one execution
+after restore through the private verifier. Its live restored reward was 1.0.
