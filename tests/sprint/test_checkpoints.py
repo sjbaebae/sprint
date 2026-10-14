@@ -549,3 +549,32 @@ def test_restore_refuses_request_lineage_larger_than_budget(tmp_path):
                 "broker": {"seen": ["a" * 32, "b" * 32]},
             },
         )
+
+
+@pytest.mark.asyncio
+async def test_failed_stream_upload_cleans_staging_before_touching_roots(tmp_path):
+    from sprint.state_transfer import restore_tree
+
+    store = CheckpointStore(tmp_path / "store")
+    tree = put_tree(store, tmp_path, {"app/a": b"state"})
+    saved = store.publish("one", {"trees": {"worker": tree}})
+    commands = []
+
+    async def upload_file(source, target):
+        pass  # Root-owned helper installation.
+
+    async def upload_stream(remote, producer):
+        raise ValueError("stream interrupted")
+
+    async def execute(command, **kwargs):
+        commands.append(command)
+        return SimpleNamespace(return_code=0, stdout="", stderr="")
+
+    environment = SimpleNamespace(
+        upload_file=upload_file, upload_stream=upload_stream, exec=execute
+    )
+    with pytest.raises(ValueError, match="stream interrupted"):
+        await restore_tree(environment, saved, "worker", ("/app",))
+    assert len(commands) == 1
+    assert commands[0].startswith("rm -f -- ")
+    assert "rm -rf" not in commands[0]

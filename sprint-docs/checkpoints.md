@@ -90,15 +90,17 @@ and remaining lifetime before provisioning, then refreshes SSH at its configured
 connection directory. Reusing the original public connection path is supported.
 
 This saves worker files and lifetime, not CPU conversation or task-service state.
-Direct Modal capture streams the remote archive into the content-addressed store,
-without a second complete archive on the host. The remote worker still needs space
-for its archive; restore and other providers retain full archive staging. All file
-bytes are still transferred, even when stored chunks already exist.
+Direct Modal capture and restore stream between the remote archive and the
+content-addressed store without a complete host archive. The remote worker still
+needs archive space; other providers and Modal compose retain full host staging.
+Restore validates file hashes and finishes upload before replacing mutable roots.
+All file bytes are still transferred, even when stored chunks already exist.
 `CheckpointStore.import_archive` and `export_archive` accept binary streams
 without seeking. Consumer failure and cancellation drain the bounded-time Modal
 reader before returning; cancellation can therefore wait for transport cleanup.
-The live CPU-worker preflight checks deletion/hard-link preservation, SSH refresh,
-continued file updates, remaining lifetime and cleanup:
+The live CPU-worker preflight rejects host-archive fallbacks, verifies a 17 MiB
+fixture, and checks deletion/hard-link preservation, SSH refresh, continued file
+updates, remaining lifetime and cleanup:
 
 ```sh
 uv run --extra modal python examples/sprint/checkpoint/external_worker_preflight.py \

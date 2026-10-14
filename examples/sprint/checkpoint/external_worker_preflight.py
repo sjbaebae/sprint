@@ -6,9 +6,11 @@ import json
 import subprocess
 import time
 from pathlib import Path
+from unittest.mock import patch
 
 from sprint import Resources, Sandbox, Worker
 from sprint.modal_worker import ModalWorker
+from sprint.environments.modal import ModalEnvironment
 import sprint.modal_worker as runtime
 
 
@@ -57,6 +59,7 @@ printf 7 > /app/counter.txt
 printf '%s' '{"step":3,"lr":0.0002}' > /app/optimizer.json
 ln /app/optimizer.json /app/optimizer-alias.json
 rm /app/deleted.txt
+python -c "from pathlib import Path; Path('/app/blocks.bin').write_bytes(b'q' * (17 * 1024 * 1024))"
 """,
         )
 
@@ -68,7 +71,15 @@ rm /app/deleted.txt
         saved.verify()
         original.close()
         restored = resource("restored")
-        new_config = restored.restore(saved)
+        upload_file = ModalEnvironment.upload_file
+
+        async def reject_archive_upload(environment, source, target):
+            if target.startswith("/.sprint-restore-") and target.endswith(".tar"):
+                raise RuntimeError("restore staged a complete host archive")
+            return await upload_file(environment, source, target)
+
+        with patch.object(ModalEnvironment, "upload_file", reject_archive_upload):
+            new_config = restored.restore(saved)
         if new_config != config or new_config.read_text() == old_host:
             raise RuntimeError("saved SSH path was not refreshed")
         new_id = json.loads(restored.record.read_text())["sandbox_id"]
@@ -78,11 +89,13 @@ rm /app/deleted.txt
             ssh(
                 new_config,
                 """python - <<'PY'
-import json
+import hashlib, json
 from pathlib import Path
 root = Path('/app')
 print(json.dumps({
     'counter': (root / 'counter.txt').read_text(),
+    'fixture_bytes': (root / 'blocks.bin').stat().st_size,
+    'fixture_sha256': hashlib.sha256((root / 'blocks.bin').read_bytes()).hexdigest(),
     'optimizer': json.loads((root / 'optimizer.json').read_text()),
     'deleted': (root / 'deleted.txt').exists(),
     'hardlink': (root / 'optimizer.json').stat().st_ino == (root / 'optimizer-alias.json').stat().st_ino,
@@ -93,6 +106,8 @@ PY
         )
         if result != {
             "counter": "7",
+            "fixture_bytes": 17 * 1024 * 1024,
+            "fixture_sha256": hashlib.sha256(b"q" * (17 * 1024 * 1024)).hexdigest(),
             "optimizer": {"step": 3, "lr": 0.0002},
             "deleted": False,
             "hardlink": True,
@@ -130,6 +145,9 @@ PY
         "continued_counter": 8,
         "cleanup_complete": True,
         "capture_without_host_archive": True,
+        "restore_without_host_archive": True,
+        "fixture_bytes": result["fixture_bytes"],
+        "fixture_sha256": result["fixture_sha256"],
         "scope": "CPU worker and synthetic files; no GPU model state, training, native conversation, task-service recovery or benchmark evaluation.",
         "source_hashes": {
             name: hashlib.sha256(

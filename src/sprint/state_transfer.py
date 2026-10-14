@@ -29,27 +29,32 @@ async def restore_tree(environment, checkpoint, tree, roots):
     for name in entries:
         if not any(name == p or name.startswith(p + "/") for p in prefixes):
             raise ValueError("checkpoint state escapes its declared roots")
-    with tempfile.TemporaryDirectory(prefix="sprint-restore-") as temporary:
-        archive = Path(temporary) / "state.tar"
-        checkpoint.store.export_archive(entries, archive)
-        remote = "/.sprint-restore-" + uuid4().hex + ".tar"
-        await environment.upload_file(archive, remote)
-        helper = await remote_helper(environment)
-        try:
-            await checked(
-                environment,
-                f"python -I -S {shlex.quote(helper)} validate-roots {shlex.quote(json.dumps(roots))}",
+    remote = "/.sprint-restore-" + uuid4().hex + ".tar"
+    helper = await remote_helper(environment)
+    try:
+        if hasattr(environment, "upload_stream"):
+            await environment.upload_stream(
+                remote, lambda stream: checkpoint.store.export_archive(entries, stream)
             )
-            # Recreate roots from the saved manifest, so deleted base files stay deleted.
-            remove = " ".join(shlex.quote(root) for root in roots)
-            await checked(
-                environment,
-                f"rm -rf -- {remove} && tar -xpf {shlex.quote(remote)} -C /",
-            )
-        finally:
-            await checked(
-                environment, "rm -f -- " + shlex.join([remote, helper]), timeout=30
-            )
+        else:
+            with tempfile.TemporaryDirectory(prefix="sprint-restore-") as temporary:
+                archive = Path(temporary) / "state.tar"
+                checkpoint.store.export_archive(entries, archive)
+                await environment.upload_file(archive, remote)
+        await checked(
+            environment,
+            f"python -I -S {shlex.quote(helper)} validate-roots {shlex.quote(json.dumps(roots))}",
+        )
+        # Validate and finish the upload before replacing any mutable roots.
+        remove = " ".join(shlex.quote(root) for root in roots)
+        await checked(
+            environment,
+            f"rm -rf -- {remove} && tar -xpf {shlex.quote(remote)} -C /",
+        )
+    finally:
+        await checked(
+            environment, "rm -f -- " + shlex.join([remote, helper]), timeout=30
+        )
 
 
 async def capture_tree(environment, roots, store):

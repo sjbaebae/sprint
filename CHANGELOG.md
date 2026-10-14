@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Direct Modal checkpoint capture streams into chunk storage without staging a full host archive; restore and other backends retain their existing transfer paths.
+- Direct Modal checkpoint capture and restore stream through chunk storage without full host archives; other backends retain their existing transfer paths. Root replacement waits for verified upload completion.
 
 - Operator task queues can pause admission and drain active calls into durable records for coordinated checkpoint capture, with bounded waits and explicit shutdown failures.
 

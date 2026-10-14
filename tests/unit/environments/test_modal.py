@@ -2129,3 +2129,36 @@ async def test_stream_cancel_waits_for_transport_cleanup():
         release.set()
         if not transfer.done():
             await asyncio.gather(transfer, return_exceptions=True)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("producer_fails", [False, True])
+async def test_direct_upload_stream_bounds_writes_and_finishes(producer_fails):
+    blocks = []
+    stdin = SimpleNamespace(
+        write=lambda data: blocks.append(bytes(data)),
+        drain=MagicMock(),
+        write_eof=MagicMock(),
+    )
+    process = SimpleNamespace(stdin=stdin, wait=MagicMock(return_value=0))
+    sandbox = SimpleNamespace(exec=MagicMock(return_value=process))
+    environment = SimpleNamespace(_strategy=_ModalDirect(None), _sandbox=sandbox)
+    payload = b"sample" * (512 * 1024)
+
+    def produce(stream):
+        stream.write(payload)
+        if producer_fails:
+            raise ValueError("bad checkpoint chunk")
+        return len(payload)
+
+    if producer_fails:
+        with pytest.raises(ValueError, match="bad checkpoint chunk"):
+            await ModalEnvironment.upload_stream(environment, "/restore.tar", produce)
+    else:
+        assert await ModalEnvironment.upload_stream(
+            environment, "/restore.tar", produce
+        ) == len(payload)
+    assert b"".join(blocks) == payload
+    assert max(map(len, blocks)) <= 1024 * 1024
+    stdin.write_eof.assert_called_once()
+    process.wait.assert_called_once()

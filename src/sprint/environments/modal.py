@@ -1619,7 +1619,7 @@ class ModalEnvironment(ComposeServiceOpsMixin, BaseEnvironment):
         sandbox = self._sandbox
         if sandbox is None:
             raise RuntimeError("Sandbox not found. Please start the environment first.")
-        from sprint.streams import ChunkReader
+        from sprint.streams import ChunkReader, finish_transfer
 
         def consume():
             process = sandbox.exec("cat", "--", source_path, text=False, timeout=600)
@@ -1636,21 +1636,58 @@ class ModalEnvironment(ComposeServiceOpsMixin, BaseEnvironment):
                     raise RuntimeError(f"Modal file stream exited with code {code}")
             return result
 
-        transfer = asyncio.create_task(asyncio.to_thread(consume))
-        try:
-            return await asyncio.shield(transfer)
-        except asyncio.CancelledError:
-            # Repeated cancellation must not orphan the blocking SDK reader.
-            while not transfer.done():
+        return await finish_transfer(consume)
+
+    async def upload_stream(self, target_path, producer):
+        """Write streamed bytes to a private staging file before restore validation.
+
+        Direct sandboxes need no complete host archive. Other strategies retain
+        path-based upload. Producer failure leaves a partial remote staging file;
+        callers must remove it and must not extract it.
+        """
+        if not isinstance(self._strategy, _ModalDirect):
+            with tempfile.TemporaryDirectory(prefix="sprint-upload-") as temporary:
+                local = Path(temporary) / "transfer"
+                with local.open("wb") as stream:
+                    result = producer(stream)
+                await self.upload_file(local, target_path)
+                return result
+        sandbox = self._sandbox
+        if sandbox is None:
+            raise RuntimeError("Sandbox not found. Please start the environment first.")
+        from sprint.streams import ChunkWriter, finish_transfer
+
+        def produce():
+            script = (
+                "import os, shutil, sys; "
+                "fd=os.open(sys.argv[1], os.O_WRONLY|os.O_CREAT|os.O_EXCL, 0o600); "
+                "stream=os.fdopen(fd, 'wb'); "
+                "shutil.copyfileobj(sys.stdin.buffer, stream, 1024*1024); stream.close()"
+            )
+            process = sandbox.exec(
+                "python", "-I", "-S", "-c", script, target_path, text=False, timeout=600
+            )
+
+            def send(data):
+                process.stdin.write(data)
+                process.stdin.drain()
+
+            try:
+                with io.BufferedWriter(
+                    ChunkWriter(send), buffer_size=1024 * 1024
+                ) as stream:
+                    result = producer(stream)
+            finally:
                 try:
-                    await asyncio.shield(transfer)
-                except asyncio.CancelledError:
-                    continue
-                except Exception:
-                    break
-            with contextlib.suppress(Exception):
-                transfer.result()
-            raise
+                    process.stdin.write_eof()
+                    process.stdin.drain()
+                finally:
+                    code = process.wait()
+                    if code:
+                        raise RuntimeError(f"Modal file upload exited with code {code}")
+            return result
+
+        return await finish_transfer(produce)
 
     @override
     async def download_dir(self, source_dir: str, target_dir: Path | str):
