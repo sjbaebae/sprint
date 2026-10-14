@@ -407,7 +407,7 @@ class ResourceBroker:
 
     async def close(self):
         """Cancel active code and destroy all workers before verifier execution."""
-        from .services import ServiceContext
+        from .services import ServiceContext, load_handler
 
         self.closing = True
         failures = []
@@ -420,6 +420,21 @@ class ResourceBroker:
             except Exception as error:
                 failures.append(error)
             self.task = None
+        # Recovery restores private service state before any new request loads code.
+        # A trial that ends immediately must still run its retained service audits.
+        for name, (bundle, entrypoint) in self.services.items():
+            if name in self.service_handlers:
+                continue
+            if not (self.directory / ("service-" + name)).is_dir():
+                continue
+            try:
+                self.service_handlers[name] = load_handler(bundle, entrypoint)
+            except Exception as error:
+                failures.append(
+                    RuntimeError(
+                        f"service {name} could not load for finalization: {error}"
+                    )
+                )
         for name, handler in self.service_handlers.items():
             finalize = getattr(handler, "finalize", None)
             if finalize is None or name in self.finalized_services:

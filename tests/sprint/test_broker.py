@@ -583,5 +583,17 @@ async def test_service_final_audit_precedes_cleanup_and_failure_does_not_skip_it
     assert (broker.directory / "service-audit/finalization.error.txt").exists()
     await broker.close()
     assert events == ["audit", "cleanup", "cleanup"]
+    # A restored broker may stop before dispatching any further service request.
+    restored = ResourceBroker(
+        SimpleNamespace(),
+        {"train": object()},
+        directory=broker.directory,
+        backend="modal",
+        services=broker.services,
+    )
+    restored.sessions["train"] = session
+    with pytest.raises(RuntimeError, match="finalization failed"):
+        await restored.close()
+    assert events[-2:] == ["audit", "cleanup"]
     with pytest.raises(RuntimeError, match="shutdown"):
         await broker.session("new-worker")
