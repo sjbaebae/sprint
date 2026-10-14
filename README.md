@@ -11,11 +11,11 @@ Python 3.12+ and [uv](https://docs.astral.sh/uv/) are required. Install from Git
 ```sh
 uv init my-environment
 cd my-environment
-uv add "sprint[modal] @ git+https://github.com/sjbaebae/sprint.git@worlds"
+uv add "sprint[modal] @ git+https://github.com/sjbaebae/sprint.git@main"
 uv run modal setup
 ```
 
-Use `sprint` without `[modal]` for local Docker execution. Pin a reviewed commit instead of `@worlds` for reproducible deployments. Docker must be running for the Docker backend; networking restrictions also require backend support and fail closed when unsupported.
+Use `sprint` without `[modal]` for local Docker execution. Pin a reviewed commit instead of `@main` for reproducible deployments. Docker must be running for the Docker backend; networking restrictions also require backend support and fail closed when unsupported.
 
 The runner stays on the machine calling `run()`. To choose a Runpod CPU host explicitly, pass `host=Host(...)`; sandboxes and workers have separate placement. See [host and resource placement](sprint-docs/hosts.md).
 
@@ -194,7 +194,7 @@ When remote evaluation and judging have already completed, use `sprint.validatio
 ## Develop Sprint
 
 ```sh
-git clone --branch worlds https://github.com/sjbaebae/sprint.git
+git clone --branch main https://github.com/sjbaebae/sprint.git
 cd sprint
 uv sync --no-default-groups --extra modal
 uv run --no-default-groups --with pytest --with pytest-asyncio pytest tests/sprint -q

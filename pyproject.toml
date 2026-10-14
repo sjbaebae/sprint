@@ -35,7 +35,7 @@ dependencies = [
 
 [project.urls]
 Repository = "https://github.com/sjbaebae/sprint"
-Documentation = "https://github.com/sjbaebae/sprint/blob/worlds/README.md"
+Documentation = "https://github.com/sjbaebae/sprint/blob/main/README.md"
 
 [project.scripts]
 sprint = "sprint.cli.main:app"
