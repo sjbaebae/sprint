@@ -82,6 +82,21 @@ def test_corrupt_or_missing_blob_never_restores(tmp_path):
         checkpoint.verify()
 
 
+def test_streamed_export_checks_complete_file_across_chunks(tmp_path, monkeypatch):
+    monkeypatch.setattr("sprint.checkpoint_store.CHUNK_BYTES", 4093)
+    store = CheckpointStore(tmp_path / "store")
+    payload = bytes(range(256)) * 513
+    tree = put_tree(store, tmp_path, {"app/model": payload, "app/empty": b""})
+    archive = tmp_path / "restored.tar"
+    store.export_archive(tree, archive)
+    with tarfile.open(archive) as stream:
+        assert stream.extractfile("app/model").read() == payload
+        assert stream.extractfile("app/empty").read() == b""
+    tree["app/model"]["sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="integrity"):
+        store.export_archive(tree, archive)
+
+
 def test_refuses_path_traversal_links_and_special_files(tmp_path):
     store = CheckpointStore(tmp_path / "store")
     with pytest.raises(ValueError, match="unsafe"):

@@ -1,13 +1,14 @@
 """Private, content-addressed storage for complete logical-state checkpoints."""
 
 import hashlib
+import io
 import json
 import os
 import re
 import tarfile
 from pathlib import Path, PurePosixPath
 from uuid import uuid4
-from typing import Any
+from typing import Any, override
 
 CHUNK_BYTES = 4 * 1024 * 1024
 
@@ -21,6 +22,31 @@ def safe_name(name):
     if not name or path.is_absolute() or ".." in path.parts or str(path) != name:
         raise ValueError(f"unsafe checkpoint path: {name}")
     return name
+
+
+class _ChunkReader(io.RawIOBase):
+    """Read verified chunks sequentially without staging another copy on disk."""
+
+    def __init__(self, chunks):
+        super().__init__()
+        self.chunks = iter(chunks)
+        self.pending = memoryview(b"")
+
+    @override
+    def readable(self):
+        return True
+
+    @override
+    def readinto(self, buffer):
+        while not self.pending:
+            chunk = next(self.chunks, None)
+            if chunk is None:
+                return 0
+            self.pending = memoryview(chunk)
+        count = min(len(buffer), len(self.pending))
+        buffer[:count] = self.pending[:count]
+        self.pending = self.pending[count:]
+        return count
 
 
 class CheckpointStore:
@@ -143,24 +169,28 @@ class CheckpointStore:
                     info.type, info.linkname = tarfile.SYMTYPE, entry["target"]
                     archive.addfile(info)
                 else:
-                    # Spool large files rather than holding model weights in RAM.
-                    import tempfile
-
-                    with tempfile.TemporaryFile() as file:
-                        checksum, total = hashlib.sha256(), 0
-                        for key in entry["chunks"]:
-                            data = self.get(key)
-                            checksum.update(data)
-                            total += len(data)
-                            file.write(data)
-                        if (
-                            total != entry["size"]
-                            or checksum.hexdigest() != entry["sha256"]
-                        ):
-                            raise ValueError("checkpoint file integrity failure")
-                        file.seek(0)
-                        info.size = total
+                    info.size = entry["size"]
+                    with io.BufferedReader(
+                        _ChunkReader(self._file_chunks(entry))
+                    ) as file:
                         archive.addfile(info, file)
+                        # tar reads exactly the declared size. Exhaust the iterator
+                        # to verify its checksum and reject undeclared trailing bytes.
+                        if file.read(1):
+                            raise ValueError("checkpoint file integrity failure")
+
+    def _file_chunks(self, entry):
+        """Check chunk hashes and the complete file while streaming an export."""
+        checksum, total = hashlib.sha256(), 0
+        for key in entry["chunks"]:
+            data = self.get(key)
+            total += len(data)
+            if total > entry["size"]:
+                raise ValueError("checkpoint file integrity failure")
+            checksum.update(data)
+            yield data
+        if total != entry["size"] or checksum.hexdigest() != entry["sha256"]:
+            raise ValueError("checkpoint file integrity failure")
 
     def publish(self, name, metadata):
         if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_-]*", name):

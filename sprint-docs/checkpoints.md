@@ -19,6 +19,9 @@ result = await experiment.run(
 `Checkpoint(path)` reopens a saved manifest. `saved.verify()` checks all stored
 file hashes. `earlier.diff(saved)` reports added, deleted and modified paths.
 Copy the entire `checkpoints/` directory, including `blobs/`, to move a snapshot.
+Archive export streams verified chunks into the archive without a second temporary
+copy of each model file. Capture and transfer still stage a complete archive;
+chunk deduplication reduces stored snapshots, not network transfer.
 
 ## Saved state
 
