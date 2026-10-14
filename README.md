@@ -23,6 +23,24 @@ For a prepared dedicated Linux Pod without nested containers, the
 [allocated-host backend](sprint-docs/allocated-host.md) runs the learner directly
 and keeps validation and GPU workers on separately selected container backends.
 
+### Create an environment
+
+After installing Sprint into your uv project:
+
+```sh
+uv run sprint env init demo
+uv run sprint env compile demo                   # Inspect; no resources
+uv run sprint env run demo --backend modal
+```
+
+Edit the task in `demo/environment.py` and scoring in
+`demo/validation/evaluate.py`. Those are the only required authored files.
+The scaffold includes a single-agent Codex configuration, a one-hour budget,
+full learner internet and private performance-only evaluation. Sign in with
+`codex login` before launching. Resource attachments and research judging are
+optional additions. Existing directories are never overwritten.
+For independent trials, add `--trials 6 --parallel 6` to `env run`.
+
 ## 2. Write private evaluation
 
 Create this layout:

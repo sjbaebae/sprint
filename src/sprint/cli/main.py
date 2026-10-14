@@ -18,6 +18,7 @@ from sprint.cli.cache import cache_app
 from sprint.cli.datasets import datasets_app
 from sprint.cli.download import download_command
 from sprint.cli.exec import EXEC_COMMAND_HELP, EXEC_COMMAND_SHORT_HELP, exec_command
+from sprint.cli.env import env_app
 from sprint.cli.hub import hub_app
 from sprint.cli.init import init_command
 from sprint.cli.jobs import jobs_app, start
@@ -131,6 +132,7 @@ def _looks_like_flag(arg: str) -> bool:
 
 
 # Primary commands (singular)
+app.add_typer(env_app, name="env", help="Create environments with the Python API.")
 app.add_typer(adapters_app, name="adapter", help="Manage adapters.")
 app.add_typer(agents_app, name="agent", help="Inspect built-in agents.")
 app.add_typer(tasks_app, name="task", help="Manage tasks.")
