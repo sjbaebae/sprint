@@ -143,6 +143,17 @@ def test_capture_preserves_cache_hardlinks_without_following_symlinks(tmp_path):
     entries = store.import_archive(source)
     assert sum(entry["kind"] == "hardlink" for entry in entries.values()) == 1
     assert sum(entry["kind"] == "file" for entry in entries.values()) == 1
+    store.publish("first", {"trees": {"learner": entries}})
+    reusable = store.known_files()
+    delta = tmp_path / "delta.tar"
+    pack([str(work)], delta, {key: entry["size"] for key, entry in reusable.items()})
+    with tarfile.open(delta) as captured:
+        regular = [entry for entry in captured if entry.isfile()]
+        assert len(regular) == 1 and regular[0].size == 0
+        assert regular[0].pax_headers["sprint.reuse"] in reusable
+    with pytest.raises(ValueError, match="reuse reference"):
+        store.import_archive(delta)
+    assert store.import_archive(delta, reusable=reusable) == entries
     archive = tmp_path / "restored.tar"
     store.export_archive(entries, archive)
     destination = tmp_path / "restored"
@@ -154,6 +165,10 @@ def test_capture_preserves_cache_hardlinks_without_following_symlinks(tmp_path):
         restored / "installed-file"
     ).stat().st_ino
     assert (restored / "outside-link").readlink() == private
+    blob = next(store.blobs.iterdir())
+    blob.write_bytes(b"corrupted reuse")
+    with pytest.raises(ValueError, match="corrupt"):
+        store.import_archive(delta, reusable=reusable)
 
 
 def test_manifest_corruption_and_duplicate_names(tmp_path):

@@ -43,8 +43,12 @@ def main(records):
             capture_output=True,
             text=True,
             timeout=20,
-            check=True,
+            check=False,
         )
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"worker SSH failed ({result.returncode}): {result.stderr}"
+            )
         return result.stdout.strip()
 
     original, restored = resource("original"), None
@@ -116,6 +120,28 @@ PY
         ssh(new_config, "printf 8 > /app/counter.txt")
         if ssh(new_config, "cat /app/counter.txt") != "8":
             raise RuntimeError("restored learner cannot continue its work")
+        transfer_sizes = []
+        environment = restored.session.environment
+        download_stream = environment.download_stream
+
+        async def measure_capture(source, consumer):
+            size = await environment.exec(
+                "stat -c %s " + source, user="root", timeout_sec=10
+            )
+            if size.return_code != 0:
+                raise RuntimeError("could not measure capture transfer")
+            transfer_sizes.append(int(size.stdout.strip()))
+            return await download_stream(source, consumer)
+
+        environment.download_stream = measure_capture
+        incremental = restored.checkpoint(records / "checkpoints", "continued")
+        incremental.verify()
+        if len(transfer_sizes) != 1 or transfer_sizes[0] >= 1024 * 1024:
+            raise RuntimeError("unchanged 17 MiB fixture was retransmitted")
+        before = saved.metadata["trees"]["worker"]["app/blocks.bin"]
+        after = incremental.metadata["trees"]["worker"]["app/blocks.bin"]
+        if before != after:
+            raise RuntimeError("incremental capture changed the fixture content")
         remaining = restored.deadline - time.time()
         if not 0 < remaining <= saved.metadata["remaining_seconds"]:
             raise RuntimeError("restore increased or exhausted worker lifetime")
@@ -146,6 +172,8 @@ PY
         "cleanup_complete": True,
         "capture_without_host_archive": True,
         "restore_without_host_archive": True,
+        "incremental_transfer_bytes": transfer_sizes[0],
+        "unchanged_fixture_reused": True,
         "fixture_bytes": result["fixture_bytes"],
         "fixture_sha256": result["fixture_sha256"],
         "scope": "CPU worker and synthetic files; no GPU model state, training, native conversation, task-service recovery or benchmark evaluation.",

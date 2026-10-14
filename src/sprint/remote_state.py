@@ -1,5 +1,6 @@
 """Root-only logical-state transfer helper; uploaded by the operator, not the agent."""
 
+import hashlib
 import json
 import os
 import pwd
@@ -58,7 +59,7 @@ def validate_roots(roots):
                 raise ValueError(f"state root traverses a symlink: {root}")
 
 
-def pack(roots, destination):
+def pack(roots, destination, known=None):
     """Refuse omissions: sockets/devices/pipes require explicit application recovery."""
     validate_roots(roots)
     present = []
@@ -82,7 +83,19 @@ def pack(roots, destination):
                 excluded = {Path(destination).absolute(), Path(__file__).absolute()}
 
                 def keep(entry):
-                    return None if Path("/" + entry.name) in excluded else entry
+                    path = Path("/" + entry.name)
+                    if path in excluded:
+                        return None
+                    if entry.isfile() and known:
+                        checksum = hashlib.sha256()
+                        with path.open("rb") as file:
+                            while block := file.read(4 * 1024 * 1024):
+                                checksum.update(block)
+                        key = checksum.hexdigest()
+                        if known.get(key) == entry.size:
+                            entry.pax_headers["sprint.reuse"] = key
+                            entry.size = 0
+                    return entry
 
                 archive.add(root, arcname=root.lstrip("/"), filter=keep)
     return {"roots": present, "bytes": Path(destination).stat().st_size}
@@ -97,6 +110,7 @@ if __name__ == "__main__":
     elif action == "validate-roots":
         validate_roots(json.loads(sys.argv[2]))
     elif action == "pack":
-        print(json.dumps(pack(json.loads(sys.argv[2]), sys.argv[3])))
+        known = json.loads(Path(sys.argv[4]).read_text()) if len(sys.argv) > 4 else None
+        print(json.dumps(pack(json.loads(sys.argv[2]), sys.argv[3], known)))
     else:
         raise ValueError("unknown state operation")

@@ -59,20 +59,32 @@ async def restore_tree(environment, checkpoint, tree, roots):
 
 async def capture_tree(environment, roots, store):
     """Capture already-quiescent roots into the shared content-addressed store."""
+    reusable = store.known_files()
     helper = await remote_helper(environment)
     remote = "/.sprint-state-" + uuid4().hex + ".tar"
+    inventory = remote + ".json"
     try:
+        with tempfile.TemporaryDirectory(prefix="sprint-inventory-") as temporary:
+            source = Path(temporary) / "known.json"
+            source.write_text(
+                json.dumps({key: value["size"] for key, value in reusable.items()})
+            )
+            await environment.upload_file(source, inventory)
         await checked(
             environment,
-            f"python -I -S {shlex.quote(helper)} pack {shlex.quote(json.dumps(roots))} {shlex.quote(remote)}",
+            f"python -I -S {shlex.quote(helper)} pack {shlex.quote(json.dumps(roots))} {shlex.quote(remote)} {shlex.quote(inventory)}",
         )
         if hasattr(environment, "download_stream"):
-            return await environment.download_stream(remote, store.import_archive)
+            return await environment.download_stream(
+                remote, lambda stream: store.import_archive(stream, reusable=reusable)
+            )
         with tempfile.TemporaryDirectory(prefix="sprint-capture-") as temporary:
             archive = Path(temporary) / "state.tar"
             await environment.download_file(remote, archive)
-            return store.import_archive(archive)
+            return store.import_archive(archive, reusable=reusable)
     finally:
         await checked(
-            environment, "rm -f -- " + shlex.join([remote, helper]), timeout=30
+            environment,
+            "rm -f -- " + shlex.join([remote, helper, inventory]),
+            timeout=30,
         )

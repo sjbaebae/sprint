@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Repeated state capture omits unchanged file payloads using hashes from published snapshots; reused chunks are verified locally, while changed files and fresh restores still transfer their full content.
+
 - Optional private task services share the native resource broker, checkpoint boundary and restored request history; handlers persist state in files and use Sprint-owned workers.
 
 - The default learner image installs the selected Codex or Claude Code version during build; the authoring scaffold no longer duplicates harness installation commands. Custom images and verifier images retain their existing behavior.

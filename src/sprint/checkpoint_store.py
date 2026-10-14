@@ -70,7 +70,19 @@ class CheckpointStore:
             raise ValueError("corrupt checkpoint blob")
         return data
 
-    def import_archive(self, archive):
+    def known_files(self):
+        """Index prior published file content for capture-side transfer reuse."""
+        files = {}
+        for path in self.directory.glob("*.json"):
+            checkpoint = Checkpoint(path)
+            for tree in checkpoint.metadata["trees"].values():
+                self.validate_tree(tree)
+                for entry in tree.values():
+                    if entry["kind"] == "file":
+                        files[entry["sha256"]] = entry
+        return files
+
+    def import_archive(self, archive, *, reusable=None):
         """Import a path or binary stream without extracting untrusted links.
 
         Stream inputs need only read(); seeking and complete archive staging are
@@ -102,6 +114,20 @@ class CheckpointStore:
                     entry.update(kind="symlink", target=member.linkname)
                 elif member.islnk():
                     entry.update(kind="hardlink", target=member.linkname)
+                elif member.isfile() and "sprint.reuse" in member.pax_headers:
+                    key = member.pax_headers["sprint.reuse"]
+                    previous = (reusable or {}).get(key)
+                    if previous is None or member.size != 0:
+                        raise ValueError("unknown checkpoint reuse reference")
+                    # Reuse must never bless missing/corrupted local content.
+                    for _ in self._file_chunks(previous):
+                        pass
+                    entry.update(
+                        kind="file",
+                        size=previous["size"],
+                        sha256=key,
+                        chunks=list(previous["chunks"]),
+                    )
                 elif member.isfile():
                     file = stream.extractfile(member)
                     if file is None:

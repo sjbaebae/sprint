@@ -21,8 +21,9 @@ file hashes. `earlier.diff(saved)` reports added, deleted and modified paths.
 Copy the entire `checkpoints/` directory, including `blobs/`, to move a snapshot.
 Archive export streams verified chunks into the archive without a second temporary
 copy of each model file. Direct Modal capture and restore stream archives without staging them on the
-host. Other providers retain archive staging. Chunk deduplication reduces stored
-snapshots, not network transfer.
+host. Other providers retain archive staging. Published snapshots also provide a content-hash inventory for later captures.
+Unchanged files reuse verified local chunks instead of transferring their bytes;
+changed files transfer in full. Capture still reads each remote file to hash it.
 
 ## Saved state
 
@@ -98,13 +99,16 @@ Direct Modal capture and restore stream between the remote archive and the
 content-addressed store without a complete host archive. The remote worker still
 needs archive space; other providers and Modal compose retain full host staging.
 Restore validates file hashes and finishes upload before replacing mutable roots.
-All file bytes are still transferred, even when stored chunks already exist.
+Restore into a fresh worker transfers all required bytes. Repeated capture uses
+prior published snapshots to omit unchanged files, retaining updated metadata
+and checking reused local chunks before accepting the new tree.
 `CheckpointStore.import_archive` and `export_archive` accept binary streams
 without seeking. Consumer failure and cancellation drain the bounded-time Modal
 reader before returning; cancellation can therefore wait for transport cleanup.
 The live CPU-worker preflight rejects host-archive fallbacks, verifies a 17 MiB
 fixture, and checks deletion/hard-link preservation, SSH refresh, continued file
-updates, remaining lifetime and cleanup:
+updates, remaining lifetime and cleanup. A repeated capture reused the unchanged
+17 MiB fixture and transferred a 20 KiB archive in the live CPU-worker check:
 
 ```sh
 uv run --extra modal python examples/sprint/checkpoint/external_worker_preflight.py \
