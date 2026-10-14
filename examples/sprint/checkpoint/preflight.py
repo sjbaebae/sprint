@@ -125,15 +125,21 @@ PYCODE
                 '    path = context.state / "calls.txt"\n'
                 "    count = int(path.read_text()) + 1 if path.exists() else 1\n"
                 "    path.write_text(str(count))\n"
+                '    context.record("counter", {"count": count})\n'
                 '    return {"count": count}\n'
             )
             attachments["counter"] = Service(bundle)
             evaluator = private / "evaluate.py"
             evaluator.write_text(
-                evaluator.read_text().replace(
-                    "p.is_file() and",
-                    '(context.submission / "service-valid").is_file() and p.is_file() and',
-                )
+                "import json\n"
+                "def verify(context):\n"
+                '    p = context.submission / "answer.txt"\n'
+                '    evidence = context.records / "sprint-resources/service-counter.jsonl"\n'
+                '    counts = [json.loads(line)["payload"]["count"] for line in evidence.read_text().splitlines()]\n'
+                '    private = context.records / "sprint-resources/service-counter/calls.txt"\n'
+                "    valid = counts == [1, 2] and not private.exists()\n"
+                '    valid = valid and (context.submission / "service-valid").is_file()\n'
+                '    return {"score": float(valid and p.is_file() and p.read_text().strip() == "17")}\n'
             )
             text = solution.read_text().replace(
                 "  touch ready\n",

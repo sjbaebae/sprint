@@ -500,6 +500,7 @@ async def test_task_service_persists_state_and_keeps_errors_private(tmp_path):
         '    counter = context.state / "counter.txt"\n'
         "    value = int(counter.read_text()) + 1 if counter.exists() else 1\n"
         "    counter.write_text(str(value))\n"
+        '    context.record("measurement", {"count": value})\n'
         '    return {"count": value}\n'
     )
     responses = []
@@ -526,6 +527,12 @@ async def test_task_service_persists_state_and_keeps_errors_private(tmp_path):
     restored = make_broker()
     await restored.dispatch({**request, "request_id": "b" * 32})
     assert responses[-1]["result"] == {"count": 2}
+    journal = tmp_path / "records/service-evaluate.jsonl"
+    evidence = [json.loads(line) for line in journal.read_text().splitlines()]
+    assert [entry["payload"]["count"] for entry in evidence] == [1, 2]
+    assert all(
+        entry["event"] == "measurement" and entry["timestamp"] for entry in evidence
+    )
     await restored.dispatch(
         {
             "request_id": "c" * 32,

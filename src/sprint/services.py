@@ -2,6 +2,8 @@
 
 import importlib.util
 import inspect
+import json
+from datetime import UTC, datetime
 import sys
 from pathlib import Path
 from uuid import uuid4
@@ -12,8 +14,30 @@ class ServiceContext:
 
     def __init__(self, broker, name):
         self._broker = broker
+        self.name = name
         self.state = broker.directory / ("service-" + name)
         self.state.mkdir(mode=0o700, exist_ok=True)
+
+    def record(self, event, payload):
+        """Publish deliberate operator evidence to verifier records and run review.
+
+        Private working files remain checkpointed but excluded from this channel.
+        The handler must redact protected examples and credentials before recording.
+        """
+        if not isinstance(event, str) or not event.strip():
+            raise ValueError("service evidence event must be a nonempty string")
+        value = {
+            "timestamp": datetime.now(UTC).isoformat(),
+            "service": self.name,
+            "event": event,
+            "payload": payload,
+        }
+        encoded = json.dumps(value, allow_nan=False)
+        if len(encoded.encode()) > 2 * 1024 * 1024:
+            raise ValueError("service evidence exceeds 2 MiB")
+        journal = self._broker.directory / ("service-" + self.name + ".jsonl")
+        with journal.open("a") as stream:
+            stream.write(encoded + "\n")
 
     async def worker(self, name):
         """Use broker-owned sessions; their deadlines, spending and cleanup apply."""

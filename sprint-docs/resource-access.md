@@ -98,6 +98,7 @@ For operator-side evaluation or submission handlers, attach
 async def handle(context, request):
     # Persist resumable state under context.state.
     # Use await context.worker("train") for a granted worker session.
+    context.record("measurement", {"accuracy": 0.42})
     return {"accepted": True}
 ```
 
@@ -106,6 +107,11 @@ receive JSON and return JSON; they run as trusted operator code, never as a
 place to execute learner-supplied Python. Return explicit safe rejection
 messages for invalid submissions. Unexpected exceptions retain a private
 traceback and return a generic error.
+
+`context.record(event, payload)` deliberately publishes JSON evidence in
+`context.records / "sprint-resources/service-NAME.jsonl"` for validation and in
+the run review. Redact protected examples and credentials first. Other service
+working files remain private; they are not copied wholesale to the verifier.
 
 Calls share the broker's request budget and checkpoint boundary. Checkpoints
 retain service files and request history alongside the conversation and worker

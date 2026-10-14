@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Trusted services can explicitly record JSON evidence for the standard verifier and review; their remaining private working state stays excluded.
+
 - Compiled Claude Code learner images include root-owned managed denials for built-in subagent/team tools; restricted-network variants also deny hosted web tools.
 
 - Native Modal workers retain cleanup identities before provisioning for recovery after owner-process loss; unknown creation outcomes remain unresolved. Standard result JSON now includes retained cleanup errors.
