@@ -67,6 +67,13 @@ python -c "from pathlib import Path; Path('/app/blocks.bin').write_bytes(b'q' * 
 """,
         )
 
+        observation = original.observe()
+        counter = next(
+            row for row in observation["files"] if row["path"] == "/counter.txt"
+        )
+        if counter.get("text") != "7":
+            raise RuntimeError("shared worker observation lost the counter fixture")
+
         async def reject_staging(*args, **kwargs):
             raise RuntimeError("capture fell back to a complete host archive")
 
@@ -170,6 +177,7 @@ PY
         "new_worker_identity": True,
         "continued_counter": 8,
         "cleanup_complete": True,
+        "shared_observation_verified": True,
         "capture_without_host_archive": True,
         "restore_without_host_archive": True,
         "incremental_transfer_bytes": transfer_sizes[0],

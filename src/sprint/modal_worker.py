@@ -20,7 +20,6 @@ from sprint.checkpoint_store import Checkpoint, CheckpointStore
 from sprint.learner_ssh import create_identity, publish_connection
 from sprint.state_transfer import capture_tree, checked, remote_helper, restore_tree
 from sprint.workers import MODAL_WORKER_APP, WorkerSession
-from sprint.workspace_observations import collector_source
 
 
 def state_runtime_hashes():
@@ -276,14 +275,7 @@ class ModalWorker:
         """Collect bounded files and socket samples without giving away an index."""
         if self.closed or self.session is None or self.session.environment is None:
             raise RuntimeError("worker is not running")
-        command = "python -I -S -c " + shlex.quote(collector_source())
-        command += " " + shlex.quote(str(workspace)) + " " + shlex.quote(start_after)
-        result = self.runner.run(
-            self.session.environment.exec(command, user="root", timeout_sec=15)
-        )
-        if result.return_code:
-            raise RuntimeError("worker observation failed: " + str(result.stderr))
-        return json.loads(result.stdout)
+        return self.runner.run(self.session.observe(workspace, start_after=start_after))
 
     def collect(self, relative_path):
         """Freeze a learner-selected artifact in private provider storage."""

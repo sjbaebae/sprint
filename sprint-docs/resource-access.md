@@ -119,6 +119,12 @@ files. Module globals and external systems are not restored: write durable
 state under `context.state` and obtain workers through `context.worker` so
 Sprint owns their recovery and cleanup. Each service serializes its calls.
 
+A granted worker session supports `await worker.observe("/app", start_after="")`
+for the same bounded file/socket observations used by the external Modal adapter.
+Keep cursors and audit state under `context.state`; publish only deliberate,
+redacted evidence with `context.record`. Skipped or changing files are coverage
+gaps, and socket samples do not establish complete download provenance.
+
 ## Pinned assets and artifacts
 
 On Modal, `Worker(read_only_volumes={"/base": "pinned-model-assets"})` mounts an operator-prepared asset volume read-only. Use dedicated top-level mount paths; other backends reject this option. External assets are not included in mutable workspace checkpoints: retain the same immutable release when restoring. Never mount protected evaluation data in a learner resource.

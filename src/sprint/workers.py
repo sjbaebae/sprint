@@ -23,6 +23,7 @@ from sprint.models.trial.config import EnvironmentConfig as BackendConfig
 from sprint.models.trial.paths import TrialPaths
 
 from .backends.runtime import build_worker
+from .workspace_observations import collector_source
 
 
 CLEANUP_SECONDS = 60
@@ -228,6 +229,17 @@ class WorkerSession:
                 await self.close()
                 raise RuntimeError("could not protect artifact volume")
         self.record("worker-started")
+
+    async def observe(self, workspace="/app", *, start_after=""):
+        """Collect bounded file/socket evidence without executing learner files."""
+        if self.closed or self.environment is None:
+            raise RuntimeError("worker is not running")
+        command = "python -I -S -c " + shlex.quote(collector_source())
+        command += " " + shlex.quote(str(workspace)) + " " + shlex.quote(start_after)
+        result = await self.environment.exec(command, user="root", timeout_sec=15)
+        if result.return_code:
+            raise RuntimeError("worker observation failed: " + str(result.stderr))
+        return json.loads(result.stdout or "")
 
     async def collect_to_volume(self, relative: str):
         """Freeze a checkpoint into a private Modal v2 volume without host relay.
