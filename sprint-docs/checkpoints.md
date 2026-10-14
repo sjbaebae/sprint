@@ -104,6 +104,21 @@ uv run --extra modal python examples/sprint/checkpoint/external_worker_preflight
 
 ## Task-service recovery
 
+An operator can hold a running task queue at a capture boundary:
+
+```python
+with queue.pause(timeout=600):
+    # CPU agent must already be paused. Active calls have durable terminal records.
+    capture_state()  # Operator callback: worker, service files and conversation.
+    # Restore usable worker connections before allowing this queue to continue.
+```
+
+Call this from an operator thread, not from a request handler. New requests stay
+unadmitted until the context exits; active calls finish first. Timeout or service
+shutdown aborts capture rather than pretending an in-flight operation is saved.
+Pause time counts against the service deadline. The research adapter does not yet
+coordinate these pieces into a whole-trial checkpoint.
+
 External task services using `LocalRequestQueue(..., resume=True)` can rebuild
 their indexes and republish feedback from private request/result records.
 `completed(result)` runs again to rebuild those indexes; it must not dispatch

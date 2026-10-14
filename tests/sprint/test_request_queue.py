@@ -221,3 +221,59 @@ def test_stop_drains_admitted_work_without_accepting_more(tmp_path):
     )
     assert not (queue.rpc / "responses" / (ids[2] + ".json")).exists()
     assert ids[2] not in queue.seen
+
+
+def test_operator_pause_drains_records_and_defers_new_requests(tmp_path):
+    import threading
+
+    state = tmp_path / "state"
+    state.mkdir()
+    started, release, second_complete = (threading.Event() for _ in range(3))
+    ids = [f"{index:032x}" for index in (1, 2)]
+
+    def prepare(request, request_id):
+        def call():
+            if request_id == ids[0]:
+                started.set()
+                if not release.wait(3):
+                    raise RuntimeError("test operation was not released")
+            else:
+                second_complete.set()
+            return {"id": request_id}
+
+        return call
+
+    queue = LocalRequestQueue(
+        tmp_path / "rpc",
+        state,
+        deadline=time.time() + 10,
+        prepare=prepare,
+        completed=lambda result: None,
+        failure_feedback=lambda error, stage: {"message": str(error)},
+        poll_seconds=0.001,
+    )
+    (queue.rpc / "requests" / (ids[0] + ".json")).write_text("{}")
+    thread = threading.Thread(target=queue.run)
+    thread.start()
+    try:
+        assert started.wait(3)
+        # A timeout cannot silently capture an operation still in progress.
+        with pytest.raises(TimeoutError, match="did not drain"):
+            with queue.pause(timeout=0.02):
+                pytest.fail("active provider operation was not drained")
+        release.set()
+        with queue.pause(timeout=3):
+            result = json.loads((state / (ids[0] + ".result.json")).read_text())
+            assert result == {"id": ids[0]}
+            (queue.rpc / "requests" / (ids[1] + ".json")).write_text("{}")
+            assert not second_complete.is_set()
+            assert not (state / (ids[1] + ".request.json")).exists()
+        assert second_complete.wait(3)
+    finally:
+        release.set()
+        queue.stop()
+        thread.join(timeout=3)
+    assert not thread.is_alive()
+    with pytest.raises(RuntimeError, match="stopped"):
+        with queue.pause(timeout=0.1):
+            pytest.fail("stopped queue cannot be checkpointed")

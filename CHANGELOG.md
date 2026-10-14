@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Operator task queues can pause admission and drain active calls into durable records for coordinated checkpoint capture, with bounded waits and explicit shutdown failures.
+
 - External Modal workers checkpoint and restore declared files and remaining lifetime using Sprint's checkpoint store; recreated workers refresh pinned SSH access. Capture now preserves regular-file hard links used by uv caches.
 
 - External Modal workers can revoke learner SSH and pause its processes for final inspection before teardown; incomplete quiesce cannot reopen learner operations.

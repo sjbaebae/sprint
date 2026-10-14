@@ -1,8 +1,9 @@
 """Operator-side file transport for task handlers on an external CPU host."""
 
 import concurrent.futures
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 import json
+import math
 import time
 import threading
 import traceback
@@ -61,6 +62,11 @@ class LocalRequestQueue:
         self.idle_seconds = idle_seconds
         self.seen = set()
         self.stopped = threading.Event()
+        self.running = threading.Event()
+        self.pause_requested = threading.Event()
+        self.paused = threading.Event()
+        self.pause_lock = threading.Lock()
+        self.thread_id = None
         if not resume and any(self.state.glob("*.request.json")):
             raise ValueError("existing request history requires explicit resume=True")
         for name in ("requests", "responses"):
@@ -149,6 +155,47 @@ class LocalRequestQueue:
         """Stop admission and drain prepared calls; safe from a signal handler."""
         self.stopped.set()
 
+    @contextmanager
+    def pause(self, timeout=600):
+        """Drain active calls and hold admission for an operator checkpoint.
+
+        Call from an operator thread, never a handler, while run() is active.
+        Pause time counts
+        against the service deadline. The caller must also pause the learner and
+        capture provider state; this boundary alone is not a complete checkpoint.
+        """
+        if (
+            type(timeout) not in (int, float)
+            or not math.isfinite(timeout)
+            or timeout <= 0
+        ):
+            raise ValueError("pause timeout must be finite and positive")
+        if self.thread_id == threading.get_ident():
+            raise RuntimeError("cannot pause from the queue's own thread")
+        end = time.monotonic() + timeout
+        if not self.pause_lock.acquire(timeout=timeout):
+            raise TimeoutError("another queue checkpoint is still active")
+        try:
+            if not self.running.is_set() or not self.accepting():
+                raise RuntimeError("cannot pause a stopped request queue")
+            self.pause_requested.set()
+            while not self.paused.wait(min(0.1, max(0, end - time.monotonic()))):
+                if not self.running.is_set() or not self.accepting():
+                    raise RuntimeError("request queue stopped before checkpoint pause")
+                if time.monotonic() >= end:
+                    raise TimeoutError(
+                        "active requests did not drain before checkpoint"
+                    )
+            if not self.running.is_set() or not self.accepting():
+                raise RuntimeError("request queue expired during checkpoint pause")
+            yield self
+        finally:
+            self.pause_requested.clear()
+            # Wait for acknowledgement before another caller can request pause.
+            while self.paused.is_set() and self.running.is_set():
+                time.sleep(min(self.poll_seconds, 0.1))
+            self.pause_lock.release()
+
     def accepting(self):
         return not self.stopped.is_set() and time.time() < self.deadline
 
@@ -156,6 +203,16 @@ class LocalRequestQueue:
         pending = {}
         pools = {}
         next_idle = time.monotonic()
+        self.thread_id = threading.get_ident()
+        self.running.set()
+        try:
+            self._run(pending, pools, next_idle)
+        finally:
+            self.running.clear()
+            self.paused.clear()
+            self.thread_id = None
+
+    def _run(self, pending, pools, next_idle):
         with ExitStack() as cleanup:
             while self.accepting() or pending:
                 for group, (active_id, future) in list(pending.items()):
@@ -166,17 +223,23 @@ class LocalRequestQueue:
                     except Exception as error:
                         self.fail(active_id, error, stage="service", status="failed")
                     del pending[group]
+                if self.pause_requested.is_set() and not pending:
+                    self.paused.set()
+                    self.stopped.wait(self.poll_seconds)
+                    continue
+                self.paused.clear()
                 if (
                     self.accepting()
+                    and not self.pause_requested.is_set()
                     and not pending
                     and self.idle
                     and time.monotonic() >= next_idle
                 ):
                     self.idle()
                     next_idle = time.monotonic() + self.idle_seconds
-                if self.accepting():
+                if self.accepting() and not self.pause_requested.is_set():
                     for path in sorted((self.rpc / "requests").glob("*.json")):
-                        if not self.accepting():
+                        if not self.accepting() or self.pause_requested.is_set():
                             break
                         request_id = path.stem
                         if request_id in self.seen:
