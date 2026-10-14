@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Optional private task services share the native resource broker, checkpoint boundary and restored request history; handlers persist state in files and use Sprint-owned workers.
+
 - The default learner image installs the selected Codex or Claude Code version during build; the authoring scaffold no longer duplicates harness installation commands. Custom images and verifier images retain their existing behavior.
 
 - Interrupted runs retain completed rewards, partial transcripts and an explicit interruption summary in standard result/review files; cancelled trials remain unscored and the original exception still propagates.

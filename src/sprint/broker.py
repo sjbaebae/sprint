@@ -6,6 +6,7 @@ import json
 import re
 import shlex
 import tempfile
+import traceback
 from pathlib import Path
 from datetime import UTC, datetime
 
@@ -25,6 +26,7 @@ class ResourceBroker:
         backend,
         contexts=None,
         budget=None,
+        services=None,
     ):
         if environment is None:
             raise ValueError("resource broker requires a live agent environment")
@@ -34,6 +36,9 @@ class ResourceBroker:
         self.backend = backend
         self.contexts = contexts or {}
         self.sessions = {}
+        self.services = dict(services or {})
+        self.service_handlers = {}
+        self.service_gates = {name: asyncio.Lock() for name in self.services}
         self.task = None
         self.seen = set()
         self.completed = {}
@@ -210,6 +215,34 @@ class ResourceBroker:
             "command": "ssh -F " + shlex.quote(target + "/config") + " gpu",
         }
 
+    async def service(self, name, value, request_id):
+        """Serialize trusted handlers; retain diagnostics privately on failure."""
+        from .services import ServiceContext, load_handler
+
+        if not isinstance(name, str) or name not in self.services:
+            raise ValueError("service is not granted to this trial")
+        async with self.service_gates[name]:
+            context = ServiceContext(self, name)
+            (context.state / (request_id + ".request.json")).write_text(
+                json.dumps(value, allow_nan=False)
+            )
+            try:
+                if name not in self.service_handlers:
+                    bundle, entrypoint = self.services[name]
+                    self.service_handlers[name] = load_handler(bundle, entrypoint)
+                result = await self.service_handlers[name](context, value)
+                encoded = json.dumps(result, allow_nan=False)
+                if len(encoded.encode()) > 2 * 1024 * 1024:
+                    raise ValueError("service response exceeds 2 MiB")
+                return result
+            except Exception as error:
+                (context.state / (request_id + ".error.txt")).write_text(
+                    traceback.format_exc()
+                )
+                raise RuntimeError(
+                    "Task service failed; operator diagnostics were retained."
+                ) from error
+
     async def dispatch(self, request):
         request_id = request["request_id"]
         if not isinstance(request_id, str) or not re.fullmatch(
@@ -225,7 +258,12 @@ class ResourceBroker:
         response = {"request_id": request_id}
         try:
             payload = request["payload"]
-            if isinstance(payload, dict) and set(payload) == {"collect", "path"}:
+            if isinstance(payload, dict) and set(payload) == {"service", "input"}:
+                result = await self.service(
+                    payload["service"], payload["input"], request_id
+                )
+                response.update(status="completed", result=result)
+            elif isinstance(payload, dict) and set(payload) == {"collect", "path"}:
                 original = payload["collect"]
                 if not isinstance(original, str) or original not in self.completed:
                     raise ValueError(

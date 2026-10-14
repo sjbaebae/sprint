@@ -165,7 +165,7 @@ def codex_requirements(agent, sandbox):
 def compile_task(experiment, directory):
     """Emit a new task with separate verifier; refuse to overwrite authored state."""
     import toml
-    from ..spec import Files, Worker
+    from ..spec import Files, Service, Worker
     from sprint.models.task.config import TaskConfig
 
     directory = Path(directory)
@@ -198,6 +198,24 @@ def compile_task(experiment, directory):
             raise ValueError(
                 "generated task cannot be inside an attachment source tree"
             )
+    public_sources = (
+        [Path(experiment.env.files).resolve()] if experiment.env.files else []
+    ) + [
+        Path(value.path).resolve()
+        for value in experiment.env.attachments.values()
+        if isinstance(value, Files)
+    ]
+    for value in experiment.env.attachments.values():
+        if isinstance(value, Service):
+            private_service = Path(value.bundle).resolve()
+            if directory.resolve().is_relative_to(private_service) or any(
+                public.is_relative_to(private_service)
+                or private_service.is_relative_to(public)
+                for public in public_sources
+            ):
+                raise ValueError(
+                    "private service bundle must stay outside learner and generated trees"
+                )
     directory.mkdir(parents=True, exist_ok=False)
     directory.chmod(0o700)
     learner = directory / "environment"
@@ -211,6 +229,13 @@ def compile_task(experiment, directory):
     else:
         copy_tree(world.files, learner / "workspace")
     for name, attachment in world.attachments.items():
+        if isinstance(attachment, Service):
+            target = directory / "services" / name
+            target.parent.mkdir(exist_ok=True)
+            copy_tree(attachment.bundle, target)
+            if not (target / attachment.entrypoint).is_file():
+                raise ValueError("service entrypoint is missing")
+            continue
         if isinstance(attachment, Worker):
             worker_dir = directory / "workers" / name
             build_worker(
@@ -237,7 +262,12 @@ def compile_task(experiment, directory):
         for name, value in world.attachments.items()
         if isinstance(value, Worker)
     }
-    if workers:
+    services = {
+        name: value
+        for name, value in world.attachments.items()
+        if isinstance(value, Service)
+    }
+    if workers or services:
         shutil.copyfile(
             Path(__file__).parents[1] / "resource_client.py",
             learner / "resource_client.py",
@@ -260,6 +290,7 @@ def compile_task(experiment, directory):
                     }
                     for name, value in workers.items()
                 }
+                | {name: {"operations": ["call", "status"]} for name in services}
             )
         )
     (learner / "Dockerfile").write_text(
@@ -268,7 +299,7 @@ def compile_task(experiment, directory):
             agent=experiment.agent,
             managed_codex=managed is not None,
             copy_workspace=any((learner / "workspace").rglob("*")),
-            workers=workers,
+            workers=workers or services,
             submission=experiment.task.submission,
             attachments=[
                 name
@@ -311,6 +342,11 @@ def compile_task(experiment, directory):
         + (
             "\nUse sprint-resource list; sprint-resource upload NAME LOCAL_FILE RELATIVE_DESTINATION --wait 60 (at most 1 MiB); sprint-resource run NAME SCRIPT.py --wait 60; sprint-resource status REQUEST_ID --wait 60; sprint-resource collect REQUEST_ID FILE_RELATIVE_TO_APP --wait 60. Collection returns a read-only artifact path to copy into your submission. Jobs execute Python on the named worker and preserve /app between calls.\n"
             if workers
+            else ""
+        )
+        + (
+            "\nUse sprint-resource call SERVICE INPUT.json --wait 60 for granted task services.\n"
+            if services
             else ""
         )
         + (
@@ -405,6 +441,10 @@ async def restore_workers(broker, checkpoint, records):
         for item in records.iterdir():
             if item.is_file():
                 shutil.copyfile(item, broker.directory / item.name)
+    for name in broker.services:
+        previous = records / ("service-" + name)
+        if previous.is_dir():
+            shutil.copytree(previous, broker.directory / previous.name)
     for name, state in checkpoint.metadata["workers"].items():
         if name not in broker.workers:
             raise ValueError("checkpoint references an ungranted worker")
@@ -470,7 +510,7 @@ async def run(
         TrialTaskConfig,
     )
 
-    from ..spec import Worker
+    from ..spec import Service, Worker
 
     if trials < 1 or parallel < 1:
         raise ValueError("trials and parallel must be positive")
@@ -634,7 +674,12 @@ async def run(
                 for name, value in experiment.env.attachments.items()
                 if isinstance(value, Worker)
             }
-            if workers:
+            services = {
+                name: (task / "services" / name, value.entrypoint)
+                for name, value in experiment.env.attachments.items()
+                if isinstance(value, Service)
+            }
+            if workers or services:
                 broker = ResourceBroker(
                     event.environment,
                     workers,
@@ -642,6 +687,7 @@ async def run(
                     backend=backend,
                     contexts={name: task / "workers" / name for name in workers},
                     budget=experiment.budget,
+                    services=services,
                 )
                 brokers[event.trial_name] = broker
                 if checkpoint is not None:
@@ -686,7 +732,14 @@ async def run(
         target.mkdir(mode=0o700)
         source = directory / "resources" / event.trial_name
         if source.is_dir():
+            private_services = {
+                "service-" + name
+                for name, attachment in experiment.env.attachments.items()
+                if isinstance(attachment, Service)
+            }
             for worker in source.iterdir():
+                if worker.name in private_services:
+                    continue
                 if worker.is_dir():
                     destination = target / worker.name
                     destination.mkdir()

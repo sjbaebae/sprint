@@ -121,14 +121,16 @@ def validate_resource_runtime(experiment, checkpoint):
     would change the captured release. Use its original Sprint build to restore
     an incompatible checkpoint.
     """
-    from .spec import Worker
+    from .spec import Service, Worker
 
     workers = {
         name
         for name, value in experiment.env.attachments.items()
         if isinstance(value, Worker)
     }
-    if not workers:
+    if not workers and not any(
+        isinstance(value, Service) for value in experiment.env.attachments.values()
+    ):
         return
     release = checkpoint.metadata["trees"].get("release", {})
     expected = {"release/environment/resource_client.py": "resource_client.py"}
@@ -425,6 +427,10 @@ class LiveRun:
                             stream.addfile(header)
                             for item in self.broker.directory.iterdir():
                                 if item.is_file():
+                                    stream.add(item, arcname="broker/" + item.name)
+                                elif item.is_dir() and item.name in {
+                                    "service-" + name for name in self.broker.services
+                                }:
                                     stream.add(item, arcname="broker/" + item.name)
                                 elif item.is_dir():
                                     header = tarfile.TarInfo("broker/" + item.name)

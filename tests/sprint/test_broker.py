@@ -119,6 +119,11 @@ async def test_restore_keeps_failed_workers_closed_and_preserves_reservations(
     from sprint.backends.runtime import restore_workers
     from sprint.workers import WorkerSession
 
+    records = tmp_path / "saved-records"
+    state = records / "service-evaluate" / "nested"
+    state.mkdir(parents=True)
+    (state / "state.json").write_text('{"count": 3}')
+
     async def forbidden_start(self):
         raise RuntimeError("closed worker must not be provisioned during restore")
 
@@ -129,6 +134,7 @@ async def test_restore_keeps_failed_workers_closed_and_preserves_reservations(
         directory=tmp_path / "broker",
         backend="modal",
         contexts={"train": tmp_path / "context"},
+        services={"evaluate": (tmp_path / "private", "service.py")},
     )
     checkpoint = SimpleNamespace(
         metadata={
@@ -140,7 +146,11 @@ async def test_restore_keeps_failed_workers_closed_and_preserves_reservations(
             "workers": {"train": {"closed": True}},
         }
     )
-    await restore_workers(broker, checkpoint, tmp_path / "missing-records")
+    await restore_workers(broker, checkpoint, records)
+    assert (
+        broker.directory / "service-evaluate/nested/state.json"
+    ).read_text() == '{"count": 3}'
+    assert broker.seen == {"a" * 32}
     assert broker.reservations == {"train": 2}
     assert broker.sessions["train"].closed
     with pytest.raises(RuntimeError, match="closed"):
@@ -477,3 +487,52 @@ async def test_worker_connection_refreshes_pinned_endpoint_without_operator_key(
     assert "StrictHostKeyChecking yes" in uploads[root + "config"]
     assert "old.example" not in uploads[root + "config"]
     assert "chmod 400" in commands[-1] and "chmod 444" in commands[-1]
+
+
+@pytest.mark.asyncio
+async def test_task_service_persists_state_and_keeps_errors_private(tmp_path):
+    bundle = tmp_path / "private"
+    bundle.mkdir()
+    (bundle / "service.py").write_text(
+        "async def handle(context, request):\n"
+        '    if request.get("fail"):\n'
+        '        raise RuntimeError("operator-secret")\n'
+        '    counter = context.state / "counter.txt"\n'
+        "    value = int(counter.read_text()) + 1 if counter.exists() else 1\n"
+        "    counter.write_text(str(value))\n"
+        '    return {"count": value}\n'
+    )
+    responses = []
+    (tmp_path / "records").mkdir()
+
+    async def upload(source, target):
+        responses.append(json.loads(source.read_text()))
+
+    def make_broker():
+        return ResourceBroker(
+            SimpleNamespace(upload_file=upload, exec=successful_exec),
+            {},
+            directory=tmp_path / "records",
+            backend="modal",
+            services={"evaluate": (bundle, "service.py")},
+        )
+
+    broker = make_broker()
+    request = {"request_id": "a" * 32, "payload": {"service": "evaluate", "input": {}}}
+    await broker.dispatch(request)
+    await broker.dispatch(request)
+    assert len(responses) == 1 and responses[-1]["result"] == {"count": 1}
+    # Reloading operator code must recover from files, not module globals.
+    restored = make_broker()
+    await restored.dispatch({**request, "request_id": "b" * 32})
+    assert responses[-1]["result"] == {"count": 2}
+    await restored.dispatch(
+        {
+            "request_id": "c" * 32,
+            "payload": {"service": "evaluate", "input": {"fail": True}},
+        }
+    )
+    assert responses[-1]["status"] == "error"
+    assert "operator-secret" not in json.dumps(responses[-1])
+    diagnostics = tmp_path / "records" / "service-evaluate" / ("c" * 32 + ".error.txt")
+    assert "operator-secret" in diagnostics.read_text()

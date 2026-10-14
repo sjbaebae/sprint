@@ -20,8 +20,9 @@ result = await experiment.run(
 file hashes. `earlier.diff(saved)` reports added, deleted and modified paths.
 Copy the entire `checkpoints/` directory, including `blobs/`, to move a snapshot.
 Archive export streams verified chunks into the archive without a second temporary
-copy of each model file. Capture and transfer still stage a complete archive;
-chunk deduplication reduces stored snapshots, not network transfer.
+copy of each model file. Direct Modal capture and restore stream archives without staging them on the
+host. Other providers retain archive staging. Chunk deduplication reduces stored
+snapshots, not network transfer.
 
 ## Saved state
 
@@ -37,6 +38,9 @@ chunk deduplication reduces stored snapshots, not network transfer.
   Missing, invalid or exhausted action state blocks restore. Sprint compilation
   installs its root-owned managed Codex profile in the learner image; custom
   external-host adapters must provision the equivalent policy themselves.
+- Private `Service` attachment files under `context.state`, captured after active
+  broker calls drain. Handler code is retained in the compiled release; module
+  globals and external side effects are not saved.
 - The compiled release, including private validation, for reproducible recovery.
 
 Choose additional persistent directories with `state_paths=(...)`. Paths must be
@@ -109,7 +113,11 @@ uv run --extra modal python examples/sprint/checkpoint/external_worker_preflight
 
 ## Task-service recovery
 
-An operator can hold a running task queue at a capture boundary:
+Native `Service` attachments share `LiveRun.checkpoint` automatically. Use
+`context.state` for durable handler files and `context.worker(name)` for
+Sprint-owned workers. See [trusted task services](resource-access.md#trusted-task-services).
+
+For an external task queue, an operator can hold calls at a capture boundary:
 
 ```python
 with queue.pause(timeout=600):
@@ -142,6 +150,8 @@ Real provider preflight:
 uv run --no-default-groups --extra modal python examples/sprint/checkpoint/preflight.py
 # Exercise direct SSH and refreshed host pins instead of brokered Python jobs:
 uv run --no-default-groups --extra modal python examples/sprint/checkpoint/preflight.py --ssh
+# Restore a private native service alongside learner and worker state:
+uv run --extra modal python examples/sprint/checkpoint/preflight.py --service
 # CPU-only process-kill check for external task-service request recovery:
 uv run python examples/sprint/checkpoint/queue_preflight.py --records /tmp/queue-check
 ```
@@ -185,3 +195,7 @@ before writing the restored release or provisioning containers. An incompatible
 checkpoint must be resumed with its original Sprint build. Helpers are never silently
 upgraded inside a saved release. This conservative check also rejects helper edits
 that do not change the protocol.
+
+The native service preflight passed on Runpod → Modal with CPU learner and worker:
+service state advanced from 1 to 2 after restore and the verifier returned 1.0.
+This does not verify migration of the external research broker or GPU training state.

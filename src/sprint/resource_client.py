@@ -70,6 +70,7 @@ def main():
             "connect",
             "upload",
             "collect",
+            "call",
             "status",
             "_read",
         ],
@@ -85,12 +86,17 @@ def main():
     if args.operation == "list":
         print((ROOT / "manifest.json").read_text())
         return
-    if args.operation in {"run", "exec", "connect", "upload", "collect"}:
+    if args.operation in {"run", "exec", "connect", "upload", "collect", "call"}:
         if not args.target or (args.operation != "connect" and not args.script):
             parser.error(
                 "connect requires a target; run/exec/upload/collect also requires source/command/path"
             )
-        if args.operation == "connect":
+        if args.operation == "call":
+            payload = {
+                "service": args.target,
+                "input": json.loads(Path(args.script).read_text()),
+            }
+        elif args.operation == "connect":
             payload = {"resource": args.target, "connect": True}
         elif args.operation == "run":
             payload = {"resource": args.target, "code": Path(args.script).read_text()}

@@ -7,10 +7,20 @@ import tempfile
 from pathlib import Path
 from uuid import uuid4
 
-from sprint import Agent, Budget, Env, Experiment, Sandbox, Task, Validation, Worker
+from sprint import (
+    Agent,
+    Budget,
+    Env,
+    Experiment,
+    Sandbox,
+    Service,
+    Task,
+    Validation,
+    Worker,
+)
 
 
-async def main(*, ssh=False, allocated=False):
+async def main(*, ssh=False, allocated=False, service=False):
     backend = "allocated" if allocated else "modal"
     workspace = "/app"
     state_paths = None
@@ -106,6 +116,41 @@ answer = int(Path("counter.txt").read_text()) + int(Path("worker-value.txt").rea
 Path("/app/submission/answer.txt").write_text(str(answer))
 PYCODE
 """)
+        attachments = {}
+        if service:
+            bundle = root / "service"
+            bundle.mkdir()
+            (bundle / "service.py").write_text(
+                "async def handle(context, request):\n"
+                '    path = context.state / "calls.txt"\n'
+                "    count = int(path.read_text()) + 1 if path.exists() else 1\n"
+                "    path.write_text(str(count))\n"
+                '    return {"count": count}\n'
+            )
+            attachments["counter"] = Service(bundle)
+            evaluator = private / "evaluate.py"
+            evaluator.write_text(
+                evaluator.read_text().replace(
+                    "p.is_file() and",
+                    '(context.submission / "service-valid").is_file() and p.is_file() and',
+                )
+            )
+            text = solution.read_text().replace(
+                "  touch ready\n",
+                "  echo '{}' > service-input.json\n"
+                "  sprint-resource call counter service-input.json --wait 60 > service-first.json\n"
+                "  touch ready\n",
+            )
+            text += (
+                "\nsprint-resource call counter service-input.json --wait 60 > service-second.json\n"
+                "python - <<'SERVICECHECK'\n"
+                "import json\n"
+                'assert json.load(open("service-first.json"))["result"]["count"] == 1\n'
+                'assert json.load(open("service-second.json"))["result"]["count"] == 2\n'
+                "SERVICECHECK\n"
+                "touch /app/submission/service-valid\n"
+            )
+            solution.write_text(text)
         solution.write_text(
             solution.read_text()
             .replace("cd /app\n", "cd " + workspace + "\n")
@@ -130,12 +175,13 @@ PYCODE
                 **({"state_paths": state_paths} if state_paths is not None else {}),
                 files=public,
                 attachments={
+                    **attachments,
                     "compute": Worker(
                         lifetime_seconds=300,
                         backend="modal",
                         shell=ssh,
                         sandbox=Sandbox(internet="full" if ssh else "none"),
-                    )
+                    ),
                 },
             ),
             Budget(seconds=240),
@@ -179,5 +225,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Use the opted-in native Linux learner account",
     )
+    parser.add_argument(
+        "--service",
+        action="store_true",
+        help="Recover private task-service state with worker state",
+    )
     args = parser.parse_args()
-    asyncio.run(main(ssh=args.ssh, allocated=args.allocated))
+    asyncio.run(main(ssh=args.ssh, allocated=args.allocated, service=args.service))

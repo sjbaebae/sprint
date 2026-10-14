@@ -491,18 +491,24 @@ def test_resume_resource_helper_compatibility_before_materialization(tmp_path, c
 
 
 def test_compiled_resource_release_passes_resume_compatibility(tmp_path):
-    from sprint import Worker
+    from sprint import Service, Worker
 
     private = tmp_path / "private"
     private.mkdir()
     (private / "evaluate.py").write_text('def verify(context): return {"score": 1.0}')
+    service = tmp_path / "service"
+    service.mkdir()
+    (service / "service.py").write_text(
+        "async def handle(context, request): return request"
+    )
     experiment = Experiment(
         Task("task"),
         Validation(private),
         Agent("unused", harness="oracle"),
-        env=Env(attachments={"train": Worker()}),
+        env=Env(attachments={"train": Worker(), "evaluate": Service(service)}),
     )
     task = experiment.compile(tmp_path / "compiled")
+    assert not list((task / "environment").rglob("service.py"))
     store = CheckpointStore(tmp_path / "store")
     release = put_tree(
         store,
@@ -525,6 +531,9 @@ def test_compiled_resource_release_passes_resume_compatibility(tmp_path):
         },
     )
     _, restored, _, _ = prepare_restore(experiment, checkpoint, tmp_path / "restore")
+    assert (restored / "services/evaluate/service.py").read_bytes() == (
+        service / "service.py"
+    ).read_bytes()
     assert (restored / "workers/train/worker_run.py").read_bytes() == (
         task / "workers/train/worker_run.py"
     ).read_bytes()

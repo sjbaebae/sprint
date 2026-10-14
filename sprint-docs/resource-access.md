@@ -89,6 +89,30 @@ Shell calls require `shell=True`. Python jobs stop worker-user processes after e
 
 `Files(Path("datasets"))` attaches public read-only files under `/resources/NAME`. A resource grant never grants access to another trial, host credentials or the verifier.
 
+## Trusted task services
+
+For operator-side evaluation or submission handlers, attach
+`Service(Path("service"))` alongside any workers. Its private bundle exports:
+
+```python
+async def handle(context, request):
+    # Persist resumable state under context.state.
+    # Use await context.worker("train") for a granted worker session.
+    return {"accepted": True}
+```
+
+The learner calls `sprint-resource call NAME INPUT.json --wait 60`. Handlers
+receive JSON and return JSON; they run as trusted operator code, never as a
+place to execute learner-supplied Python. Return explicit safe rejection
+messages for invalid submissions. Unexpected exceptions retain a private
+traceback and return a generic error.
+
+Calls share the broker's request budget and checkpoint boundary. Checkpoints
+retain service files and request history alongside the conversation and worker
+files. Module globals and external systems are not restored: write durable
+state under `context.state` and obtain workers through `context.worker` so
+Sprint owns their recovery and cleanup. Each service serializes its calls.
+
 ## Pinned assets and artifacts
 
 On Modal, `Worker(read_only_volumes={"/base": "pinned-model-assets"})` mounts an operator-prepared asset volume read-only. Use dedicated top-level mount paths; other backends reject this option. External assets are not included in mutable workspace checkpoints: retain the same immutable release when restoring. Never mount protected evaluation data in a learner resource.

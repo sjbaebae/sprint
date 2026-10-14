@@ -171,6 +171,24 @@ class Worker:
 
 
 @dataclass(frozen=True)
+class Service:
+    """Private operator handler exposed through bounded JSON requests.
+
+    bundle is compiled outside learner images. The async entrypoint handle(context,
+    request) must keep durable state in context.state and use context.worker() for
+    provider work, so native checkpoint and cleanup own that work.
+    """
+
+    bundle: Path
+    entrypoint: str = "service.py"
+
+    def __post_init__(self):
+        path = Path(self.entrypoint)
+        if path.is_absolute() or ".." in path.parts or not self.entrypoint:
+            raise ValueError("service entrypoint must stay inside its private bundle")
+
+
+@dataclass(frozen=True)
 class Env:
     """Shared workspace and sandbox; reusable across tasks and evaluations.
 
@@ -182,7 +200,7 @@ class Env:
     sandbox: Sandbox = field(default_factory=Sandbox)
     files: Path | None = None
     resources: Resources = field(default_factory=Resources)
-    attachments: dict[str, Files | Worker] = field(default_factory=dict)
+    attachments: dict[str, Files | Worker | Service] = field(default_factory=dict)
 
     state_paths: tuple[str, ...] = STATE_PATHS
 
@@ -191,8 +209,8 @@ class Env:
         for name, attachment in self.attachments.items():
             if name == "control" or not re.fullmatch(r"[a-zA-Z][a-zA-Z0-9_-]*", name):
                 raise ValueError("attachment names must be simple identifiers")
-            if not isinstance(attachment, (Files, Worker)):
-                raise TypeError("attachments must be Files or Worker")
+            if not isinstance(attachment, (Files, Worker, Service)):
+                raise TypeError("attachments must be Files, Worker or Service")
 
 
 @dataclass(frozen=True)
