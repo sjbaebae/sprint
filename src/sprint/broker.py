@@ -38,6 +38,7 @@ class ResourceBroker:
         self.sessions = {}
         self.services = dict(services or {})
         self.service_handlers = {}
+        self.service_call_gates = {}
         self.finalized_services = set()
         self.closing = False
         self.service_gates = {name: asyncio.Lock() for name in self.services}
@@ -461,6 +462,15 @@ class ResourceBroker:
                 failures.append(
                     RuntimeError(f"service {name} finalization failed: {error}")
                 )
+        from .service_calls import cleanup_calls
+
+        for name in self.services:
+            if not (self.directory / ("service-" + name)).is_dir():
+                continue
+            try:
+                await cleanup_calls(ServiceContext(self, name))
+            except Exception as error:
+                failures.append(error)
         for session in self.sessions.values():
             session.closed = True
         try:

@@ -205,3 +205,20 @@ limit. It cannot provision new workers during shutdown. Record redacted audit
 results with `context.record()`. Failure is retained and reported while worker
 cleanup still proceeds. Cleanup retries do not repeat the callback; audit code
 must use durable state to remain safe across recovery into another broker.
+
+Trusted services using remote Modal evaluation can call:
+
+```python
+result = await context.modal_call(
+    "evaluate-" + candidate_id, "my-evaluator-app", "evaluate", candidate_id,
+    timeout=300,
+)
+```
+
+Use a stable key per operation. Sprint retains the input fingerprint, provider
+call ID and bounded JSON result in private service state, which shares the trial
+checkpoint. Reusing a key with different inputs is rejected. A retained call ID
+is rejoined; an uncertain launch is never automatically repeated. Calls are
+cancelled, including discovered child calls, at shutdown. An unrecorded provider
+ID leaves cleanup explicitly incomplete. Task code still owns evaluation policy
+and must record redacted measurements with `context.record()`.

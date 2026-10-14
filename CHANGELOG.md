@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Native services can retain and rejoin bounded Modal function calls by stable operation key; shutdown owns cancellation, while ambiguous launches remain explicit unresolved cleanup.
+
 - Emergency Modal cleanup traverses nested operator worker/service records, cancels creators before resources across the whole tree, and skips symlinks.
 
 - Task services may run a bounded final audit against existing workers before teardown; audit failures remain visible and do not skip worker cleanup.

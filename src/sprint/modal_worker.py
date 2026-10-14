@@ -104,6 +104,8 @@ def cleanup_resources(state):
                     continue
                 if done == "cancelled":
                     if not record.get("call_id"):
+                        if record.get("dispatch_pending"):
+                            raise RuntimeError("service call launch outcome is unknown")
                         continue
                     _cancel_call_tree(
                         record["call_id"],

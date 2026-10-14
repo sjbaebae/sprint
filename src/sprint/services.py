@@ -39,6 +39,16 @@ class ServiceContext:
         with journal.open("a") as stream:
             stream.write(encoded + "\n")
 
+    async def modal_call(self, key, app, function, *args, timeout=300, **kwargs):
+        """Dispatch/rejoin an owned Modal call using a stable task operation key.
+
+        Inputs/results must be bounded JSON. Keys and call identities survive
+        checkpoints. Unknown launch outcomes fail closed instead of launching twice.
+        """
+        from .service_calls import modal_call
+
+        return await modal_call(self, key, app, function, args, kwargs, timeout)
+
     async def worker(self, name):
         """Use broker-owned sessions; their deadlines, spending and cleanup apply."""
         if name not in self._broker.workers:

@@ -1,5 +1,6 @@
 """Check untrusted queue handling separately from provider execution."""
 
+import asyncio
 import json
 from types import SimpleNamespace
 
@@ -597,3 +598,67 @@ async def test_service_final_audit_precedes_cleanup_and_failure_does_not_skip_it
     assert events[-2:] == ["audit", "cleanup"]
     with pytest.raises(RuntimeError, match="shutdown"):
         await broker.session("new-worker")
+
+
+async def test_service_modal_call_recovers_identity_without_relaunch(
+    tmp_path, monkeypatch
+):
+    import modal
+    from sprint.services import ServiceContext
+
+    launches = []
+    cancelled = []
+
+    async def spawn(*args, **kwargs):
+        launches.append((args, kwargs))
+        return call
+
+    async def get(**kwargs):
+        return {"accuracy": 0.4}
+
+    call = SimpleNamespace(object_id="fc-test", get=SimpleNamespace(aio=get))
+    monkeypatch.setattr(
+        modal,
+        "Function",
+        SimpleNamespace(
+            from_name=lambda *args: SimpleNamespace(spawn=SimpleNamespace(aio=spawn))
+        ),
+    )
+    monkeypatch.setattr(
+        modal, "FunctionCall", SimpleNamespace(from_id=lambda name: call)
+    )
+    monkeypatch.setattr(
+        "sprint.modal_worker._cancel_call_tree",
+        lambda name, **kwargs: cancelled.append(name),
+    )
+    broker = ResourceBroker(
+        SimpleNamespace(),
+        {},
+        directory=tmp_path,
+        backend="modal",
+        services={"eval": (tmp_path, "service.py")},
+    )
+    context = ServiceContext(broker, "eval")
+    results = await asyncio.gather(
+        context.modal_call("one", "app", "evaluate", "model"),
+        context.modal_call("one", "app", "evaluate", "model"),
+    )
+    assert results == [{"accuracy": 0.4}, {"accuracy": 0.4}]
+    # Crash after provider completion but before durable local result publication.
+    (context.state / "one.call-result.json").unlink()
+    restored = ServiceContext(broker, "eval")
+    assert await restored.modal_call("one", "app", "evaluate", "model") == {
+        "accuracy": 0.4
+    }
+    assert len(launches) == 1
+    with pytest.raises(ValueError, match="different inputs"):
+        await restored.modal_call("one", "app", "evaluate", "other-model")
+    (context.state / "uncertain.call.json").write_text(
+        '{"definition_sha256": "unknown"}'
+    )
+    from sprint.service_calls import cleanup_calls
+
+    with pytest.raises(ExceptionGroup, match="cleanup incomplete"):
+        await cleanup_calls(restored)
+    assert cancelled == ["fc-test"]
+    assert json.loads((context.state / "one.call.json").read_text())["cancelled"]
