@@ -30,6 +30,8 @@ def create_environment(directory: Path):
 def load_experiment(directory: Path):
     """Import the operator-authored definition; this does not launch resources."""
     source = directory.resolve() / "environment.py"
+    if not source.is_file():
+        raise ValueError(f"Missing {source}; create it with sprint env init DIRECTORY")
     spec = importlib.util.spec_from_file_location("sprint_env_" + uuid4().hex, source)
     if spec is None or spec.loader is None:
         raise ValueError("environment.py must be an importable Python file")
@@ -48,6 +50,14 @@ def load_experiment(directory: Path):
     if not isinstance(experiment, Experiment):
         raise ValueError("environment.py must define experiment = Experiment(...)")
     return experiment
+
+
+def load_cli_experiment(directory):
+    """Show actionable authoring errors; retain unexpected exceptions for debugging."""
+    try:
+        return load_experiment(directory)
+    except (ValueError, SyntaxError, FileNotFoundError) as error:
+        raise typer.BadParameter(str(error), param_hint="directory") from error
 
 
 @env_app.command("init")
@@ -78,7 +88,7 @@ def compile_environment(
     ] = None,
 ):
     """Compile for inspection. Imports authored code; provisions no resources."""
-    experiment = load_experiment(directory)
+    experiment = load_cli_experiment(directory)
     target = output or directory / ".sprint" / ("compiled-" + uuid4().hex)
     experiment.compile(target)
     typer.echo(f"Compiled for inspection: {target}")
@@ -97,7 +107,7 @@ def run_environment(
     parallel: Annotated[int, typer.Option(min=1)] = 1,
 ):
     """Run the definition through Experiment.run; retain all standard records."""
-    experiment = load_experiment(directory)
+    experiment = load_cli_experiment(directory)
     agent = experiment.agent
     if agent.auth == "auto" and agent.harness in {"codex", "bounded-codex"}:
         auth_path = os.environ.get("CODEX_AUTH_JSON_PATH")
@@ -109,7 +119,7 @@ def run_environment(
         if auth_path or forced or not os.environ.get("OPENAI_API_KEY", "").strip():
             auth = Path(auth_path) if auth_path else Path.home() / ".codex/auth.json"
             if not auth.is_file():
-                raise ValueError(
+                raise typer.BadParameter(
                     "Run codex login or configure Agent(auth='api-key') first"
                 )
             os.environ["CODEX_AUTH_JSON_PATH"] = str(auth)

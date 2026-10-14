@@ -48,3 +48,18 @@ def test_authoring_runner_distinguishes_zero_reward_from_unscored_failure(
         with pytest.raises(typer.Exit) as error:
             cli.run_environment(tmp_path)
         assert error.value.exit_code == 1
+
+
+@pytest.mark.parametrize("command", ["compile", "run"])
+def test_invalid_definition_reports_authoring_error_before_launch(tmp_path, command):
+    from typer.testing import CliRunner
+
+    runner = CliRunner()
+    missing = runner.invoke(cli.env_app, [command, str(tmp_path)])
+    assert missing.exit_code == 2
+    assert "sprint env init" in missing.output
+    (tmp_path / "environment.py").write_text("experiment = None\n")
+    malformed = runner.invoke(cli.env_app, [command, str(tmp_path)])
+    assert malformed.exit_code == 2
+    assert "must define" in malformed.output
+    assert "Experiment(...)" in malformed.output
