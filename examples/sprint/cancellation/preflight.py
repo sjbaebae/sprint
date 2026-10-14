@@ -66,7 +66,8 @@ async def host_loss(records):
     from sprint.modal_worker import cleanup_resources
 
     records.mkdir(parents=True, mode=0o700, exist_ok=False)
-    state = records / "worker"
+    recovery_root = records / "resources"
+    state = recovery_root / "train"
     child_code = """
 import asyncio, sys
 from pathlib import Path
@@ -101,7 +102,7 @@ asyncio.run(run())
             process.wait(timeout=10)
             if await asyncio.to_thread(sandbox.poll) is not None:
                 raise RuntimeError("worker did not survive its owner's abrupt death")
-            await asyncio.to_thread(cleanup_resources, state)
+            await asyncio.to_thread(cleanup_resources, recovery_root)
             if await asyncio.to_thread(sandbox.poll) is None:
                 raise RuntimeError("recorded cleanup left the worker running")
             retained = json.loads((state / "worker.sandbox.json").read_text())
@@ -122,7 +123,7 @@ asyncio.run(run())
                 process.kill()
                 process.wait(timeout=10)
             if state.is_dir():
-                await asyncio.to_thread(cleanup_resources, state)
+                await asyncio.to_thread(cleanup_resources, recovery_root)
 
 
 if __name__ == "__main__":

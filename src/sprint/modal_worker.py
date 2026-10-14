@@ -60,7 +60,9 @@ def _cancel_call_tree(call_id, *, terminate_containers):
 def cleanup_resources(state):
     """Cancel owned calls, then recover their sandboxes and artifact volumes.
 
-    State must be operator-owned. A pre-recorded session_id can identify a sandbox
+    State and its descendants must contain only operator-owned resource records,
+    never learner workspaces. Nested worker/service records are included; symlink
+    files and directories are skipped. A pre-recorded session_id can identify a sandbox
     even if its creating host died before recording the provider ID. Each cleanup
     is retained independently; failures do not prevent attempts on other resources.
     Set terminate_containers only for calls whose containers are exclusively owned.
@@ -68,12 +70,34 @@ def cleanup_resources(state):
     state = Path(state)
     errors = []
     creators_stopped = True
-    for pattern, done in (
-        ("*.call.json", "cancelled"),
-        ("*.sandbox.json", "terminated"),
-        ("*.artifact-volume.json", "deleted"),
+    records = []
+    if state.is_symlink():
+        raise ValueError("resource recovery state must not be a symlink")
+    if not state.is_dir():
+        raise FileNotFoundError("resource recovery state directory is missing")
+
+    def failed_walk(error):
+        errors.append(error)
+
+    for directory, subdirectories, filenames in state.walk(
+        follow_symlinks=False, on_error=failed_walk
     ):
-        for path in sorted(state.glob(pattern)):
+        subdirectories[:] = [
+            name for name in subdirectories if not (directory / name).is_symlink()
+        ]
+        records.extend(
+            directory / name
+            for name in filenames
+            if not (directory / name).is_symlink()
+        )
+    # An unreadable subtree may hide a still-running creator.
+    creators_stopped = not errors
+    for suffix, done in (
+        (".call.json", "cancelled"),
+        (".sandbox.json", "terminated"),
+        (".artifact-volume.json", "deleted"),
+    ):
+        for path in sorted(path for path in records if path.name.endswith(suffix)):
             try:
                 record = json.loads(path.read_text())
                 if record.get(done):

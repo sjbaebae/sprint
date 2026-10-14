@@ -208,10 +208,19 @@ def test_recovery_cancels_creator_before_finding_unrecorded_sandbox(
     import json
 
     operations = []
-    (tmp_path / "evaluation.call.json").write_text(
+    unrelated = tmp_path / "outside"
+    unrelated.mkdir()
+    (unrelated / "ignored.call.json").write_text("invalid json")
+    root = tmp_path / "resources"
+    root.mkdir()
+    state = root / "service-evaluate"
+    state.mkdir()
+    (root / "external").symlink_to(unrelated, target_is_directory=True)
+    (root / "ignored.call.json").symlink_to(unrelated / "ignored.call.json")
+    (state / "evaluation.call.json").write_text(
         json.dumps({"call_id": "fc-test", "terminate_containers": True})
     )
-    (tmp_path / "evaluation.sandbox.json").write_text(
+    (state / "evaluation.sandbox.json").write_text(
         json.dumps({"session_id": "session-test", "terminated": False})
     )
 
@@ -252,11 +261,11 @@ def test_recovery_cancels_creator_before_finding_unrecorded_sandbox(
         SimpleNamespace(lookup=lambda name: SimpleNamespace(app_id="ap-workers")),
     )
     with pytest.raises(ExceptionGroup, match="recovery failed"):
-        runtime.cleanup_resources(tmp_path)
-    record = json.loads((tmp_path / "evaluation.sandbox.json").read_text())
+        runtime.cleanup_resources(root)
+    record = json.loads((state / "evaluation.sandbox.json").read_text())
     assert record["terminated"] is False
     call.cancel = lambda **kwargs: operations.append(("cancel", kwargs))
-    runtime.cleanup_resources(tmp_path)
+    runtime.cleanup_resources(root)
     assert operations == [
         ("cancel", {"terminate_containers": True}),
         ("terminate", {"wait": True}),
@@ -264,5 +273,5 @@ def test_recovery_cancels_creator_before_finding_unrecorded_sandbox(
         ("cancel-child", {"terminate_containers": True}),
         ("terminate", {"wait": True}),
     ]
-    runtime.cleanup_resources(tmp_path)
+    runtime.cleanup_resources(root)
     assert len(operations) == 5

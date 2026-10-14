@@ -212,3 +212,12 @@ This does not verify migration of the external research broker or GPU training s
 The `--pending` CPU preflight injects a valid request after the broker drains
 active calls, confirms it is saved but unadmitted, then verifies one execution
 after restore through the private verifier. Its live restored reward was 1.0.
+
+Emergency Modal cleanup can use `cleanup_resources(broker_directory)` from
+`sprint.modal_worker`. It reads nested worker/service provider records, cancels
+recorded creator calls before tearing down sandboxes and temporary artifact
+volumes, and retains failures for retry. Pass only an operator-owned resource
+state tree, never a learner workspace or a mixed run directory. Symlinks are
+ignored. This requires the retained state and operator credentials to survive
+outside the failed process; provider lifetime limits remain the fallback when
+those records are unavailable.
