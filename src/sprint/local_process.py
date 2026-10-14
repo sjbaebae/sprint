@@ -2,6 +2,9 @@
 
 import asyncio
 import os
+import json
+import subprocess
+import time
 import pwd
 import signal
 
@@ -65,3 +68,44 @@ async def run_shell(command, *, cwd, user, env=None, timeout_sec=None):
         stderr=stderr.decode(errors="replace"),
         return_code=return_code,
     )
+
+
+async def stop_services(processes, *, grace_seconds=45, records=None):
+    """Reap owned subprocess handles, recording forced stops and retaining failures.
+
+    The owner supplies mutable Popen handles, not arbitrary PIDs. Successfully
+    reaped handles are removed immediately so repeated cleanup is idempotent.
+    Independent services are still attempted if one fails to stop.
+    """
+    if grace_seconds <= 0:
+        raise ValueError("service shutdown grace must be positive")
+    failures = []
+    for process in tuple(processes):
+        forced = False
+        record = {"pid": process.pid, "grace_seconds": grace_seconds}
+        try:
+            if process.poll() is None:
+                process.terminate()
+                try:
+                    await asyncio.to_thread(process.wait, grace_seconds)
+                except subprocess.TimeoutExpired:
+                    forced = True
+                    process.kill()
+                    await asyncio.to_thread(process.wait)
+            processes.remove(process)
+        except Exception as error:
+            record.update(error_type=type(error).__name__, message=str(error))
+            failures.append(error)
+        record.update(
+            recorded_at_unix=time.time(),
+            return_code=process.returncode,
+            forced=forced,
+        )
+        if records is not None:
+            try:
+                with records.open("a") as stream:
+                    stream.write(json.dumps(record) + "\n")
+            except Exception as error:
+                failures.append(error)
+    if failures:
+        raise ExceptionGroup("operator service shutdown failed", failures)
