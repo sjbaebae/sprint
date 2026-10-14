@@ -90,10 +90,13 @@ and remaining lifetime before provisioning, then refreshes SSH at its configured
 connection directory. Reusing the original public connection path is supported.
 
 This saves worker files and lifetime, not CPU conversation or task-service state.
-Large captures still stage complete archives and need sufficient operator storage.
-`CheckpointStore.import_archive` and `export_archive` also accept binary streams
-without seeking. Provider transfers still use archive paths; this storage API
-does not yet remove their staging cost.
+Direct Modal capture streams the remote archive into the content-addressed store,
+without a second complete archive on the host. The remote worker still needs space
+for its archive; restore and other providers retain full archive staging. All file
+bytes are still transferred, even when stored chunks already exist.
+`CheckpointStore.import_archive` and `export_archive` accept binary streams
+without seeking. Consumer failure and cancellation drain the bounded-time Modal
+reader before returning; cancellation can therefore wait for transport cleanup.
 The live CPU-worker preflight checks deletion/hard-link preservation, SSH refresh,
 continued file updates, remaining lifetime and cleanup:
 

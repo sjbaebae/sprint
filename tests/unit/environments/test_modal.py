@@ -2053,3 +2053,79 @@ class TestSSH:
         environment.exec.return_value = ExecResult(return_code=1)
         with pytest.raises(SSHAccessError):
             await modal_mod.start_learner_ssh(environment)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("consumer_fails", [False, True])
+async def test_direct_download_stream_drains_without_host_archive(consumer_fails):
+    consumed = []
+
+    def blocks():
+        for block in (b"first", b"second", b"last"):
+            consumed.append(block)
+            yield block
+
+    process = SimpleNamespace(stdout=blocks(), wait=MagicMock(return_value=0))
+    sandbox = SimpleNamespace(exec=MagicMock(return_value=process))
+    environment = SimpleNamespace(_strategy=_ModalDirect(None), _sandbox=sandbox)
+
+    def consume(stream):
+        first = stream.read(5)
+        if consumer_fails:
+            raise ValueError("invalid archive")
+        return first
+
+    if consumer_fails:
+        with pytest.raises(ValueError, match="invalid archive"):
+            await ModalEnvironment.download_stream(environment, "/state.tar", consume)
+    else:
+        assert (
+            await ModalEnvironment.download_stream(environment, "/state.tar", consume)
+            == b"first"
+        )
+    assert consumed == [b"first", b"second", b"last"]
+    process.wait.assert_called_once()
+    sandbox.exec.assert_called_once_with(
+        "cat", "--", "/state.tar", text=False, timeout=600
+    )
+
+
+@pytest.mark.asyncio
+async def test_stream_cancel_waits_for_transport_cleanup():
+    import threading
+
+    started, release, finished = (threading.Event() for _ in range(3))
+
+    def blocks():
+        started.set()
+        if not release.wait(3):
+            raise RuntimeError("test transport not released")
+        yield b"state"
+
+    def wait():
+        finished.set()
+        return 0
+
+    sandbox = SimpleNamespace(
+        exec=lambda *args, **kwargs: SimpleNamespace(stdout=blocks(), wait=wait)
+    )
+    environment = SimpleNamespace(_strategy=_ModalDirect(None), _sandbox=sandbox)
+    transfer = asyncio.create_task(
+        ModalEnvironment.download_stream(
+            environment, "/state.tar", lambda stream: stream.read()
+        )
+    )
+    try:
+        assert await asyncio.to_thread(started.wait, 3)
+        transfer.cancel()
+        await asyncio.sleep(0)
+        assert not transfer.done()
+        transfer.cancel()
+        release.set()
+        with pytest.raises(asyncio.CancelledError):
+            await transfer
+        assert finished.is_set()
+    finally:
+        release.set()
+        if not transfer.done():
+            await asyncio.gather(transfer, return_exceptions=True)

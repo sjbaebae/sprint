@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Direct Modal checkpoint capture streams into chunk storage without staging a full host archive; restore and other backends retain their existing transfer paths.
+
 - Operator task queues can pause admission and drain active calls into durable records for coordinated checkpoint capture, with bounded waits and explicit shutdown failures.
 
 - External Modal workers checkpoint and restore declared files and remaining lifetime using Sprint's checkpoint store; recreated workers refresh pinned SSH access. Capture now preserves regular-file hard links used by uv caches.

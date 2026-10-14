@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import ipaddress
+import io
 import os
 import re
 import shlex
@@ -1600,6 +1601,56 @@ class ModalEnvironment(ComposeServiceOpsMixin, BaseEnvironment):
     @override
     async def download_file(self, source_path: str, target_path: Path | str):
         return await self._strategy.download_file(source_path, target_path)
+
+    async def download_stream(self, source_path, consumer):
+        """Consume a remote file without a host-sized temporary copy.
+
+        Direct Modal sandboxes stream bytes into a synchronous consumer running
+        off the event loop. Compose retains its existing file-transfer fallback.
+        The transport is drained before returning, including on consumer failure
+        or cancellation, so remote readers are not left detached.
+        """
+        if not isinstance(self._strategy, _ModalDirect):
+            with tempfile.TemporaryDirectory(prefix="sprint-download-") as temporary:
+                local = Path(temporary) / "transfer"
+                await self.download_file(source_path, local)
+                with local.open("rb") as stream:
+                    return consumer(stream)
+        sandbox = self._sandbox
+        if sandbox is None:
+            raise RuntimeError("Sandbox not found. Please start the environment first.")
+        from sprint.streams import ChunkReader
+
+        def consume():
+            process = sandbox.exec("cat", "--", source_path, text=False, timeout=600)
+            chunks = iter(process.stdout)
+            try:
+                with io.BufferedReader(ChunkReader(chunks)) as stream:
+                    result = consumer(stream)
+            finally:
+                # Tar readers may stop at an end marker before the transport EOF.
+                for _ in chunks:
+                    pass
+                code = process.wait()
+                if code:
+                    raise RuntimeError(f"Modal file stream exited with code {code}")
+            return result
+
+        transfer = asyncio.create_task(asyncio.to_thread(consume))
+        try:
+            return await asyncio.shield(transfer)
+        except asyncio.CancelledError:
+            # Repeated cancellation must not orphan the blocking SDK reader.
+            while not transfer.done():
+                try:
+                    await asyncio.shield(transfer)
+                except asyncio.CancelledError:
+                    continue
+                except Exception:
+                    break
+            with contextlib.suppress(Exception):
+                transfer.result()
+            raise
 
     @override
     async def download_dir(self, source_dir: str, target_dir: Path | str):

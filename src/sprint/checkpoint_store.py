@@ -9,7 +9,9 @@ import re
 import tarfile
 from pathlib import Path, PurePosixPath
 from uuid import uuid4
-from typing import Any, override
+from typing import Any
+
+from sprint.streams import ChunkReader
 
 CHUNK_BYTES = 4 * 1024 * 1024
 
@@ -23,31 +25,6 @@ def safe_name(name):
     if not name or path.is_absolute() or ".." in path.parts or str(path) != name:
         raise ValueError(f"unsafe checkpoint path: {name}")
     return name
-
-
-class _ChunkReader(io.RawIOBase):
-    """Read verified chunks sequentially without staging another copy on disk."""
-
-    def __init__(self, chunks):
-        super().__init__()
-        self.chunks = iter(chunks)
-        self.pending = memoryview(b"")
-
-    @override
-    def readable(self):
-        return True
-
-    @override
-    def readinto(self, buffer):
-        while not self.pending:
-            chunk = next(self.chunks, None)
-            if chunk is None:
-                return 0
-            self.pending = memoryview(chunk)
-        count = min(len(buffer), len(self.pending))
-        buffer[:count] = self.pending[:count]
-        self.pending = self.pending[count:]
-        return count
 
 
 class CheckpointStore:
@@ -236,7 +213,7 @@ class CheckpointStore:
                 else:
                     info.size = entry["size"]
                     with io.BufferedReader(
-                        _ChunkReader(self._file_chunks(entry))
+                        ChunkReader(self._file_chunks(entry))
                     ) as file:
                         archive.addfile(info, file)
                         # tar reads exactly the declared size. Exhaust the iterator

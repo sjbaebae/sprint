@@ -59,6 +59,11 @@ ln /app/optimizer.json /app/optimizer-alias.json
 rm /app/deleted.txt
 """,
         )
+
+        async def reject_staging(*args, **kwargs):
+            raise RuntimeError("capture fell back to a complete host archive")
+
+        original.session.environment.download_file = reject_staging
         saved = original.checkpoint(records / "checkpoints", "mid-task")
         saved.verify()
         original.close()
@@ -124,16 +129,19 @@ PY
         "new_worker_identity": True,
         "continued_counter": 8,
         "cleanup_complete": True,
+        "capture_without_host_archive": True,
         "scope": "CPU worker and synthetic files; no GPU model state, training, native conversation, task-service recovery or benchmark evaluation.",
         "source_hashes": {
             name: hashlib.sha256(
-                Path(runtime.__file__).with_name(name).read_bytes()
+                (Path(runtime.__file__).parent / name).read_bytes()
             ).hexdigest()
             for name in (
                 "modal_worker.py",
                 "state_transfer.py",
                 "learner_ssh.py",
                 "checkpoint_store.py",
+                "streams.py",
+                "environments/modal.py",
             )
         },
     }

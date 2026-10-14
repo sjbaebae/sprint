@@ -32,6 +32,7 @@ def state_runtime_hashes():
             "remote_state.py",
             "state_transfer.py",
             "checkpoint_store.py",
+            "streams.py",
             "worker_run.py",
             "worker_export.py",
         )

@@ -59,12 +59,13 @@ def test_queue_redacts_validation_errors(tmp_path):
     state.mkdir()
 
     def reject(request, request_id):
+        queue.stop()
         raise ValueError("private diagnostic")
 
     queue = LocalRequestQueue(
         tmp_path / "rpc",
         state,
-        deadline=time.time() + 0.02,
+        deadline=time.time() + 3,
         prepare=reject,
         completed=lambda result: None,
         failure_feedback=lambda error, stage: {

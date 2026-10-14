@@ -61,6 +61,8 @@ async def capture_tree(environment, roots, store):
             environment,
             f"python -I -S {shlex.quote(helper)} pack {shlex.quote(json.dumps(roots))} {shlex.quote(remote)}",
         )
+        if hasattr(environment, "download_stream"):
+            return await environment.download_stream(remote, store.import_archive)
         with tempfile.TemporaryDirectory(prefix="sprint-capture-") as temporary:
             archive = Path(temporary) / "state.tar"
             await environment.download_file(remote, archive)
