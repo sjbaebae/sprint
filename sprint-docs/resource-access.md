@@ -155,3 +155,32 @@ pass it to `TensorModelSession(..., session_id=identity)`. Sprint attaches that 
 to the Modal sandbox. Recovery can find it even if the host died before saving
 `sandbox_id`. A session record contains `{"session_id": "UUID_HEX", "terminated": false}`.
 Provider lifetime limits remain the fallback when recovery cannot reach Modal.
+
+## Recover after worker-owner failure
+
+Native Modal workers write `worker.sandbox.json` before provisioning and retain
+provider identity and termination status outside the learner. If the owner is
+confirmed dead, the operator can retry cleanup for each affected worker directory:
+
+```python
+from sprint.modal_worker import cleanup_resources
+cleanup_resources(private_worker_directory)
+```
+
+Do not run this against an active trial. Cleanup failures raise and retain the
+unfinished identities. A creation request with an unknown outcome remains
+unresolved instead of being marked successfully cleaned. Provider lifetime is
+still the fallback if no operator survives. Whole-host outage recovery is not
+automatically scheduled by this helper.
+
+The live CPU check killed a native worker owner with SIGKILL, observed the worker
+still running, then terminated it from retained records and kept its execution
+journal:
+
+```sh
+uv run --extra modal python examples/sprint/cancellation/preflight.py \
+  --host-loss --records /tmp/unique-owner-loss
+```
+
+Standard `result.json` includes unresolved `cleanup_errors` when present, matching
+the warning in `review.html`.

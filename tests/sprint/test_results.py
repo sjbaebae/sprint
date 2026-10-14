@@ -302,6 +302,7 @@ def test_review_surfaces_unresolved_cleanup_without_discarding_grade(tmp_path):
     )
     result = RunResult(tmp_path, ()).save()
     page = (tmp_path / "review.html").read_text()
+    assert json.loads((tmp_path / "result.json").read_text())["cleanup_errors"]
     assert "Unresolved resource cleanup failures" in page
     assert "&lt;pending deletion&gt;" in page
     assert result.rewards == []

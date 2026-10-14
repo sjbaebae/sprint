@@ -42,7 +42,8 @@ class FakeEnvironment:
 
 
 @pytest.mark.asyncio
-async def test_worker_reuses_container_and_destroys_it(tmp_path):
+@pytest.mark.parametrize("backend", ["docker", "modal"])
+async def test_worker_reuses_container_and_destroys_it(tmp_path, backend):
     environments = []
 
     def factory(**kwargs):
@@ -54,6 +55,7 @@ async def test_worker_reuses_container_and_destroys_it(tmp_path):
         Worker(),
         directory=tmp_path / "worker",
         factory=factory,
+        backend=backend,
         session_id="0123456789abcdef0123456789abcdef",
     ) as session:
         first = await session.run("print(1)")
@@ -68,6 +70,10 @@ async def test_worker_reuses_container_and_destroys_it(tmp_path):
             environments[0].config["network_policy"].network_mode.value == "no-network"
         )
     assert environments[0].stops == 1
+    if backend == "modal":
+        provider = json.loads((tmp_path / "worker/worker.sandbox.json").read_text())
+        assert provider["terminated"] and not provider["creation_pending"]
+        assert provider["session_id"] == session.session_id
     assert "job-end" in (tmp_path / "worker/jobs.jsonl").read_text()
     with pytest.raises(RuntimeError, match="closed"):
         await session.run("print(3)")

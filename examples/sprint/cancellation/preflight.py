@@ -3,6 +3,8 @@
 import argparse
 import asyncio
 import json
+import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -58,7 +60,78 @@ async def main(records):
     print(json.dumps(summary), flush=True)
 
 
+async def host_loss(records):
+    """Kill a native worker owner; recover only from its durable operator records."""
+    import modal
+    from sprint.modal_worker import cleanup_resources
+
+    records.mkdir(parents=True, mode=0o700, exist_ok=False)
+    state = records / "worker"
+    child_code = """
+import asyncio, sys
+from pathlib import Path
+from sprint import Worker
+from sprint.workers import WorkerSession
+async def run():
+    async with WorkerSession(Worker(shell=True, lifetime_seconds=300),
+                             directory=Path(sys.argv[1]), backend="modal") as worker:
+        await worker.start()
+        await worker.shell("printf live > /app/host-loss-fixture")
+        (Path(sys.argv[1]) / "ready").write_text("ready")
+        await asyncio.sleep(300)
+asyncio.run(run())
+"""
+    with (records / "owner.log").open("wb") as log:
+        process = subprocess.Popen(
+            [sys.executable, "-c", child_code, str(state)],
+            stdout=log,
+            stderr=subprocess.STDOUT,
+        )
+        try:
+            deadline = time.monotonic() + 150
+            while not (state / "ready").is_file():
+                if process.poll() is not None:
+                    raise RuntimeError("worker owner failed; inspect owner.log")
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("worker owner did not become ready")
+                await asyncio.sleep(0.5)
+            identity = json.loads((state / "worker.sandbox.json").read_text())
+            sandbox = await modal.Sandbox.from_id.aio(identity["sandbox_id"])
+            process.kill()
+            process.wait(timeout=10)
+            if await asyncio.to_thread(sandbox.poll) is not None:
+                raise RuntimeError("worker did not survive its owner's abrupt death")
+            await asyncio.to_thread(cleanup_resources, state)
+            if await asyncio.to_thread(sandbox.poll) is None:
+                raise RuntimeError("recorded cleanup left the worker running")
+            retained = json.loads((state / "worker.sandbox.json").read_text())
+            if not retained["terminated"] or not (state / "jobs.jsonl").is_file():
+                raise RuntimeError("cleanup status or execution records were lost")
+            summary = {
+                "passed": True,
+                "owner_exit_code": process.returncode,
+                "worker_survived_owner": True,
+                "cleanup_complete": True,
+                "execution_records_retained": True,
+                "scope": "SIGKILL of CPU worker-owner process; surviving operator cleanup. Not a whole-host outage or full learner trial.",
+            }
+            (records / "result.json").write_text(json.dumps(summary, indent=2))
+            print(json.dumps(summary), flush=True)
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=10)
+            if state.is_dir():
+                await asyncio.to_thread(cleanup_resources, state)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--records", type=Path, required=True)
-    asyncio.run(main(parser.parse_args().records))
+    parser.add_argument(
+        "--host-loss",
+        action="store_true",
+        help="Kill the native worker owner and recover recorded resources",
+    )
+    args = parser.parse_args()
+    asyncio.run(host_loss(args.records) if args.host_loss else main(args.records))

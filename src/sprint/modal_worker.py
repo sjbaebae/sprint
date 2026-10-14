@@ -108,6 +108,10 @@ def cleanup_resources(state):
                     modal.Volume.objects.delete(
                         record["volume_name"], allow_missing=True
                     )
+                if done == "terminated" and record.get("creation_pending"):
+                    raise RuntimeError(
+                        "worker creation outcome is unknown; cleanup must be retried"
+                    )
                 # A failed creator cancellation can still allocate new resources.
                 # Retain recovery work until every owned creator is stopped.
                 record[done] = done == "cancelled" or creators_stopped

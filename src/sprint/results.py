@@ -44,6 +44,9 @@ class RunResult:
         interruption = self.directory / "interruption.json"
         if interruption.is_file():
             payload["interruption"] = json.loads(interruption.read_text())
+        cleanup = self.directory / "cleanup-errors.json"
+        if cleanup.is_file():
+            payload["cleanup_errors"] = json.loads(cleanup.read_text())
         (self.directory / "result.json").write_text(
             json.dumps(payload, indent=2, allow_nan=False)
         )

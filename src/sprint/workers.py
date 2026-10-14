@@ -126,6 +126,25 @@ class WorkerSession:
                 + "\n"
             )
 
+    def retain_provider_state(self, *, creating=False, terminated=False):
+        """Retain identities before provisioning so host-loss cleanup can discover them."""
+        if self.backend != "modal":
+            return
+        sandbox = getattr(self.environment, "_sandbox", None)
+        record = {
+            "session_id": self.session_id,
+            "app_name": MODAL_WORKER_APP,
+            "creation_pending": creating,
+            "terminated": terminated,
+        }
+        if sandbox is not None:
+            record["sandbox_id"] = sandbox.object_id
+        target = self.directory / "worker.sandbox.json"
+        temporary = target.with_suffix(".tmp")
+        temporary.write_text(json.dumps(record))
+        temporary.chmod(0o600)
+        temporary.replace(target)
+
     async def start(self):
         """Provision once within the resource lifetime, including provider setup."""
         if self.deadline is None:
@@ -196,7 +215,9 @@ class WorkerSession:
             ),
             network_policy=policy,
         )
+        self.retain_provider_state(creating=True)
         await self.environment.start(force_build=False)
+        self.retain_provider_state()
         if self.artifact_volume:
             result = await self.environment.exec(
                 "chown root:root /opt/sprint-artifacts && chmod 700 /opt/sprint-artifacts",
@@ -572,10 +593,21 @@ class WorkerSession:
         self.closed = True
         if self.environment is not None:
             environment = self.environment
+            provider_record = self.directory / "worker.sandbox.json"
+            pending = (
+                self.backend == "modal"
+                and provider_record.is_file()
+                and json.loads(provider_record.read_text()).get("creation_pending")
+                and getattr(environment, "_sandbox", None) is None
+            )
             try:
                 await asyncio.wait_for(
                     environment.stop(delete=True), timeout=CLEANUP_SECONDS
                 )
+                if pending:
+                    raise RuntimeError(
+                        "worker creation outcome is unknown; retry recorded cleanup"
+                    )
             except BaseException as error:
                 self.record(
                     "worker-cleanup-error",
@@ -583,5 +615,6 @@ class WorkerSession:
                     message=str(error),
                 )
                 raise
+            self.retain_provider_state(terminated=True)
             self.environment = None
             self.record("worker-stopped")

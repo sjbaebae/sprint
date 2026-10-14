@@ -188,6 +188,18 @@ def test_host_recovery_attempts_all_resources_and_retries_only_failures(
     runtime.cleanup_resources(tmp_path)
     assert json.loads(sandbox_record.read_text())["terminated"] is True
     assert deleted == ["artifact-test"]
+    sandbox_record.write_text(
+        json.dumps(
+            {
+                "sandbox_id": "sb-test",
+                "terminated": False,
+                "creation_pending": True,
+            }
+        )
+    )
+    with pytest.raises(ExceptionGroup, match="recovery failed"):
+        runtime.cleanup_resources(tmp_path)
+    assert not json.loads(sandbox_record.read_text())["terminated"]
 
 
 def test_recovery_cancels_creator_before_finding_unrecorded_sandbox(
