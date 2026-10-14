@@ -91,6 +91,9 @@ connection directory. Reusing the original public connection path is supported.
 
 This saves worker files and lifetime, not CPU conversation or task-service state.
 Large captures still stage complete archives and need sufficient operator storage.
+`CheckpointStore.import_archive` and `export_archive` also accept binary streams
+without seeking. Provider transfers still use archive paths; this storage API
+does not yet remove their staging cost.
 The live CPU-worker preflight checks deletion/hard-link preservation, SSH refresh,
 continued file updates, remaining lifetime and cleanup:
 

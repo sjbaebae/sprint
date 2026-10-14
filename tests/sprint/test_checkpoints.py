@@ -92,6 +92,20 @@ def test_streamed_export_checks_complete_file_across_chunks(tmp_path, monkeypatc
     with tarfile.open(archive) as stream:
         assert stream.extractfile("app/model").read() == payload
         assert stream.extractfile("app/empty").read() == b""
+
+    class NonSeekingStream(io.BytesIO):
+        def seek(self, *args):
+            raise AssertionError("stream transport cannot seek")
+
+    output = NonSeekingStream()
+    store.export_archive(tree, output)
+    assert not output.closed  # Transport lifetime belongs to the caller.
+    incoming = NonSeekingStream(output.getvalue())
+    restored = CheckpointStore(tmp_path / "streamed-store")
+    copied = restored.import_archive(incoming)
+    assert copied == tree
+    assert not incoming.closed
+    restored.publish("streamed", {"trees": {"learner": copied}}).verify()
     tree["app/model"]["sha256"] = "0" * 64
     with pytest.raises(ValueError, match="integrity"):
         store.export_archive(tree, archive)

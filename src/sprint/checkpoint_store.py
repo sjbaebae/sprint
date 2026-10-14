@@ -94,9 +94,18 @@ class CheckpointStore:
         return data
 
     def import_archive(self, archive):
-        """Read a quiescent tar export without extracting any untrusted links."""
+        """Import a path or binary stream without extracting untrusted links.
+
+        Stream inputs need only read(); seeking and complete archive staging are
+        unnecessary. The caller owns the input stream and its transport lifetime.
+        """
         entries = {}
-        with tarfile.open(archive, "r:*") as stream:
+        opened = (
+            tarfile.open(fileobj=archive, mode="r|*")
+            if hasattr(archive, "read")
+            else tarfile.open(archive, "r:*")
+        )
+        with opened as stream:
             for member in stream:
                 name = member.name.removeprefix("./").rstrip("/")
                 if name in {"", "."}:
@@ -187,9 +196,18 @@ class CheckpointStore:
                     raise ValueError("checkpoint path traverses a link or file")
 
     def export_archive(self, entries, destination):
-        """Materialize a full archive, preserving links, modes and ownership."""
+        """Write a path or binary stream, preserving links, modes and ownership.
+
+        Stream outputs need only write(); data is emitted in bounded blocks.
+        The caller owns the output stream and must discard partial failed exports.
+        """
         self.validate_tree(entries)
-        with tarfile.open(destination, "w") as archive:
+        opened = (
+            tarfile.open(fileobj=destination, mode="w|")
+            if hasattr(destination, "write")
+            else tarfile.open(destination, "w")
+        )
+        with opened as archive:
             # Parent directories first; links cannot have archive descendants.
             for name, entry in sorted(
                 entries.items(),
