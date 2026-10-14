@@ -37,6 +37,7 @@ class ResourceBroker:
         self.contexts = contexts or {}
         self.sessions = {}
         self.services = dict(services or {})
+        self.private_contexts = set(self.services)
         self.service_handlers = {}
         self.service_call_gates = {}
         self.finalized_services = set()
@@ -466,7 +467,7 @@ class ResourceBroker:
         from .service_calls import cleanup_calls
 
         self.cleanup_pending = False
-        for name in self.services:
+        for name in self.private_contexts:
             if not (self.directory / ("service-" + name)).is_dir():
                 continue
             try:

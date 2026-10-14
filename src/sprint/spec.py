@@ -256,11 +256,12 @@ class Validation:
     reference: Path | None = None
     resources: Resources = field(default_factory=Resources)
     backend: str | None = None
+    prepare: str | None = None
 
     def __post_init__(self):
         if self.backend not in {None, "docker", "modal"}:
             raise ValueError("validation backend must be docker, modal, or None")
-        for name in (self.entrypoint, self.rubric):
+        for name in (self.entrypoint, self.rubric, self.prepare):
             if name is not None and (
                 Path(name).is_absolute() or ".." in Path(name).parts
             ):

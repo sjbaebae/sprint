@@ -1,5 +1,6 @@
 """Translate the small authoring API into native Harbor tasks and jobs."""
 
+import asyncio
 import contextlib
 import json
 import math
@@ -260,6 +261,8 @@ def compile_task(experiment, directory):
     copy_tree(validation.bundle, tests / "bundle")
     if not (tests / "bundle" / validation.entrypoint).is_file():
         raise ValueError("validation entrypoint is missing")
+    if validation.prepare and not (tests / "bundle" / validation.prepare).is_file():
+        raise ValueError("operator validation preparation entrypoint is missing")
     if validation.rubric and not (tests / "bundle" / validation.rubric).is_file():
         raise ValueError("rubric is missing")
     if managed is not None:
@@ -765,6 +768,48 @@ async def run(
                             shutil.copyfile(file, destination / file.name)
                 elif worker.suffix in {".json", ".jsonl"}:
                     shutil.copyfile(worker, target / worker.name)
+        if experiment.validation.prepare:
+            from ..services import PreparationContext, load_handler
+            from ..service_calls import write_record
+
+            preparation = ResourceBroker(
+                event.environment,
+                {},
+                directory=source / "operator-validation",
+                backend=backend,
+            )
+            preparation.directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+            brokers[event.trial_name + "__validation"] = preparation
+            context = PreparationContext(
+                preparation,
+                private=task / "tests" / "bundle",
+                records=event.environment.trial_paths.agent_dir,
+                submission=experiment.task.submission,
+                services={
+                    name: source / ("service-" + name)
+                    for name, attachment in experiment.env.attachments.items()
+                    if isinstance(attachment, Service)
+                },
+            )
+            prepare = load_handler(
+                context.private, experiment.validation.prepare, export="prepare"
+            )
+            try:
+                async with asyncio.timeout(experiment.validation.seconds):
+                    result = await prepare(context)
+                if not isinstance(result, dict):
+                    raise ValueError("operator preparation must return a JSON object")
+                write_record(target / "operator-validation.json", result)
+            except BaseException as error:
+                try:
+                    await preparation.close()
+                except BaseException as cleanup_error:
+                    raise BaseExceptionGroup(
+                        "operator validation and cleanup failed", [error, cleanup_error]
+                    ) from None
+                raise
+            else:
+                await preparation.close()
 
     job.add_hook(TrialEvent.VERIFICATION_START, evidence)
     job.add_hook(TrialEvent.AGENT_START, resources)

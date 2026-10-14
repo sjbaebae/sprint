@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Optional operator-side validation preparation runs after learner shutdown, retains remote evaluation call identities, and passes bounded trusted JSON to the isolated verifier without sharing provider credentials.
+
 - Native research services share worker quiescing and learner connection/observation helpers; temporary provider-volume cleanup uses the same recovery path as remote calls.
 
 - Native services can retain and rejoin bounded Modal function calls by stable operation key; shutdown owns cancellation, while ambiguous launches remain explicit unresolved cleanup.

@@ -229,3 +229,15 @@ Service handlers can use `context.request_id` for stable operation keys,
 `await worker.quiesce()` revokes SSH and freezes learner processes before a final
 audit. This is irreversible; learner commands/uploads cannot reopen the worker.
 Observation, artifact collection and cleanup remain available.
+
+For remote final evaluation, `Validation(bundle, prepare="prepare.py")` optionally
+runs `async prepare(context)` on the operator host after learner shutdown and
+before isolated verification. The callback can use `context.modal_call()` with
+stable operation keys. It receives private bundle/state paths, collected agent
+records, service-state paths in `context.services`, and the stopped learner's
+environment for artifact download. Return a JSON object, at most 2 MiB; the
+verifier reads it from `context.records / "sprint-resources/operator-validation.json"`.
+Learner-created lookalikes are removed first. Preparation has the validation time
+limit; its provider resources remain under Sprint cleanup, including on failure.
+Credentials stay on the operator host. Keep scoring and integrity decisions in
+the validation bundle; this hook supplies trusted remote measurements.

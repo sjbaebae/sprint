@@ -15,6 +15,7 @@ class ServiceContext:
     def __init__(self, broker, name, request_id=None):
         self._broker = broker
         self.name = name
+        broker.private_contexts.add(name)
         self.request_id = request_id
         self.state = broker.directory / ("service-" + name)
         self.state.mkdir(mode=0o700, exist_ok=True)
@@ -76,7 +77,19 @@ class ServiceContext:
         return await self._broker.session(name)
 
 
-def load_handler(bundle, entrypoint):
+class PreparationContext(ServiceContext):
+    """Trusted post-learner preparation; credentials remain on the operator host."""
+
+    def __init__(self, broker, *, private, records, submission, services=None):
+        super().__init__(broker, "validation")
+        self.private = Path(private)
+        self.records = Path(records)
+        self.submission = submission
+        self.environment = broker.environment
+        self.services = dict(services or {})
+
+
+def load_handler(bundle, entrypoint, *, export="handle"):
     """Load only compiled operator code; relative helper imports stay isolated."""
     bundle = Path(bundle)
     name = "_sprint_service_" + uuid4().hex
@@ -89,9 +102,9 @@ def load_handler(bundle, entrypoint):
     sys.modules[name] = module
     try:
         spec.loader.exec_module(module)
-        handle = getattr(module, "handle", None)
+        handle = getattr(module, export, None)
         if not inspect.iscoroutinefunction(handle):
-            raise ValueError("service must export async handle(context, request)")
+            raise ValueError(f"trusted module must export async {export}")
         finalize = getattr(module, "finalize", None)
         if finalize is not None and not inspect.iscoroutinefunction(finalize):
             raise ValueError("service finalize(context) must be async")

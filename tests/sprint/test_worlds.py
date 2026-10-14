@@ -402,3 +402,22 @@ def test_default_harness_bootstrap_preserves_custom_images(tmp_path):
     docker = (compiled_custom / "environment/Dockerfile").read_text()
     assert "FROM custom/tools:1" in docker and "RUN echo task-tools" in docker
     assert "apt-get" not in docker and "npm install" not in docker
+
+
+def test_operator_preparation_is_private_and_requires_an_entrypoint(tmp_path):
+    from dataclasses import replace
+
+    experiment = make_experiment(tmp_path)
+    (experiment.validation.bundle / "prepare.py").write_text(
+        'async def prepare(context): return {"measurement": 0.5}\n'
+    )
+    configured = replace(
+        experiment, validation=replace(experiment.validation, prepare="prepare.py")
+    )
+    task = configured.compile(tmp_path / "prepared")
+    assert (task / "tests/bundle/prepare.py").is_file()
+    assert not list((task / "environment").rglob("prepare.py"))
+    with pytest.raises(ValueError, match="preparation entrypoint"):
+        replace(
+            experiment, validation=replace(experiment.validation, prepare="missing.py")
+        ).compile(tmp_path / "missing")
