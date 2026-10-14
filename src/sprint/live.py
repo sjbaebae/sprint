@@ -226,7 +226,8 @@ def prepare_restore(experiment, source, directory):
             raise ValueError("checkpoint state escapes its declared roots")
     remaining = metadata["remaining_seconds"]
     directory = Path(directory)
-    directory.mkdir(parents=True, exist_ok=True)
+    directory.mkdir(parents=True, mode=0o700, exist_ok=True)
+    directory.chmod(0o700)
     task = directory / "task"
     if task.exists():
         raise FileExistsError(task)

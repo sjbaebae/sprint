@@ -98,3 +98,26 @@ def test_bounded_resume_requires_trusted_action_count(tmp_path):
         BoundedCodex(logs_dir=tmp_path, load_trajectory=native)
     agent = BoundedCodex(logs_dir=tmp_path, load_trajectory=native, actions_used=7)
     assert agent.actions_used == 7
+
+
+@pytest.mark.asyncio
+async def test_allocated_codex_requires_pinned_preinstalled_cli(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+    from sprint.agents.installed.bounded_codex import BoundedCodex
+    from sprint.agents.installed.codex import Codex
+
+    installer = AsyncMock()
+    monkeypatch.setattr(Codex, "install", installer)
+    environment = SimpleNamespace(
+        type=lambda: "allocated",
+        exec=AsyncMock(
+            return_value=SimpleNamespace(return_code=0, stdout="codex-cli 0.161.0")
+        ),
+    )
+    agent = BoundedCodex(logs_dir=tmp_path, version="0.162.1")
+    with pytest.raises(RuntimeError, match="preinstalled Codex version"):
+        await agent.install(environment)
+    environment.exec.return_value.stdout = "codex-cli 0.162.1"
+    await agent.install(environment)
+    installer.assert_not_awaited()

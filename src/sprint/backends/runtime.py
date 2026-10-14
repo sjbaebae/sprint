@@ -449,6 +449,46 @@ async def run(
         for attachment in experiment.env.attachments.values():
             if isinstance(attachment, Worker) and attachment.hourly_cost is None:
                 raise ValueError("spending limit requires hourly_cost on every worker")
+    if backend == "allocated":
+        from sprint.environments.allocated import allocated_config
+
+        _, workspace, _ = allocated_config()
+        if parallel != 1 or experiment.validation.backend is None:
+            raise ValueError(
+                "allocated learner requires parallel=1 and an explicit validation backend"
+            )
+        if experiment.agent.harness not in {"bounded-codex", "oracle", "nop"}:
+            raise ValueError("allocated learner requires bounded-codex, oracle, or nop")
+        if experiment.env.sandbox.internet != "full":
+            raise ValueError("allocated learner supports full internet only")
+        if (
+            experiment.env.sandbox.setup
+            or experiment.env.sandbox.packages
+            or experiment.env.sandbox.image != "python:3.12-slim"
+        ):
+            raise ValueError("allocated tooling must be preinstalled by the operator")
+        if any(
+            value.backend in {None, "allocated"}
+            for value in experiment.env.attachments.values()
+            if isinstance(value, Worker)
+        ):
+            raise ValueError(
+                "allocated learner workers require an explicit container backend"
+            )
+        allowed_roots = (
+            workspace,
+            Path("/home/agent"),
+            Path("/logs/agent"),
+            Path("/resources/control"),
+            Path("/installed-agent"),
+        )
+        if any(
+            not any(Path(root).is_relative_to(allowed) for allowed in allowed_roots)
+            for root in experiment.env.state_paths
+        ):
+            raise ValueError(
+                "allocated state_paths must stay inside the workspace or learner harness directories"
+            )
     directory = Path(directory).resolve()
     auth_env = agent_auth_env(experiment.agent)
     checkpoint, trajectory, seconds = None, None, experiment.budget.seconds
@@ -464,8 +504,11 @@ async def run(
         )
     elif compiled_task is not None:
         task = Path(compiled_task).resolve(strict=True)
-        directory.mkdir(parents=True, exist_ok=True)
+        directory.mkdir(parents=True, mode=0o700, exist_ok=True)
+        directory.chmod(0o700)
     else:
+        directory.mkdir(parents=True, mode=0o700, exist_ok=True)
+        directory.chmod(0o700)
         task = compile_task(experiment, directory / "task")
     import socket
 

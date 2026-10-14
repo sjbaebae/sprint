@@ -10,7 +10,22 @@ from uuid import uuid4
 from sprint import Agent, Budget, Env, Experiment, Sandbox, Task, Validation, Worker
 
 
-async def main(*, ssh=False):
+async def main(*, ssh=False, allocated=False):
+    backend = "allocated" if allocated else "modal"
+    workspace = "/app"
+    state_paths = None
+    if allocated:
+        from sprint.environments.allocated import allocated_config
+
+        _, root, _ = allocated_config()
+        workspace = str(root)
+        state_paths = (
+            workspace,
+            "/home/agent",
+            "/logs/agent",
+            "/resources/control",
+            "/installed-agent",
+        )
     directory = Path(".sprint/checkpoint-preflight") / uuid4().hex
     with tempfile.TemporaryDirectory(prefix="sprint-checkpoint-example-") as temporary:
         root = Path(temporary)
@@ -91,23 +106,33 @@ answer = int(Path("counter.txt").read_text()) + int(Path("worker-value.txt").rea
 Path("/app/submission/answer.txt").write_text(str(answer))
 PYCODE
 """)
+        solution.write_text(
+            solution.read_text()
+            .replace("cd /app\n", "cd " + workspace + "\n")
+            .replace(
+                'Path("/app/submission/answer.txt")',
+                'Path("' + workspace + '/submission/answer.txt")',
+            )
+        )
         experiment = Experiment(
-            Task("Resume the staged calculation"),
+            Task("Resume the staged calculation", submission=workspace + "/submission"),
             Validation(private, reference=solution, backend="modal"),
             Agent("unused", harness="oracle"),
             Env(
                 sandbox=Sandbox(
-                    internet="full" if ssh else "none",
+                    internet="full" if ssh or allocated else "none",
                     setup=(
                         "apt-get update && apt-get install -y --no-install-recommends openssh-client",
                     )
-                    if ssh
+                    if ssh and not allocated
                     else (),
                 ),
+                **({"state_paths": state_paths} if state_paths is not None else {}),
                 files=public,
                 attachments={
                     "compute": Worker(
                         lifetime_seconds=300,
+                        backend="modal",
                         shell=ssh,
                         sandbox=Sandbox(internet="full" if ssh else "none"),
                     )
@@ -116,11 +141,11 @@ PYCODE
             Budget(seconds=240),
         )
         async with experiment.start(
-            directory=directory / "original", backend="modal"
+            directory=directory / "original", backend=backend
         ) as run:
             for _ in range(80):
                 result = await run.environment.exec(
-                    "test -f /app/ready", user="root", timeout_sec=10
+                    "test -f " + workspace + "/ready", user="root", timeout_sec=10
                 )
                 if result.return_code == 0:
                     break
@@ -130,7 +155,7 @@ PYCODE
             checkpoint = await run.checkpoint("staged")
             print("checkpoint:", checkpoint.path, flush=True)
         restored = await experiment.run(
-            directory=directory / "restored", backend="modal", resume_from=checkpoint
+            directory=directory / "restored", backend=backend, resume_from=checkpoint
         )
         if restored.rewards != [1.0]:
             raise RuntimeError(
@@ -149,4 +174,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Exercise direct worker SSH and refreshed host pins",
     )
-    asyncio.run(main(ssh=parser.parse_args().ssh))
+    parser.add_argument(
+        "--allocated",
+        action="store_true",
+        help="Use the opted-in native Linux learner account",
+    )
+    args = parser.parse_args()
+    asyncio.run(main(ssh=args.ssh, allocated=args.allocated))

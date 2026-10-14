@@ -83,11 +83,11 @@ Docker-capable host can run a CPU worker with `backend="docker"` and a GPU worke
 with `backend="modal"`. Each backend must actually support the requested hardware
 and network policy. Unsupported policies fail closed.
 
-A Runpod **host** is supported through SSH. A Runpod **learner/worker sandbox
-provider** is not currently supplied. Choosing a Runpod host does not place the
-agent on the host or give it access to host credentials. Our current CPU Pod does
-not supply a nested Docker daemon; its learner remains in an isolated Modal CPU
-container.
+A Runpod **host** is supported through SSH. Choosing `Host` alone does not place
+the learner on that host. For a dedicated prepared Pod, `backend="allocated"`
+runs the learner directly under its separate account; see [allocated hosts](allocated-host.md).
+That backend requires explicit operator opt-in, full internet, private run records
+and separate container validation. It does not supply container isolation.
 
 `Experiment.start()` currently controls a run in the calling process. To use its
 live checkpoint API on Runpod, run that Python driver on Runpod directly. Remote

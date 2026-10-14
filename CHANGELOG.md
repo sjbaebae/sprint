@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The opt-in `allocated` backend runs one learner account on a dedicated prepared Linux host, with separate container validation and standard checkpoint recovery. Run/restore output directories are explicitly private to the operator.
+
 - `Validation.backend` selects the private verifier independently of learner placement; explicit verifier runtime settings do not inherit learner-only provider options or cleanup policy.
 
 - Compiled bounded-Codex environments include their managed permissions policy; authors no longer need a separate requirements file. Missing pricing metadata no longer interrupts native transcript conversion.

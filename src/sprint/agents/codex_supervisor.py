@@ -73,6 +73,27 @@ def enforce_no_new_privileges():
         raise OSError(ctypes.get_errno(), "could not enforce no_new_privs")
 
 
+def live_processes(uid):
+    """List active account processes; vanished and zombie PIDs need no cleanup."""
+    remaining = []
+    for path in Path("/proc").iterdir():
+        if not path.name.isdigit():
+            continue
+        try:
+            if path.stat().st_uid != uid:
+                continue
+            status = (path / "status").read_text()
+            if any(
+                line.startswith("State:") and "\tZ" in line
+                for line in status.splitlines()
+            ):
+                continue
+            remaining.append(int(path.name))
+        except (FileNotFoundError, ProcessLookupError):
+            continue
+    return remaining
+
+
 def stop_trial_processes(uid):
     """Dedicated container per trial: also stop children that called setsid()."""
     if uid == 0 or not Path("/proc/self/status").exists():
@@ -80,22 +101,7 @@ def stop_trial_processes(uid):
     killed = set()
     deadline = time.monotonic() + 2
     while True:
-        remaining = []
-        for path in Path("/proc").iterdir():
-            if not path.name.isdigit():
-                continue
-            try:
-                if path.stat().st_uid != uid:
-                    continue
-                status = (path / "status").read_text()
-                if any(
-                    line.startswith("State:") and "\tZ" in line
-                    for line in status.splitlines()
-                ):
-                    continue
-                remaining.append(int(path.name))
-            except (FileNotFoundError, ProcessLookupError):
-                continue
+        remaining = live_processes(uid)
         if not remaining:
             return len(killed)
         for pid in remaining:

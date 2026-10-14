@@ -2,6 +2,7 @@ from enum import Enum
 
 
 class EnvironmentType(str, Enum):
+    ALLOCATED = "allocated"
     DOCKER = "docker"
     PODMAN = "podman"
     DAYTONA = "daytona"

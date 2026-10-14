@@ -28,6 +28,11 @@ class _EnvEntry(NamedTuple):
 # that vendor SDKs (daytona, e2b, modal, …) are only pulled in when the
 # corresponding environment is actually requested.
 _ENVIRONMENT_REGISTRY: dict[EnvironmentType, _EnvEntry] = {
+    EnvironmentType.ALLOCATED: _EnvEntry(
+        "sprint.environments.allocated",
+        "AllocatedEnvironment",
+        None,
+    ),
     EnvironmentType.APPLE_CONTAINER: _EnvEntry(
         "sprint.environments.apple_container",
         "AppleContainerEnvironment",

@@ -160,6 +160,10 @@ class Worker:
             from .models.environment_type import EnvironmentType
 
             EnvironmentType(self.backend)
+            if self.backend == "allocated":
+                raise ValueError(
+                    "allocated is learner-only; workers require a container backend"
+                )
         if type(self.lifetime_seconds) is not int or self.lifetime_seconds < 1:
             raise ValueError("worker lifetime must be a positive integer")
         if type(self.seconds) is not int or self.seconds < 1:

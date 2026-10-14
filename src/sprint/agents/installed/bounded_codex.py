@@ -25,6 +25,20 @@ class BoundedCodex(Codex):
         return "bounded-codex"
 
     @override
+    async def install(self, environment):
+        """Allocated hosts use their pinned preinstalled CLI; containers may install."""
+        if environment.type() == "allocated":
+            if (
+                self._version is None
+                or not await self._installed_codex_satisfies_version(environment)
+            ):
+                raise RuntimeError(
+                    "allocated host requires the preinstalled Codex version named in Agent.options.version"
+                )
+            return
+        await super().install(environment)
+
+    @override
     async def setup(self, environment):
         """Install Codex and protect supervisor budget records."""
         await super().setup(environment)

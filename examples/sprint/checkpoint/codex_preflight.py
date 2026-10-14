@@ -10,13 +10,30 @@ from uuid import uuid4
 from sprint import Agent, Budget, Env, Experiment, Sandbox, Task, Validation
 
 
-async def main(*, bounded=False):
+async def main(*, bounded=False, allocated=False):
     auth = Path(
         os.environ.get("CODEX_AUTH_JSON_PATH", Path.home() / ".codex/auth.json")
     )
     if not auth.is_file():
         raise RuntimeError("Sign into Codex before this preflight")
     os.environ["CODEX_AUTH_JSON_PATH"] = str(auth)
+    backend = "allocated" if allocated else "modal"
+    workspace = "/app"
+    state_paths = None
+    if allocated:
+        if not bounded:
+            raise ValueError("allocated Codex preflight requires --bounded")
+        from sprint.environments.allocated import allocated_config
+
+        _, path, _ = allocated_config()
+        workspace = str(path)
+        state_paths = (
+            workspace,
+            "/home/agent",
+            "/logs/agent",
+            "/resources/control",
+            "/installed-agent",
+        )
     root = Path(".sprint/checkpoint-codex") / uuid4().hex
     private = root / "private"
     private.mkdir(parents=True)
@@ -29,9 +46,12 @@ async def main(*, bounded=False):
             "/app/number.txt, create /app/ready, and run sleep 120 in the foreground. "
             "If /app/ready already exists, skip that initialization and waiting. "
             "Then read number.txt, add 23, write the result to /app/submission/answer.txt "
-            "and finish. Explain each action briefly. No subagents, web, or credentials inspection."
+            "and finish. Explain each action briefly. No subagents, web, or credentials inspection.".replace(
+                "/app/", workspace + "/"
+            ),
+            submission=workspace + "/submission",
         ),
-        Validation(private),
+        Validation(private, backend="modal"),
         Agent(
             "gpt-6-astra",
             harness="bounded-codex" if bounded else "codex",
@@ -52,17 +72,30 @@ async def main(*, bounded=False):
                 setup=(
                     "apt-get update && apt-get install -y --no-install-recommends nodejs npm ca-certificates && rm -rf /var/lib/apt/lists/*",
                     "npm install -g @openai/codex@0.162.1",
-                ),
-                internet="allowlist",
-                allowed_hosts=("chatgpt.com", "auth.openai.com", "api.openai.com"),
-            )
+                )
+                if not allocated
+                else (),
+                internet="full" if allocated else "allowlist",
+                allowed_hosts=()
+                if allocated
+                else ("chatgpt.com", "auth.openai.com", "api.openai.com"),
+            ),
+            **({"state_paths": state_paths} if state_paths is not None else {}),
         ),
         Budget(seconds=300),
     )
-    async with experiment.start(directory=root / "original", backend="modal") as run:
+    async with experiment.start(directory=root / "original", backend=backend) as run:
+        if allocated:
+            permission = await run.environment.exec(
+                "test ! -r " + str(run.directory),
+                user="agent",
+                timeout_sec=10,
+            )
+            if permission.return_code:
+                raise RuntimeError("learner can read operator run records")
         for _ in range(100):
             result = await run.environment.exec(
-                "test -f /app/ready", user="root", timeout_sec=10
+                "test -f " + workspace + "/ready", user="root", timeout_sec=10
             )
             if result.return_code == 0:
                 break
@@ -77,7 +110,7 @@ async def main(*, bounded=False):
                 raise RuntimeError("checkpoint did not retain the live action budget")
             print("actions already used:", used, flush=True)
     result = await experiment.run(
-        directory=root / "restored", backend="modal", resume_from=saved
+        directory=root / "restored", backend=backend, resume_from=saved
     )
     print("restored:", root, result.rewards, flush=True)
     if result.rewards != [1.0]:
@@ -110,4 +143,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Check managed policy and action-budget recovery",
     )
-    asyncio.run(main(bounded=parser.parse_args().bounded))
+    parser.add_argument(
+        "--allocated",
+        action="store_true",
+        help="Use the opted-in native Linux learner account",
+    )
+    args = parser.parse_args()
+    asyncio.run(main(bounded=args.bounded, allocated=args.allocated))

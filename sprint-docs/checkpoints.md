@@ -85,7 +85,9 @@ reused the learner’s saved SSH config to read and update its restored files;
 its independent validation returned 1.0. This protocol check used CPU workers.
 The bounded-Codex check also retained 4 spent actions, resumed with that offset,
 finished at 9 of 20 actions and reported complete process cleanup.
-Native Runpod learner recovery remains a separate integration check.
+Native Runpod recovery also passed through the allocated backend: worker SSH/file
+state and a separate bounded-Codex native session both restored successfully.
+See [allocated hosts](allocated-host.md) for prerequisites and limits.
 Claude Code and Docker share the recovery implementation but have
 not yet received equivalent live restore tests.
 

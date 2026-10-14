@@ -19,6 +19,10 @@ Use `sprint` without `[modal]` for local Docker execution. Pin a reviewed commit
 
 The runner stays on the machine calling `run()`. To choose a Runpod CPU host explicitly, pass `host=Host(...)`; sandboxes and workers have separate placement. See [host and resource placement](sprint-docs/hosts.md).
 
+For a prepared dedicated Linux Pod without nested containers, the
+[allocated-host backend](sprint-docs/allocated-host.md) runs the learner directly
+and keeps validation and GPU workers on separately selected container backends.
+
 ## 2. Write private evaluation
 
 Create this layout:
