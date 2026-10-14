@@ -662,3 +662,18 @@ async def test_service_modal_call_recovers_identity_without_relaunch(
         await cleanup_calls(restored)
     assert cancelled == ["fc-test"]
     assert json.loads((context.state / "one.call.json").read_text())["cancelled"]
+    # A call-only broker must remain eligible for cleanup retry after workers exit.
+    from sprint.services import load_handler
+
+    bundle = tmp_path / "private"
+    bundle.mkdir()
+    (bundle / "service.py").write_text(
+        "async def handle(context, request): return {}\n"
+    )
+    broker.service_handlers["eval"] = load_handler(bundle, "service.py")
+    with pytest.raises(ExceptionGroup, match="cleanup incomplete"):
+        await broker.close()
+    assert broker.cleanup_pending
+    (context.state / "uncertain.call.json").unlink()
+    await broker.close()
+    assert not broker.cleanup_pending

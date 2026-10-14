@@ -731,7 +731,9 @@ async def run(
                 finally:
                     # Retain failed deletion handles for a final bounded retry.
                     # close() consumes service errors once, independently of deletion.
-                    if all(s.environment is None for s in broker.sessions.values()):
+                    if not broker.cleanup_pending and all(
+                        s.environment is None for s in broker.sessions.values()
+                    ):
                         brokers.pop(event.trial_name, None)
 
     async def evidence(event):

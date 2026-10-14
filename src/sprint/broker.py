@@ -41,6 +41,7 @@ class ResourceBroker:
         self.service_call_gates = {}
         self.finalized_services = set()
         self.closing = False
+        self.cleanup_pending = False
         self.service_gates = {name: asyncio.Lock() for name in self.services}
         self.task = None
         self.seen = set()
@@ -464,12 +465,14 @@ class ResourceBroker:
                 )
         from .service_calls import cleanup_calls
 
+        self.cleanup_pending = False
         for name in self.services:
             if not (self.directory / ("service-" + name)).is_dir():
                 continue
             try:
                 await cleanup_calls(ServiceContext(self, name))
             except Exception as error:
+                self.cleanup_pending = True
                 failures.append(error)
         for session in self.sessions.values():
             session.closed = True
