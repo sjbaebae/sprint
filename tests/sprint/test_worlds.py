@@ -380,6 +380,17 @@ def test_default_harness_bootstrap_preserves_custom_images(tmp_path):
         in (compiled / "environment/Dockerfile").read_text()
     )
     assert "npm install" not in (compiled / "tests/Dockerfile").read_text()
+    managed = json.loads(
+        (compiled / "environment/claude-managed-settings.json").read_text()
+    )
+    assert {"Agent", "Task", "TeamCreate", "WebSearch", "WebFetch"} <= set(
+        managed["permissions"]["deny"]
+    )
+    assert (
+        "/etc/claude-code/managed-settings.json"
+        in (compiled / "environment/Dockerfile").read_text()
+    )
+    assert not list((compiled / "tests").rglob("claude-managed-settings.json"))
     custom = replace(
         experiment,
         env=replace(

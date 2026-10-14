@@ -55,6 +55,7 @@ def dockerfile(
     attachments=(),
     workers=(),
     managed_codex=False,
+    managed_claude=False,
     agent=None,
 ):
     """Build tooling once in the image; do not download dependencies during grading."""
@@ -99,6 +100,12 @@ def dockerfile(
                 "COPY codex-requirements.toml /etc/codex/requirements.toml",
                 "RUN chown root:root /etc/codex /etc/codex/requirements.toml && "
                 "chmod 755 /etc/codex && chmod 444 /etc/codex/requirements.toml",
+            ]
+        if managed_claude:
+            lines += [
+                "COPY claude-managed-settings.json /etc/claude-code/managed-settings.json",
+                "RUN chown root:root /etc/claude-code /etc/claude-code/managed-settings.json && "
+                "chmod 755 /etc/claude-code && chmod 444 /etc/claude-code/managed-settings.json",
             ]
         lines.append("USER agent")
     return "\n".join(lines) + "\n"
@@ -257,6 +264,13 @@ def compile_task(experiment, directory):
         raise ValueError("rubric is missing")
     if managed is not None:
         (learner / "codex-requirements.toml").write_text(toml.dumps(managed))
+    if experiment.agent.harness == "claude-code":
+        denied = ["Agent", "Task", "TeamCreate", "TeamDelete", "SendMessage"]
+        if experiment.env.sandbox.internet != "full":
+            denied += ["WebSearch", "WebFetch"]
+        (learner / "claude-managed-settings.json").write_text(
+            json.dumps({"permissions": {"deny": denied}}, indent=2)
+        )
     workers = {
         name: value
         for name, value in world.attachments.items()
@@ -298,6 +312,7 @@ def compile_task(experiment, directory):
             world.sandbox,
             agent=experiment.agent,
             managed_codex=managed is not None,
+            managed_claude=experiment.agent.harness == "claude-code",
             copy_workspace=any((learner / "workspace").rglob("*")),
             workers=workers or services,
             submission=experiment.task.submission,

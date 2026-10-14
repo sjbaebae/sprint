@@ -103,3 +103,18 @@ Choose the agent in `Experiment(agent=codex, ...)` or `Experiment(agent=claude, 
 
 Credentials are injected into the harness at runtime and redacted from serialized agent configuration. They are accessible inside its sandbox; this is not a credential-isolating inference proxy. Worker jobs do not inherit harness credentials.
 
+
+## Compiled harness policy
+
+The scaffold uses bounded Codex with root-owned managed requirements that disable
+built-in subagents. Compiled Claude Code environments install root-owned
+`/etc/claude-code/managed-settings.json`, denying `Agent`, its older `Task` alias
+and team messaging tools. Restricted-network environments also deny Claude's
+hosted web tools. Verifier and worker images do not receive this learner policy.
+
+These controls apply to the selected harness's built-in tools. They do not
+prevent arbitrary programs or API clients launched through a permitted shell.
+Network permissions and credential placement remain separate controls.
+
+Claude documents the [Agent denial](https://code.claude.com/docs/en/sub-agents)
+and [managed-settings precedence](https://code.claude.com/docs/en/settings).

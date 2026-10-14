@@ -40,6 +40,9 @@ full learner internet and private performance-only evaluation. Sign in with
 `codex login` before launching. Resource attachments and research judging are
 optional additions. Sprint installs the selected Codex or Claude Code CLI in its
 default image during build; `Sandbox.packages` and `setup` are for your task tools.
+Compiled Claude Code learners receive a root-owned single-agent policy; bounded
+Codex retains its managed feature restrictions. These constrain built-in harness
+tools, not arbitrary API clients launched through a permitted shell.
 Existing directories are never overwritten.
 For independent trials, add `--trials 6 --parallel 6` to `env run`.
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Compiled Claude Code learner images include root-owned managed denials for built-in subagent/team tools; restricted-network variants also deny hosted web tools.
+
 - Native Modal workers retain cleanup identities before provisioning for recovery after owner-process loss; unknown creation outcomes remain unresolved. Standard result JSON now includes retained cleanup errors.
 
 - Repeated state capture omits unchanged file payloads using hashes from published snapshots; reused chunks are verified locally, while changed files and fresh restores still transfer their full content.
