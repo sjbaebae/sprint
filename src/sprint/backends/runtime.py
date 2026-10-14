@@ -1,5 +1,6 @@
 """Translate the small authoring API into native Harbor tasks and jobs."""
 
+import contextlib
 import json
 import math
 import os
@@ -671,9 +672,29 @@ async def run(
     job.add_hook(TrialEvent.AGENT_START, resources)
     job.add_hook(TrialEvent.AGENT_END, resources)
     try:
-        native = await job.run()
-    finally:
-        await finalize_brokers(brokers, directory)
+        try:
+            native = await job.run()
+        finally:
+            await finalize_brokers(brokers, directory)
+    except BaseException as error:
+        from ..results import collect_interrupted
+
+        try:
+            collect_interrupted(
+                directory, job.job_dir, error, submission=experiment.task.submission
+            )
+        except Exception as recording_error:
+            # A review failure must not replace the original cancellation/error.
+            with contextlib.suppress(OSError):
+                (directory / "interruption-recording-error.json").write_text(
+                    json.dumps(
+                        {
+                            "exception_type": type(recording_error).__name__,
+                            "message": str(recording_error),
+                        }
+                    )
+                )
+        raise
     return collect(
         directory, job.job_dir, native, submission=experiment.task.submission
     )

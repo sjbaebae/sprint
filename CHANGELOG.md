@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Interrupted runs retain completed rewards, partial transcripts and an explicit interruption summary in standard result/review files; cancelled trials remain unscored and the original exception still propagates.
+
 - Direct Modal checkpoint capture and restore stream through chunk storage without full host archives; other backends retain their existing transfer paths. Root replacement waits for verified upload completion.
 
 - Operator task queues can pause admission and drain active calls into durable records for coordinated checkpoint capture, with bounded waits and explicit shutdown failures.

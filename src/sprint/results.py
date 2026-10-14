@@ -4,6 +4,8 @@ import html
 import json
 import math
 from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
+from types import SimpleNamespace
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -39,10 +41,15 @@ class RunResult:
     def save(self):
         """Write machine-readable results and a vertical offline review page."""
         payload = {"schema_version": 1, "trials": [asdict(t) for t in self.trials]}
+        interruption = self.directory / "interruption.json"
+        if interruption.is_file():
+            payload["interruption"] = json.loads(interruption.read_text())
         (self.directory / "result.json").write_text(
             json.dumps(payload, indent=2, allow_nan=False)
         )
         sections = ["<h1>Run review</h1>"]
+        if "interruption" in payload:
+            sections.append("<h2>Run interrupted</h2>" + pre(payload["interruption"]))
         cleanup = self.directory / "cleanup-errors.json"
         if cleanup.is_file():
             sections.append(
@@ -215,7 +222,9 @@ def inspect_artifact(directory, records, submission):
         }
 
 
-def collect(directory, job_directory, native, *, submission="/app/submission"):
+def collect(
+    directory, job_directory, native, *, submission="/app/submission", interruption=None
+):
     """Translate a completed Harbor job without exposing its model classes."""
     directory, job_directory = Path(directory), Path(job_directory)
     trials = []
@@ -237,6 +246,15 @@ def collect(directory, job_directory, native, *, submission="/app/submission"):
             and status != "quarantined"
         ):
             status, reward = "error", None
+        if error and error.get("exception_type") == "CancelledError":
+            status, reward = "cancelled", None
+        if interruption is not None and trial.finished_at is None:
+            status = (
+                "cancelled"
+                if interruption["exception_type"] == "CancelledError"
+                else "error"
+            )
+            reward, error = None, interruption
         trials.append(
             TrialResult(
                 name=trial.trial_name,
@@ -253,6 +271,42 @@ def collect(directory, job_directory, native, *, submission="/app/submission"):
             )
         )
     return RunResult(directory, tuple(trials)).save()
+
+
+def collect_interrupted(
+    directory, job_directory, error, *, submission="/app/submission"
+):
+    """Preserve completed outcomes and partial logs without swallowing failure."""
+    from sprint.models.trial.result import TrialResult as NativeTrialResult
+
+    directory, job_directory = Path(directory), Path(job_directory)
+    details = {
+        "exception_type": type(error).__name__,
+        "message": str(error),
+        "recorded_at": datetime.now(UTC).isoformat(),
+        "unreadable_records": [],
+    }
+    trials = []
+    for path in sorted(job_directory.glob("*/result.json")):
+        try:
+            if path.is_symlink() or path.parent.is_symlink():
+                raise ValueError("native result must be a regular operator record")
+            trial = NativeTrialResult.model_validate_json(path.read_text())
+            if trial.trial_name != path.parent.name:
+                raise ValueError("native trial name differs from its record directory")
+            trials.append(trial)
+        except (OSError, ValueError) as failure:
+            details["unreadable_records"].append(
+                {"path": str(path), "message": str(failure)}
+            )
+    (directory / "interruption.json").write_text(json.dumps(details, indent=2))
+    return collect(
+        directory,
+        job_directory,
+        SimpleNamespace(trial_results=trials),
+        submission=submission,
+        interruption=details,
+    )
 
 
 def artifact_state(directory, records, submission):

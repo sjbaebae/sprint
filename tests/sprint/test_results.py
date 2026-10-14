@@ -81,18 +81,22 @@ def test_quarantine_keeps_no_reward_despite_backend_exception(tmp_path):
     assert saved["trials"][0]["reward"] is None
 
 
-def test_runtime_failure_invalidates_existing_reward(tmp_path):
+@pytest.mark.parametrize(
+    "exception_type,status",
+    [("RuntimeError", "error"), ("CancelledError", "cancelled")],
+)
+def test_runtime_failure_invalidates_existing_reward(tmp_path, exception_type, status):
     records = tmp_path / "native/trial/verifier"
     records.mkdir(parents=True)
     (records / "result.json").write_text('{"status":"graded","reward":1}')
-    error = SimpleNamespace(model_dump=lambda **kw: {"exception_type": "RuntimeError"})
+    error = SimpleNamespace(model_dump=lambda **kw: {"exception_type": exception_type})
     trial = SimpleNamespace(
         trial_name="trial", exception_info=error, started_at=None, finished_at=None
     )
     result = collect(
         tmp_path, tmp_path / "native", SimpleNamespace(trial_results=[trial])
     )
-    assert result.trials[0].status == "error"
+    assert result.trials[0].status == status
     assert result.rewards == []
 
 
@@ -301,3 +305,47 @@ def test_review_surfaces_unresolved_cleanup_without_discarding_grade(tmp_path):
     assert "Unresolved resource cleanup failures" in page
     assert "&lt;pending deletion&gt;" in page
     assert result.rewards == []
+
+
+def test_interrupted_run_preserves_completed_reward_and_partial_trace(tmp_path):
+    import asyncio
+    from datetime import UTC, datetime
+    from sprint.models.trial.config import TrialConfig
+    from sprint.models.trial.result import TrialResult as NativeTrialResult
+    from sprint.results import collect_interrupted
+
+    native = tmp_path / "native"
+    config = TrialConfig(task={"path": tmp_path / "task"})
+    for name, finished in (("completed", datetime.now(UTC)), ("partial", None)):
+        record = native / name
+        (record / "verifier").mkdir(parents=True)
+        (record / "verifier/result.json").write_text('{"status":"graded","reward":0.5}')
+        trial = NativeTrialResult(
+            task_name="task",
+            trial_name=name,
+            trial_uri=record.as_uri(),
+            task_id=config.task.get_task_id(),
+            task_checksum="a" * 64,
+            config=config,
+            agent_info={"name": "nop", "version": "test"},
+            started_at=datetime.now(UTC),
+            finished_at=finished,
+        )
+        (record / "result.json").write_text(trial.model_dump_json())
+    agent = native / "partial/agent"
+    agent.mkdir()
+    (agent / "trajectory.json").write_text(
+        json.dumps({"steps": [{"source": "agent", "message": "unfinished experiment"}]})
+    )
+    malformed = native / "malformed"
+    malformed.mkdir()
+    (malformed / "result.json").write_text("not-json")
+    result = collect_interrupted(tmp_path, native, asyncio.CancelledError())
+    assert result.rewards == [0.5]
+    partial = next(trial for trial in result.trials if trial.name == "partial")
+    assert partial.status == "cancelled" and partial.reward is None
+    saved = json.loads((tmp_path / "result.json").read_text())
+    assert saved["interruption"]["exception_type"] == "CancelledError"
+    assert len(saved["interruption"]["unreadable_records"]) == 1
+    page = (tmp_path / "review.html").read_text()
+    assert "Run interrupted" in page and "unfinished experiment" in page

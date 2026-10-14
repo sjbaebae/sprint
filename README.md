@@ -75,7 +75,7 @@ authentication](sprint-docs/manual-setup.md) for custom configurations.
 
 ## Inspect results
 
-Open `review.html` in the printed records directory for the transcript, turn timestamps, tool calls, worker feedback, and grading. `result.json` and `events.jsonl` contain structured records. Submission snapshots and diffs are retained per trial. For mid-task state recovery, use [`Experiment.start()` and checkpoints](sprint-docs/checkpoints.md). Missing reasoning summaries or timestamps are displayed as missing; requesting summaries does not guarantee the provider returns them.
+Open `review.html` in the printed records directory for the transcript, turn timestamps, tool calls, worker feedback, and grading. `result.json` and `events.jsonl` contain structured records. Submission snapshots and diffs are retained per trial. Cancelled or failed runs retain available trial records and an interruption summary in the same result and review files; interrupted work receives no inferred reward. For mid-task state recovery, use [`Experiment.start()` and checkpoints](sprint-docs/checkpoints.md). Missing reasoning summaries or timestamps are displayed as missing; requesting summaries does not guarantee the provider returns them.
 
 ## Attach GPU workers or data
 
