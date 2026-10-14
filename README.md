@@ -224,6 +224,21 @@ Implement `judge(context, rubric)` alongside `verify(context)`. Both return `{"s
 
 Optional `disqualify(context)` returns `{"confirmed": [...], "suspected": [...]}`; every violation needs an `id` and `evidence`. Confirmed violations yield zero reward. Suspected violations and grader errors quarantine the result without a final reward. Final reward is the weighted sum of verifier and judge scores.
 
+### Performance-only variants
+
+The judge is optional. To score measured performance while retaining cheating
+checks, use:
+
+```python
+validation = Validation(bundle=Path("validation"), weights=(1.0, 0.0))
+```
+
+This is also the default. Sprint still calls `disqualify(context)` before
+`verify(context)`, but never calls `judge`. No rubric or judge credentials are
+needed. Supply environment-specific contamination and tampering checks in
+`disqualify`; disabling the judge does not create an automatic cheating detector.
+Confirmed violations score zero; unresolved suspicions remain quarantined.
+
 When remote evaluation and judging have already completed, use `sprint.validation.combine_components(verifier, judge, weights=(0.8, 0.2))` to apply the same normalized-score and weighting rules. Resolve integrity dispositions before combining; missing or malformed required components raise an error rather than receiving a fallback score.
 
 ## Develop Sprint
