@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Interrupted review retains trial logs even when a crash prevents the native final result file; those partial trials remain unscored with unknown timestamps.
+
 - Trusted services can explicitly record JSON evidence for the standard verifier and review; their remaining private working state stays excluded.
 
 - Compiled Claude Code learner images include root-owned managed denials for built-in subagent/team tools; restricted-network variants also deny hosted web tools.

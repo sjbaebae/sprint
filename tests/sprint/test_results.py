@@ -338,6 +338,19 @@ def test_interrupted_run_preserves_completed_reward_and_partial_trace(tmp_path):
     (agent / "trajectory.json").write_text(
         json.dumps({"steps": [{"source": "agent", "message": "unfinished experiment"}]})
     )
+    orphan = native / "orphan"
+    (orphan / "agent").mkdir(parents=True)
+    (orphan / "agent/trajectory.json").write_text(
+        json.dumps(
+            {
+                "steps": [
+                    {"source": "agent", "message": "owner died before final record"}
+                ],
+            }
+        )
+    )
+    (orphan / "verifier").mkdir()
+    (orphan / "verifier/result.json").write_text('{"status":"graded","reward":1.0}')
     malformed = native / "malformed"
     malformed.mkdir()
     (malformed / "result.json").write_text("not-json")
@@ -345,8 +358,12 @@ def test_interrupted_run_preserves_completed_reward_and_partial_trace(tmp_path):
     assert result.rewards == [0.5]
     partial = next(trial for trial in result.trials if trial.name == "partial")
     assert partial.status == "cancelled" and partial.reward is None
+    missing = next(trial for trial in result.trials if trial.name == "orphan")
+    assert missing.status == "cancelled" and missing.reward is None
+    assert missing.started_at is None and missing.finished_at is None
     saved = json.loads((tmp_path / "result.json").read_text())
     assert saved["interruption"]["exception_type"] == "CancelledError"
     assert len(saved["interruption"]["unreadable_records"]) == 1
     page = (tmp_path / "review.html").read_text()
     assert "Run interrupted" in page and "unfinished experiment" in page
+    assert "owner died before final record" in page

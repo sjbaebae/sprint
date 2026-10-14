@@ -228,7 +228,7 @@ def inspect_artifact(directory, records, submission):
 def collect(
     directory, job_directory, native, *, submission="/app/submission", interruption=None
 ):
-    """Translate a completed Harbor job without exposing its model classes."""
+    """Translate native execution records into the public result interface."""
     directory, job_directory = Path(directory), Path(job_directory)
     trials = []
     for trial in native.trial_results:
@@ -302,6 +302,23 @@ def collect_interrupted(
             details["unreadable_records"].append(
                 {"path": str(path), "message": str(failure)}
             )
+    retained = {trial.trial_name for trial in trials}
+    for record in sorted(job_directory.glob("*")):
+        if not record.is_dir() or record.is_symlink() or record.name in retained:
+            continue
+        agent = record / "agent"
+        if not agent.is_dir() or agent.is_symlink():
+            continue
+        # A crash may precede the native final record. Keep observable logs, but
+        # never infer completion, timestamps or a reward from leftover files.
+        trials.append(
+            SimpleNamespace(
+                trial_name=record.name,
+                exception_info=None,
+                started_at=None,
+                finished_at=None,
+            )
+        )
     (directory / "interruption.json").write_text(json.dumps(details, indent=2))
     return collect(
         directory,
