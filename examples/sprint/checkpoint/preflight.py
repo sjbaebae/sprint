@@ -138,6 +138,10 @@ PYCODE
                 "    path.write_text(str(count))\n"
                 '    context.record("counter", {"count": count})\n'
                 '    return {"count": count}\n'
+                "async def finalize(context):\n"
+                '    worker = await context.worker("compute")\n'
+                '    observation = await worker.observe("/app")\n'
+                '    context.record("final-audit", {"observed": isinstance(observation, dict)})\n'
             )
             attachments["counter"] = Service(bundle)
             evaluator = private / "evaluate.py"
@@ -146,9 +150,11 @@ PYCODE
                 "def verify(context):\n"
                 '    p = context.submission / "answer.txt"\n'
                 '    evidence = context.records / "sprint-resources/service-counter.jsonl"\n'
-                '    counts = [json.loads(line)["payload"]["count"] for line in evidence.read_text().splitlines()]\n'
+                "    events = [json.loads(line) for line in evidence.read_text().splitlines()]\n"
+                '    counts = [event["payload"]["count"] for event in events if event["event"] == "counter"]\n'
+                '    audits = [event for event in events if event["event"] == "final-audit"]\n'
                 '    private = context.records / "sprint-resources/service-counter/calls.txt"\n'
-                "    valid = counts == [1, 2] and not private.exists()\n"
+                '    valid = counts == [1, 2] and not private.exists() and bool(audits) and audits[-1]["payload"]["observed"]\n'
                 '    valid = valid and (context.submission / "service-valid").is_file()\n'
                 '    return {"score": float(valid and p.is_file() and p.read_text().strip() == "17")}\n'
             )

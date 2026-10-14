@@ -196,3 +196,10 @@ uv run --extra modal python examples/sprint/cancellation/preflight.py \
 
 Standard `result.json` includes unresolved `cleanup_errors` when present, matching
 the warning in `review.html`.
+
+A service may also export `async finalize(context)` for its final audit. Sprint calls
+it once per broker shutdown, before destroying existing workers, with a 60-second
+limit. It cannot provision new workers during shutdown. Record redacted audit
+results with `context.record()`. Failure is retained and reported while worker
+cleanup still proceeds. Cleanup retries do not repeat the callback; audit code
+must use durable state to remain safe across recovery into another broker.

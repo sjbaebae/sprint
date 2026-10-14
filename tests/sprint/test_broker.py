@@ -543,3 +543,45 @@ async def test_task_service_persists_state_and_keeps_errors_private(tmp_path):
     assert "operator-secret" not in json.dumps(responses[-1])
     diagnostics = tmp_path / "records" / "service-evaluate" / ("c" * 32 + ".error.txt")
     assert "operator-secret" in diagnostics.read_text()
+
+
+async def test_service_final_audit_precedes_cleanup_and_failure_does_not_skip_it(
+    tmp_path,
+):
+    bundle = tmp_path / "private"
+    bundle.mkdir()
+    (bundle / "service.py").write_text(
+        "async def handle(context, request):\n    return {}\n"
+        "async def finalize(context):\n"
+        '    worker = await context.worker("train")\n'
+        '    worker.events.append("audit")\n'
+        '    raise RuntimeError("audit failed")\n'
+    )
+    events = []
+
+    class Session:
+        closed = False
+
+        async def close(self):
+            events.append("cleanup")
+
+    session = Session()
+    session.events = events
+    broker = ResourceBroker(
+        SimpleNamespace(),
+        {"train": object()},
+        directory=tmp_path / "records",
+        backend="modal",
+        services={"audit": (bundle, "service.py")},
+    )
+    broker.directory.mkdir()
+    broker.sessions["train"] = session
+    await broker.service("audit", {}, "a" * 32)
+    with pytest.raises(RuntimeError, match="finalization failed"):
+        await broker.close()
+    assert events == ["audit", "cleanup"]
+    assert (broker.directory / "service-audit/finalization.error.txt").exists()
+    await broker.close()
+    assert events == ["audit", "cleanup", "cleanup"]
+    with pytest.raises(RuntimeError, match="shutdown"):
+        await broker.session("new-worker")

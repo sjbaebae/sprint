@@ -62,6 +62,10 @@ def load_handler(bundle, entrypoint):
         handle = getattr(module, "handle", None)
         if not inspect.iscoroutinefunction(handle):
             raise ValueError("service must export async handle(context, request)")
+        finalize = getattr(module, "finalize", None)
+        if finalize is not None and not inspect.iscoroutinefunction(finalize):
+            raise ValueError("service finalize(context) must be async")
+        setattr(handle, "finalize", finalize)
         return handle
     except BaseException:
         sys.modules.pop(name, None)

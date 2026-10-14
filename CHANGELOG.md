@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Task services may run a bounded final audit against existing workers before teardown; audit failures remain visible and do not skip worker cleanup.
+
 - Native release/service-state checkpoint capture and local restore stream through bounded pipes without complete host tar files; restored local trees are renamed instead of copied again.
 
 - Interrupted review retains trial logs even when a crash prevents the native final result file; those partial trials remain unscored with unknown timestamps.

@@ -38,6 +38,8 @@ class ResourceBroker:
         self.sessions = {}
         self.services = dict(services or {})
         self.service_handlers = {}
+        self.finalized_services = set()
+        self.closing = False
         self.service_gates = {name: asyncio.Lock() for name in self.services}
         self.task = None
         self.seen = set()
@@ -141,6 +143,8 @@ class ResourceBroker:
         """Serialize creation and reservation, including requests for the same worker."""
         async with self.session_gate:
             if name not in self.sessions:
+                if self.closing:
+                    raise RuntimeError("cannot provision workers during shutdown")
                 self.reserve(name)
                 session = WorkerSession(
                     self.workers[name],
@@ -403,7 +407,10 @@ class ResourceBroker:
 
     async def close(self):
         """Cancel active code and destroy all workers before verifier execution."""
-        failure = None
+        from .services import ServiceContext
+
+        self.closing = True
+        failures = []
         if self.task is not None:
             self.task.cancel()
             try:
@@ -411,20 +418,44 @@ class ResourceBroker:
             except asyncio.CancelledError:
                 pass
             except Exception as error:
-                failure = error
+                failures.append(error)
             self.task = None
+        for name, handler in self.service_handlers.items():
+            finalize = getattr(handler, "finalize", None)
+            if finalize is None or name in self.finalized_services:
+                continue
+            # Cleanup retries must not repeat an irreversible task audit.
+            self.finalized_services.add(name)
+            try:
+                context = ServiceContext(self, name)
+                async with asyncio.timeout(60):
+                    await finalize(context)
+                context.record("finalization", {"status": "complete"})
+            except asyncio.CancelledError as error:
+                failures.append(error)
+                break
+            except Exception as error:
+                try:
+                    context = ServiceContext(self, name)
+                    (context.state / "finalization.error.txt").write_text(
+                        traceback.format_exc()
+                    )
+                    context.record("finalization", {"status": "failed"})
+                except Exception as diagnostic_error:
+                    failures.append(diagnostic_error)
+                failures.append(
+                    RuntimeError(f"service {name} finalization failed: {error}")
+                )
         for session in self.sessions.values():
             session.closed = True
         try:
             await close_all(self.sessions.values())
-        except Exception as cleanup_error:
-            if failure is not None:
-                raise ExceptionGroup(
-                    "resource service and cleanup failed", [failure, cleanup_error]
-                ) from None
-            raise
-        if failure is not None:
-            raise failure
+        except Exception as error:
+            failures.append(error)
+        if len(failures) == 1:
+            raise failures[0]
+        if failures:
+            raise BaseExceptionGroup("resource service and cleanup failed", failures)
 
 
 async def finalize_brokers(brokers, directory: Path):
