@@ -3,6 +3,8 @@
 import json
 import time
 
+import pytest
+
 from sprint.request_queue import LocalRequestQueue
 
 
@@ -77,6 +79,53 @@ def test_queue_redacts_validation_errors(tmp_path):
     response = (queue.rpc / "responses" / (request_id + ".json")).read_text()
     assert "private diagnostic" not in response
     assert "private diagnostic" in (state / (request_id + ".error.txt")).read_text()
+
+
+def test_resume_restores_results_without_replaying_interrupted_calls(tmp_path):
+    state = tmp_path / "state"
+    state.mkdir()
+    executed, restored = [], []
+
+    def prepare(request, request_id):
+        def execute():
+            executed.append(request_id)
+            queue.stop()
+            return {"value": 7}
+
+        return execute
+
+    settings = {
+        "deadline": time.time() + 10,
+        "prepare": prepare,
+        "completed": restored.append,
+        "failure_feedback": lambda error, stage: {"failure_stage": stage},
+        "poll_seconds": 0.001,
+    }
+    queue = LocalRequestQueue(tmp_path / "rpc", state, **settings)
+    complete, interrupted, new = [f"{index:032x}" for index in range(1, 4)]
+    (queue.rpc / "requests" / (complete + ".json")).write_text('{"kind":"run"}')
+    queue.run()
+    restored.clear()
+    with pytest.raises(ValueError, match="explicit resume"):
+        LocalRequestQueue(tmp_path / "rpc", state, **settings)
+    # Simulate a lost response after the durable result, and a separate call
+    # interrupted after admission. Learner-visible responses are not authority.
+    (state / (complete + ".feedback.json")).unlink()
+    (state / (interrupted + ".request.json")).write_text('{"kind":"run"}')
+    (queue.rpc / "requests" / (interrupted + ".json")).write_text('{"kind":"run"}')
+    (queue.rpc / "responses" / (interrupted + ".json")).write_text(
+        '{"status":"complete","result":{"value":999}}'
+    )
+    queue = LocalRequestQueue(tmp_path / "rpc", state, resume=True, **settings)
+    assert restored == [{"value": 7}]
+    feedback = json.loads(
+        (queue.rpc / "responses" / (interrupted + ".json")).read_text()
+    )
+    assert feedback["failure_stage"] == "recovery"
+    assert feedback["outcome_known"] is False
+    (queue.rpc / "requests" / (new + ".json")).write_text('{"kind":"run"}')
+    queue.run()
+    assert executed == [complete, new]
 
 
 def test_independent_resources_progress_while_same_resource_stays_serial(tmp_path):

@@ -62,6 +62,16 @@ files if it needs to continue exactly. Sprint does not replay interrupted shell
 commands. The agent must inspect the restored files and feedback before retrying.
 External side effects cannot be rolled back.
 
+External task services using `LocalRequestQueue(..., resume=True)` can rebuild
+their indexes and republish feedback from private request/result records.
+`completed(result)` runs again to rebuild those indexes; it must not dispatch
+provider work. Completed requests are never executed again. An interrupted call
+without a result returns `failure_stage="recovery"` and `outcome_known=false`;
+Sprint cannot determine whether its external side effect occurred.
+The operator must stop the original service and recover its provider resources
+before restarting. This queue option does not capture service or GPU state and
+is not automatically connected to `LiveRun` checkpoints.
+
 Capture waits for active worker requests to finish and temporarily pauses writers.
 That time counts against the trial budget. A failed capture publishes no manifest
 and attempts to resume the original branch. Integrity failures block restore.
@@ -76,6 +86,8 @@ Real provider preflight:
 uv run --no-default-groups --extra modal python examples/sprint/checkpoint/preflight.py
 # Exercise direct SSH and refreshed host pins instead of brokered Python jobs:
 uv run --no-default-groups --extra modal python examples/sprint/checkpoint/preflight.py --ssh
+# CPU-only process-kill check for external task-service request recovery:
+uv run python examples/sprint/checkpoint/queue_preflight.py --records /tmp/queue-check
 ```
 
 ## Validation

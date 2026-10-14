@@ -21,6 +21,9 @@ class LocalRequestQueue:
     kinds run on the host thread, even while worker calls are pending.
     Provider deadlines and cancellation belong to the supplied handlers. The
     queue stops admission at its wall-clock deadline and drains admitted work.
+    ``resume=True`` rebuilds request history from private records. Completed calls
+    are not repeated; interrupted calls return explicit uncertainty. The caller
+    must exclusively own the service and separately recover its provider resources.
     """
 
     def __init__(
@@ -37,6 +40,7 @@ class LocalRequestQueue:
         groups=None,
         poll_seconds=0.5,
         idle_seconds=60,
+        resume=False,
     ):
         self.rpc = Path(rpc)
         self.state = Path(state)
@@ -57,21 +61,78 @@ class LocalRequestQueue:
         self.idle_seconds = idle_seconds
         self.seen = set()
         self.stopped = threading.Event()
+        if not resume and any(self.state.glob("*.request.json")):
+            raise ValueError("existing request history requires explicit resume=True")
         for name in ("requests", "responses"):
             (self.rpc / name).mkdir(parents=True, exist_ok=True)
+        if resume:
+            self._restore_history()
 
     def publish(self, request_id, value):
+        # Retain the authoritative response before exposing it to the learner.
+        # Public RPC files alone are not trusted restart state.
+        record = self.state / (request_id + ".feedback.json")
+        self._write_json(record, value, mode=0o600)
+        self._publish_feedback(request_id, value)
+
+    @staticmethod
+    def _write_json(path, value, *, mode):
+        temporary = path.with_suffix(path.suffix + ".tmp")
+        temporary.write_text(json.dumps(value, allow_nan=False))
+        temporary.chmod(mode)
+        temporary.replace(path)
+
+    def _publish_feedback(self, request_id, value):
         temporary = self.rpc / "responses" / (request_id + ".tmp")
         temporary.write_text(json.dumps(value, allow_nan=False))
         temporary.chmod(0o444)
         temporary.replace(temporary.with_suffix(".json"))
 
+    def _restore_history(self):
+        """Rebuild service indexes without replaying provider side effects."""
+        for path in sorted(self.state.glob("*.request.json")):
+            request_id = path.name.removesuffix(".request.json")
+            uuid.UUID(request_id)
+            request = read_regular_json(path, 1024 * 1024)
+            if not isinstance(request, dict):
+                raise ValueError("invalid retained request")
+            self.seen.add(request_id)
+            result_path = self.state / (request_id + ".result.json")
+            feedback_path = self.state / (request_id + ".feedback.json")
+            if result_path.exists():
+                result = read_regular_json(result_path, 16 * 1024 * 1024)
+                if request.get("kind") not in self.inline_kinds:
+                    self.completed(result)
+                feedback = {"status": "complete", "result": result}
+            elif feedback_path.exists():
+                feedback = read_regular_json(feedback_path, 16 * 1024 * 1024)
+                if not isinstance(feedback, dict) or feedback.get("status") not in {
+                    "running",
+                    "complete",
+                    "failed",
+                    "rejected",
+                }:
+                    raise ValueError("invalid retained feedback")
+                if feedback["status"] == "complete":
+                    raise ValueError("completed feedback has no retained result")
+            else:
+                feedback = {"status": "running"}
+            if feedback["status"] == "running":
+                feedback = {
+                    "status": "failed",
+                    "failure_stage": "recovery",
+                    "outcome_known": False,
+                    "message": (
+                        "The service stopped before recording a result. This request "
+                        "was not replayed; its provider operation may have executed."
+                    ),
+                }
+            self.publish(request_id, feedback)
+
     def finish(self, request_id, result, *, validate=True):
         if validate:
             self.completed(result)
-        (self.state / (request_id + ".result.json")).write_text(
-            json.dumps(result, allow_nan=False)
-        )
+        self._write_json(self.state / (request_id + ".result.json"), result, mode=0o600)
         self.publish(request_id, {"status": "complete", "result": result})
 
     def fail(self, request_id, error, *, stage, status):
@@ -126,8 +187,10 @@ class LocalRequestQueue:
                             request = read_regular_json(path, 1024 * 1024)
                             if not isinstance(request, dict):
                                 raise ValueError("invalid request")
-                            (self.state / (request_id + ".request.json")).write_text(
-                                json.dumps(request, allow_nan=False)
+                            self._write_json(
+                                self.state / (request_id + ".request.json"),
+                                request,
+                                mode=0o600,
                             )
                             inline = request.get("kind") in self.inline_kinds
                             group = self.groups.get(request.get("kind"), "default")

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- External task queues can explicitly resume private request history without replaying provider calls; interrupted requests expose unknown outcomes instead of appearing newly runnable.
+
 - The opt-in `allocated` backend runs one learner account on a dedicated prepared Linux host, with separate container validation and standard checkpoint recovery. Run/restore output directories are explicitly private to the operator.
 
 - `Validation.backend` selects the private verifier independently of learner placement; explicit verifier runtime settings do not inherit learner-only provider options or cleanup policy.
