@@ -658,7 +658,7 @@ async def test_service_modal_call_recovers_identity_without_relaunch(
     )
     from sprint.service_calls import cleanup_calls
 
-    with pytest.raises(ExceptionGroup, match="cleanup incomplete"):
+    with pytest.raises(ExceptionGroup, match="recovery failed"):
         await cleanup_calls(restored)
     assert cancelled == ["fc-test"]
     assert json.loads((context.state / "one.call.json").read_text())["cancelled"]
@@ -671,7 +671,7 @@ async def test_service_modal_call_recovers_identity_without_relaunch(
         "async def handle(context, request): return {}\n"
     )
     broker.service_handlers["eval"] = load_handler(bundle, "service.py")
-    with pytest.raises(ExceptionGroup, match="cleanup incomplete"):
+    with pytest.raises(ExceptionGroup, match="recovery failed"):
         await broker.close()
     assert broker.cleanup_pending
     (context.state / "uncertain.call.json").unlink()

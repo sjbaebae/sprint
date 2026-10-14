@@ -8,7 +8,6 @@ import asyncio
 import hashlib
 import json
 import math
-import shlex
 import time
 from dataclasses import asdict, replace
 from pathlib import Path
@@ -18,7 +17,7 @@ import modal
 
 from sprint.checkpoint_store import Checkpoint, CheckpointStore
 from sprint.learner_ssh import create_identity, publish_connection
-from sprint.state_transfer import capture_tree, checked, remote_helper, restore_tree
+from sprint.state_transfer import capture_tree, restore_tree
 from sprint.workers import MODAL_WORKER_APP, WorkerSession
 
 
@@ -104,7 +103,7 @@ def cleanup_resources(state):
                     continue
                 if done == "cancelled":
                     if not record.get("call_id"):
-                        if record.get("dispatch_pending"):
+                        if record.get("dispatch_pending") or record.get("definition_sha256"):
                             raise RuntimeError("service call launch outcome is unknown")
                         continue
                     _cancel_call_tree(
@@ -406,32 +405,10 @@ class ModalWorker:
             raise RuntimeError("worker is closed")
         if self.session is None:
             return
-        environment = self.session.environment
-        if environment is None:
-            raise RuntimeError("worker has no running environment")
         self.quiesce_status = "pending"
 
-        async def pause():
-            # This file is root-owned, outside the saved learner workspace.
-            await checked(
-                environment,
-                "rm -f -- /run/sprint-learner-ssh/authorized_keys",
-                timeout=30,
-            )
-            helper = await remote_helper(environment)
-            try:
-                await checked(
-                    environment,
-                    f"python -I -S {shlex.quote(helper)} freeze",
-                    timeout=30,
-                )
-            finally:
-                await checked(
-                    environment, "rm -f -- " + shlex.quote(helper), timeout=30
-                )
-
         try:
-            self.runner.run(pause())
+            self.runner.run(self.session.quiesce())
             self.quiesce_status = "complete"
         except BaseException:
             self.quiesce_status = "failed"

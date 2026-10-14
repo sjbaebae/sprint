@@ -12,9 +12,10 @@ from uuid import uuid4
 class ServiceContext:
     """Operator-only state and access to this trial's granted workers."""
 
-    def __init__(self, broker, name):
+    def __init__(self, broker, name, request_id=None):
         self._broker = broker
         self.name = name
+        self.request_id = request_id
         self.state = broker.directory / ("service-" + name)
         self.state.mkdir(mode=0o700, exist_ok=True)
 
@@ -48,6 +49,25 @@ class ServiceContext:
         from .service_calls import modal_call
 
         return await modal_call(self, key, app, function, args, kwargs, timeout)
+
+    async def connect(self, name):
+        """Publish learner SSH access using Sprint's normal worker connection path."""
+        session = await self.worker(name)
+        return await self._broker.connect(name, session)
+
+    async def observe(self, workspace="/app", *, start_after=""):
+        """Inspect the learner workspace using the trusted bounded collector."""
+        import shlex
+        from .workspace_observations import collector_source
+
+        command = "python -I -S -c " + shlex.quote(collector_source())
+        command += " " + shlex.quote(str(workspace)) + " " + shlex.quote(start_after)
+        result = await self._broker.environment.exec(
+            command, user="root", timeout_sec=15
+        )
+        if result.return_code:
+            raise RuntimeError("learner observation failed: " + str(result.stderr))
+        return json.loads(result.stdout or "")
 
     async def worker(self, name):
         """Use broker-owned sessions; their deadlines, spending and cleanup apply."""

@@ -222,3 +222,10 @@ is rejoined; an uncertain launch is never automatically repeated. Calls are
 cancelled, including discovered child calls, at shutdown. An unrecorded provider
 ID leaves cleanup explicitly incomplete. Task code still owns evaluation policy
 and must record redacted measurements with `context.record()`.
+
+Service handlers can use `context.request_id` for stable operation keys,
+`await context.connect(name)` to publish the normal learner SSH connection, and
+`await context.observe()` for bounded learner-side workspace evidence.
+`await worker.quiesce()` revokes SSH and freezes learner processes before a final
+audit. This is irreversible; learner commands/uploads cannot reopen the worker.
+Observation, artifact collection and cleanup remain available.

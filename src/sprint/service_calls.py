@@ -82,25 +82,7 @@ async def _modal_call(context, key, app, function, args, kwargs, timeout):
 
 
 async def cleanup_calls(context):
-    """Attempt every known call, retaining failures and ambiguous launches."""
-    from .modal_worker import _cancel_call_tree
+    """Recover owned calls and temporary artifact volumes through one cleanup path."""
+    from .modal_worker import cleanup_resources
 
-    errors = []
-    for path in sorted(context.state.glob("*.call.json")):
-        try:
-            record = json.loads(path.read_text())
-            if record.get("cancelled"):
-                continue
-            if not record.get("call_id"):
-                raise RuntimeError(
-                    f"service call launch outcome is unknown: {path.name}"
-                )
-            await asyncio.to_thread(
-                _cancel_call_tree, record["call_id"], terminate_containers=True
-            )
-            record["cancelled"] = True
-            write_record(path, record)
-        except Exception as error:
-            errors.append(error)
-    if errors:
-        raise ExceptionGroup("service call cleanup incomplete", errors)
+    await asyncio.to_thread(cleanup_resources, context.state)

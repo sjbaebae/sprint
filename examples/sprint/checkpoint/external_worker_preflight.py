@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -35,6 +36,8 @@ def main(records):
             connection_directory=records / "connection",
             deadline=time.time() + 300,
             trial=name,
+            uid=os.getuid(),
+            gid=os.getgid(),
         )
 
     def ssh(config, command):
@@ -152,6 +155,14 @@ PY
         remaining = restored.deadline - time.time()
         if not 0 < remaining <= saved.metadata["remaining_seconds"]:
             raise RuntimeError("restore increased or exhausted worker lifetime")
+        restored.quiesce()
+        restored.observe()
+        try:
+            restored.connect()
+        except RuntimeError:
+            pass
+        else:
+            raise RuntimeError("quiesced worker reopened learner access")
     finally:
         original.close()
         if restored is not None:
@@ -178,6 +189,7 @@ PY
         "continued_counter": 8,
         "cleanup_complete": True,
         "shared_observation_verified": True,
+        "shared_quiesce_verified": True,
         "capture_without_host_archive": True,
         "restore_without_host_archive": True,
         "incremental_transfer_bytes": transfer_sizes[0],

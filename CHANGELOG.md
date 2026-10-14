@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Native research services share worker quiescing and learner connection/observation helpers; temporary provider-volume cleanup uses the same recovery path as remote calls.
+
 - Native services can retain and rejoin bounded Modal function calls by stable operation key; shutdown owns cancellation, while ambiguous launches remain explicit unresolved cleanup.
 
 - Emergency Modal cleanup traverses nested operator worker/service records, cancels creators before resources across the whole tree, and skips symlinks.

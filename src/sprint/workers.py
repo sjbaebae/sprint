@@ -87,6 +87,7 @@ class WorkerSession:
         self.environment = None
         self.lock = asyncio.Lock()
         self.closed = False
+        self.quiesce_status = None
         self.deadline = None
 
     async def __aenter__(self):
@@ -159,6 +160,10 @@ class WorkerSession:
 
     async def _start(self):
         """Apply the network policy and protect storage before exposing a worker."""
+        if self.quiesce_status is not None:
+            raise RuntimeError(
+                "worker is quiescing; only observation and cleanup remain"
+            )
         if self.closed:
             raise RuntimeError("worker session is closed")
         if self.deadline is None or self.deadline <= time.monotonic():
@@ -229,6 +234,41 @@ class WorkerSession:
                 await self.close()
                 raise RuntimeError("could not protect artifact volume")
         self.record("worker-started")
+
+    async def quiesce(self):
+        """Revoke learner SSH and freeze learner processes for a final inspection.
+
+        This is irreversible. Operator observations and teardown remain available;
+        a failed freeze must be treated as incomplete audit coverage.
+        """
+        from .state_transfer import checked, remote_helper
+
+        async with self.lock:
+            if self.quiesce_status == "complete":
+                return
+            if self.quiesce_status is not None:
+                raise RuntimeError("worker quiesce did not complete")
+            if self.closed or self.environment is None:
+                raise RuntimeError("worker is not running")
+            self.quiesce_status = "pending"
+            await checked(
+                self.environment,
+                "rm -f -- /run/sprint-learner-ssh/authorized_keys",
+                timeout=30,
+            )
+            helper = await remote_helper(self.environment)
+            try:
+                await checked(
+                    self.environment,
+                    f"python -I -S {shlex.quote(helper)} freeze",
+                    timeout=30,
+                )
+            finally:
+                await checked(
+                    self.environment, "rm -f -- " + shlex.quote(helper), timeout=30
+                )
+            self.quiesce_status = "complete"
+            self.record("worker-quiesced")
 
     async def observe(self, workspace="/app", *, start_after=""):
         """Collect bounded file/socket evidence without executing learner files."""
@@ -310,6 +350,10 @@ class WorkerSession:
         if not isinstance(code, str) or len(code.encode()) > 1024 * 1024:
             raise ValueError("job source must be text of at most 1 MiB")
         async with self.lock:
+            if self.quiesce_status is not None:
+                raise RuntimeError(
+                    "worker is quiescing; only observation and cleanup remain"
+                )
             if self.closed:
                 raise RuntimeError("worker session is closed")
             if self.deadline is None:
@@ -395,6 +439,10 @@ class WorkerSession:
         if type(limit) is not int or not 1 <= limit <= self.worker.seconds:
             raise ValueError("shell timeout exceeds worker command budget")
         async with self.lock:
+            if self.quiesce_status is not None:
+                raise RuntimeError(
+                    "worker is quiescing; only observation and cleanup remain"
+                )
             if self.closed or self.deadline is None:
                 raise RuntimeError("worker session is not active")
             job_id = uuid4().hex
@@ -459,6 +507,10 @@ class WorkerSession:
         if type(max_bytes) is not int or max_bytes < 1:
             raise ValueError("upload limit must be a positive integer")
         async with self.lock:
+            if self.quiesce_status is not None:
+                raise RuntimeError(
+                    "worker is quiescing; only observation and cleanup remain"
+                )
             if self.closed or self.deadline is None:
                 raise RuntimeError("worker session is not active")
             staging = "/tmp/sprint-upload-" + uuid4().hex

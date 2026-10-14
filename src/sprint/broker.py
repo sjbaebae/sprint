@@ -228,7 +228,7 @@ class ResourceBroker:
         if not isinstance(name, str) or name not in self.services:
             raise ValueError("service is not granted to this trial")
         async with self.service_gates[name]:
-            context = ServiceContext(self, name)
+            context = ServiceContext(self, name, request_id)
             (context.state / (request_id + ".request.json")).write_text(
                 json.dumps(value, allow_nan=False)
             )

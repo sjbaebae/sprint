@@ -59,19 +59,12 @@ def test_failed_quiesce_cannot_reopen_learner_operations(tmp_path, monkeypatch):
     import json
     import time
 
-    async def helper(environment):
-        return "/helper.py"
-
-    async def checked(environment, command, **kwargs):
-        if command.endswith(" freeze"):
-            raise RuntimeError("pause failed")
-        return ""
+    async def quiesce():
+        raise RuntimeError("pause failed")
 
     async def close():
         pass
 
-    monkeypatch.setattr(runtime, "remote_helper", helper)
-    monkeypatch.setattr(runtime, "checked", checked)
     resource = runtime.ModalWorker(
         Worker(shell=True),
         state=tmp_path,
@@ -79,7 +72,7 @@ def test_failed_quiesce_cannot_reopen_learner_operations(tmp_path, monkeypatch):
         deadline=time.time() + 60,
         trial="test",
     )
-    resource.session = SimpleNamespace(environment=object(), close=close)
+    resource.session = SimpleNamespace(environment=object(), close=close, quiesce=quiesce)
     resource.record.write_text("{}")
     try:
         with pytest.raises(RuntimeError, match="pause failed"):
