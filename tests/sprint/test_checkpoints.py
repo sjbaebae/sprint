@@ -43,6 +43,32 @@ def put_tree(store, tmp_path, values):
     return store.import_archive(archive)
 
 
+def test_local_archive_pipe_drains_and_joins_failures():
+    from sprint.streams import pipe_transfer
+
+    payload = b"x" * (2 * 1024 * 1024)
+    assert (
+        pipe_transfer(
+            lambda output: output.write(payload), lambda source: source.read(3)
+        )
+        == b"xxx"
+    )
+
+    def reject(source):
+        source.read(1)
+        raise ValueError("consumer rejected archive")
+
+    with pytest.raises(ValueError, match="consumer rejected"):
+        pipe_transfer(lambda output: output.write(payload), reject)
+
+    def broken(output):
+        output.write(b"partial")
+        raise OSError("producer source disappeared")
+
+    with pytest.raises(OSError, match="source disappeared"):
+        pipe_transfer(broken, lambda source: source.read())
+
+
 def test_incremental_complete_state_and_diff(tmp_path):
     store = CheckpointStore(tmp_path / "store")
     first = put_tree(

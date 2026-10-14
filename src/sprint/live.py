@@ -6,7 +6,6 @@ import json
 import math
 import re
 import shlex
-import shutil
 import tarfile
 import tempfile
 import time
@@ -16,6 +15,7 @@ from pathlib import Path
 
 from .checkpoint_store import Checkpoint, CheckpointStore
 from .state_transfer import capture_tree, checked, remote_helper
+from .streams import finish_transfer, pipe_transfer
 
 
 def definition(experiment):
@@ -188,19 +188,29 @@ def prepare_restore(experiment, source, directory):
     directory.mkdir(parents=True, mode=0o700, exist_ok=True)
     directory.chmod(0o700)
     task = directory / "task"
-    if task.exists():
-        raise FileExistsError(task)
-    with tempfile.TemporaryDirectory(prefix="sprint-release-") as temporary:
+    for target in (task, directory / "resume-broker"):
+        if target.exists() or target.is_symlink():
+            raise FileExistsError(target)
+    with tempfile.TemporaryDirectory(
+        prefix=".sprint-release-", dir=directory
+    ) as temporary:
         temporary = Path(temporary)
-        archive = temporary / "release.tar"
-        checkpoint.store.export_archive(metadata["trees"]["release"], archive)
-        with tarfile.open(archive) as stream:
-            # Compiled releases forbid external links; do not silently skip entries.
-            stream.extractall(temporary / "extracted", filter="data")
-        shutil.copytree(temporary / "extracted/release", task)
+
+        def extract_release(source):
+            with tarfile.open(fileobj=source, mode="r|") as stream:
+                # Do not silently skip unsafe release entries.
+                stream.extractall(temporary / "extracted", filter="data")
+
+        pipe_transfer(
+            lambda output: checkpoint.store.export_archive(
+                metadata["trees"]["release"], output
+            ),
+            extract_release,
+        )
+        (temporary / "extracted/release").rename(task)
         broker_records = temporary / "extracted/broker"
         if broker_records.is_dir():
-            shutil.copytree(broker_records, directory / "resume-broker")
+            broker_records.rename(directory / "resume-broker")
     # Seed the harness from a complete native record, trimming only an interrupted
     # final write. Preserve its bytes in the checkpoint itself for inspection.
     trajectory = None
@@ -371,6 +381,7 @@ class LiveRun:
                 or self.release is None
             ):
                 raise RuntimeError("checkpoint requires an active learner trial")
+            release = self.release
             store = CheckpointStore(self.directory / "checkpoints")
             # Validate the name before stopping any writer.
             store.ensure_new_name(name)
@@ -415,12 +426,10 @@ class LiveRun:
                 trees["learner"] = await self._capture(
                     self.environment, self.experiment.env.state_paths, store
                 )
-                with tempfile.TemporaryDirectory(
-                    prefix="sprint-local-state-"
-                ) as temporary:
-                    archive = Path(temporary) / "release.tar"
-                    with tarfile.open(archive, "w") as stream:
-                        stream.add(self.release, arcname="release")
+
+                def write_release(output):
+                    with tarfile.open(fileobj=output, mode="w|") as stream:
+                        stream.add(release, arcname="release")
                         if self.broker is not None:
                             header = tarfile.TarInfo("broker")
                             header.type, header.mode = tarfile.DIRTYPE, 0o700
@@ -445,7 +454,10 @@ class LiveRun:
                                                 + "/"
                                                 + record.name,
                                             )
-                    trees["release"] = store.import_archive(archive)
+
+                trees["release"] = await finish_transfer(
+                    lambda: pipe_transfer(write_release, store.import_archive)
+                )
                 remaining = self.seconds - (time.monotonic() - self.started)
                 if not self.active or remaining <= 0:
                     raise RuntimeError(

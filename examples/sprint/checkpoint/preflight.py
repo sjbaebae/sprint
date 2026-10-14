@@ -5,6 +5,8 @@ import asyncio
 import json
 import shlex
 import tempfile
+import tarfile
+from unittest.mock import patch
 from pathlib import Path
 from uuid import uuid4
 
@@ -129,6 +131,9 @@ PYCODE
             (bundle / "service.py").write_text(
                 "async def handle(context, request):\n"
                 '    path = context.state / "calls.txt"\n'
+                '    fixture = context.state / "large-private-fixture.bin"\n'
+                '    if path.exists() and not fixture.is_file(): raise RuntimeError("private fixture was not restored")\n'
+                '    if not fixture.exists(): fixture.write_bytes(b"q" * (17 * 1024 * 1024))\n'
                 "    count = int(path.read_text()) + 1 if path.exists() else 1\n"
                 "    path.write_text(str(count))\n"
                 '    context.record("counter", {"count": count})\n'
@@ -205,67 +210,85 @@ PYCODE
             ),
             Budget(seconds=240),
         )
-        async with experiment.start(
-            directory=directory / "original", backend=backend
-        ) as run:
-            for _ in range(80):
-                result = await run.environment.exec(
-                    "test -f " + workspace + "/ready", user="root", timeout_sec=10
-                )
-                if result.return_code == 0:
-                    break
-                await asyncio.sleep(1)
-            else:
-                raise RuntimeError("original did not reach its staged checkpoint")
-            if pending:
-                capture = run._capture
-                payload = json.dumps(
-                    {
-                        "service": "counter",
-                        "input": {},
-                    }
-                )
+        archive_open = tarfile.open
 
-                async def capture_with_pending(environment, roots, store):
-                    # Inject at the quiescent boundary: admitted calls have drained,
-                    # but this valid queued request has not yet been admitted.
-                    if environment is run.environment:
-                        command = (
-                            "printf %s "
-                            + shlex.quote(payload)
-                            + " > /resources/control/requests/"
-                            + PENDING_REQUEST_ID
-                            + ".json"
-                        )
-                        injected = await environment.exec(
-                            command, user="root", timeout_sec=10
-                        )
-                        if injected.return_code != 0:
-                            raise RuntimeError("could not inject pending request")
-                    return await capture(environment, roots, store)
+        def reject_release_staging(name=None, *args, **kwargs):
+            if isinstance(name, (str, Path)) and Path(name).name == "release.tar":
+                raise RuntimeError("native recovery staged a complete host archive")
+            return archive_open(name, *args, **kwargs)
 
-                run._capture = capture_with_pending
-            checkpoint = await run.checkpoint("staged")
-            if pending:
-                if PENDING_REQUEST_ID in checkpoint.metadata["broker"]["seen"]:
-                    raise RuntimeError("pending request was already admitted")
-                saved_path = (
-                    "resources/control/requests/" + PENDING_REQUEST_ID + ".json"
-                )
-                if saved_path not in checkpoint.metadata["trees"]["learner"]:
-                    raise RuntimeError("pending request was not captured")
-            print("checkpoint:", checkpoint.path, flush=True)
-        restored = await experiment.run(
-            directory=directory / "restored", backend=backend, resume_from=checkpoint
-        )
-        if restored.rewards != [1.0]:
-            raise RuntimeError(
-                f"restore failed: {restored.rewards}; inspect {directory}"
+        with patch("tarfile.open", side_effect=reject_release_staging):
+            async with experiment.start(
+                directory=directory / "original", backend=backend
+            ) as run:
+                for _ in range(80):
+                    result = await run.environment.exec(
+                        "test -f " + workspace + "/ready", user="root", timeout_sec=10
+                    )
+                    if result.return_code == 0:
+                        break
+                    await asyncio.sleep(1)
+                else:
+                    raise RuntimeError("original did not reach its staged checkpoint")
+                if pending:
+                    capture = run._capture
+                    payload = json.dumps(
+                        {
+                            "service": "counter",
+                            "input": {},
+                        }
+                    )
+
+                    async def capture_with_pending(environment, roots, store):
+                        # Inject at the quiescent boundary: admitted calls have drained,
+                        # but this valid queued request has not yet been admitted.
+                        if environment is run.environment:
+                            command = (
+                                "printf %s "
+                                + shlex.quote(payload)
+                                + " > /resources/control/requests/"
+                                + PENDING_REQUEST_ID
+                                + ".json"
+                            )
+                            injected = await environment.exec(
+                                command, user="root", timeout_sec=10
+                            )
+                            if injected.return_code != 0:
+                                raise RuntimeError("could not inject pending request")
+                        return await capture(environment, roots, store)
+
+                    run._capture = capture_with_pending
+                checkpoint = await run.checkpoint("staged")
+                if pending:
+                    if PENDING_REQUEST_ID in checkpoint.metadata["broker"]["seen"]:
+                        raise RuntimeError("pending request was already admitted")
+                    saved_path = (
+                        "resources/control/requests/" + PENDING_REQUEST_ID + ".json"
+                    )
+                    if saved_path not in checkpoint.metadata["trees"]["learner"]:
+                        raise RuntimeError("pending request was not captured")
+                print("checkpoint:", checkpoint.path, flush=True)
+            restored = await experiment.run(
+                directory=directory / "restored",
+                backend=backend,
+                resume_from=checkpoint,
             )
-        print("restored reward:", restored.rewards, flush=True)
-        print("remaining budget:", checkpoint.metadata["remaining_seconds"], flush=True)
-        print("stored chunks:", len(list(checkpoint.store.blobs.iterdir())), flush=True)
-        print(json.dumps({"directory": str(directory), "reward": restored.rewards}))
+            if restored.rewards != [1.0]:
+                raise RuntimeError(
+                    f"restore failed: {restored.rewards}; inspect {directory}"
+                )
+            print("restored reward:", restored.rewards, flush=True)
+            print(
+                "remaining budget:",
+                checkpoint.metadata["remaining_seconds"],
+                flush=True,
+            )
+            print(
+                "stored chunks:",
+                len(list(checkpoint.store.blobs.iterdir())),
+                flush=True,
+            )
+            print(json.dumps({"directory": str(directory), "reward": restored.rewards}))
 
 
 if __name__ == "__main__":

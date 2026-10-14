@@ -24,6 +24,9 @@ copy of each model file. Direct Modal capture and restore stream archives withou
 host. Other providers retain archive staging. Published snapshots also provide a content-hash inventory for later captures.
 Unchanged files reuse verified local chunks instead of transferring their bytes;
 changed files transfer in full. Capture still reads each remote file to hash it.
+The compiled release and private broker/service state stream through a bounded
+local pipe as well. Local restore extracts once on the destination filesystem
+and renames the trees into place, avoiding a full tar file and a second copy.
 
 ## Saved state
 

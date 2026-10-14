@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Native release/service-state checkpoint capture and local restore stream through bounded pipes without complete host tar files; restored local trees are renamed instead of copied again.
+
 - Interrupted review retains trial logs even when a crash prevents the native final result file; those partial trials remain unscored with unknown timestamps.
 
 - Trusted services can explicitly record JSON evidence for the standard verifier and review; their remaining private working state stays excluded.
