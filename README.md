@@ -147,6 +147,14 @@ Worker files survive; processes and GPU memory must be restarted from saved file
 Direct SSH commands appear in the agent transcript, rather than broker execution
 records. For custom external-host integration, see [resource access](sprint-docs/resource-access.md).
 
+## Evaluate submitted software
+
+`SoftwareSession` runs submitted files and explicit command arguments in a separate
+offline sandbox. It returns bounded stdout/stderr, exit status and truncation
+flags; hidden answers and score computation stay on the operator side. It reuses
+Sprint's worker deadlines and process cleanup. See the
+[software evaluation example](sprint-docs/task-authoring.md#software-evaluation).
+
 ## Evaluate a submitted model
 
 `TensorModelSession` runs a complete model package in a separate network-blocked Modal sandbox, without labels, scorer files or operator credentials. The package contains `model.json` (`{"format":"tensor-model-v1","entrypoint":"model.py"}`), an entrypoint exporting `load_model(directory, device)`, and all required local assets. The returned callable accepts `input_ids` and `attention_mask` and returns finite `[batch, vocabulary]` logits for the final position. Internal architecture and inference are model-owned.

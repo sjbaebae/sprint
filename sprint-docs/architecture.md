@@ -91,8 +91,8 @@ Keep the two-file authoring workflow stable while hardening these boundaries:
    cleanup remains visible and retryable. Whole-host loss with off-host recovery
    still needs an end-to-end demonstration.
 3. Submitted executable code runs separately from private tests and scoring.
-   `TensorModelSession` provides the model boundary; a reusable software execution
-   session remains to be implemented.
+   `TensorModelSession` and `SoftwareSession` provide model and command-line
+   execution boundaries. Task authors still own input/output contracts and scoring.
 4. Authors can test a known solution and a failing submission through the same
    evaluation path used by agents, before spending on a campaign.
 

@@ -110,6 +110,7 @@ __version__ = importlib.metadata.version("sprint")
 
 # Lazy imports to avoid loading heavy dependencies at package import time
 _LAZY_IMPORTS = {
+    "SoftwareSession": ("sprint.software", "SoftwareSession"),
     "TensorModelSession": ("sprint.tensor_model", "TensorModelSession"),
     # Core classes
     "Job": ("sprint.job", "Job"),
@@ -286,4 +287,5 @@ __all__ = [
     "Env",
     "Worker",
     "TensorModelSession",
+    "SoftwareSession",
 ]

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `SoftwareSession` runs submitted command-line programs in disposable offline workers, keeping hidden answers and scoring outside the submitted code's sandbox.
+
 - Optional operator-side validation preparation runs after learner shutdown, retains remote evaluation call identities, and passes bounded trusted JSON to the isolated verifier without sharing provider credentials.
 
 - Native research services share worker quiescing and learner connection/observation helpers; temporary provider-volume cleanup uses the same recovery path as remote calls.

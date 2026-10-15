@@ -39,10 +39,36 @@ Run the implementation in another restricted execution sandbox; retain hidden
 inputs, expected outputs and score computation outside it. Bound execution time,
 output size and resources. Treat returned results as untrusted data.
 
-Sprint has `TensorModelSession` for isolated model execution. A general-purpose
-software submission session with this same boundary is not yet a built-in helper.
-Until it exists, the author must implement that execution boundary explicitly;
-do not represent a plain `pytest` invocation beside hidden tests as hardened grading.
+Use `SoftwareSession` for command-line software and `TensorModelSession` for models.
+These are operator-side helpers: provider credentials stay outside the verifier
+and submitted program. A private `Validation.prepare` callback can use them before
+the isolated scorer reads its prepared measurements; see
+[operator preparation](resource-access.md).
+
+```python
+from sprint import SoftwareSession
+
+async with SoftwareSession(
+    submission_directory, directory=private_records, seconds=120,
+) as program:
+    result = await program.run(["python", "main.py"], stdin=b'{"values":[6,7]}')
+# Validate output shape and compare with expected answers outside the sandbox.
+```
+
+The default is an offline Modal CPU worker. Specify a trusted `Sandbox` to install
+dependencies during image build, or `backend="docker"` on a compatible host.
+The directory contains at most 1000 regular files and 1 GiB; links and special
+files are rejected. Invoke interpreters explicitly rather than relying on retained
+executable permissions. stdin is bounded to 1 MiB, and stdout/stderr are each
+bounded to 1 MiB with truncation flags in the returned feedback. Reject truncation
+when complete output is needed for grading.
+
+Only supplied inputs cross the boundary; do not include expected answers or
+private test code in the submission. Files persist between calls in one session;
+use fresh sessions when tests require independent state. The context closes its
+worker, including on exceptions. Records can contain protected input data and
+must remain private. Do not represent a plain `pytest` invocation beside hidden
+tests as hardened grading.
 
 ## What makes the task useful to a lab
 
