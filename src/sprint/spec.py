@@ -339,7 +339,7 @@ class Experiment:
     budget: Budget = field(default_factory=Budget)
 
     def compile(self, directory: Path):
-        """Write an inspectable standard Harbor task; does not launch resources."""
+        """Write an inspectable Sprint release; does not launch resources."""
         from .backends.runtime import compile_task
 
         return compile_task(self, directory)

@@ -42,10 +42,11 @@ requires an explicit transport allowlist and preinstalled tools when appropriate
 
 ## Remaining integrations
 
-The direct SSH lifecycle is currently an operator API, separate from
-`Env.attachments`. Broker request and spending limits do not govern direct SSH;
-its resource lifetime bounds access. Automatic per-action workspace exports and
-RL token/log-probability export remain unfinished.
+Attached shell workers expose trial-scoped SSH through `sprint-resource connect`.
+The external `ModalWorker` operator API remains available for custom integrations.
+Direct SSH commands bypass broker request accounting; worker lifetime still bounds
+access. Automatic per-action workspace exports and RL token/log-probability export
+remain unfinished.
 
 The bounded Codex adapter enforces action and single-agent limits; ordinary
 harness adapters retain their own capability limits. Environment-specific model
@@ -79,3 +80,23 @@ The caller is the default operator host. `Experiment.run(host=Host(...))` stages
 the release over SSH and runs the scheduler/broker on that existing host. Sandbox
 placement still follows `backend`; `Worker.backend` overrides individual workers.
 See [hosts](hosts.md) for Runpod CPU → Modal execution and current boundaries.
+
+## Development priorities
+
+Keep the two-file authoring workflow stable while hardening these boundaries:
+
+1. Recovery restores files, conversation, pending request identities and remaining
+   budgets without repeating completed external work.
+2. Cancellation and host loss leave durable resource ownership records; failed
+   cleanup remains visible and retryable. Whole-host loss with off-host recovery
+   still needs an end-to-end demonstration.
+3. Submitted executable code runs separately from private tests and scoring.
+   `TensorModelSession` provides the model boundary; a reusable software execution
+   session remains to be implemented.
+4. Authors can test a known solution and a failing submission through the same
+   evaluation path used by agents, before spending on a campaign.
+
+Web authoring should call the same definition, compile, run, checkpoint and result
+interfaces. Keep task policy out of provider adapters and avoid a second lifecycle
+implementation for the UI. The current API runs from Python/CLI; there is no web
+control plane yet. See [task authoring](task-authoring.md).

@@ -46,6 +46,10 @@ tools, not arbitrary API clients launched through a permitted shell.
 Existing directories are never overwritten.
 For independent trials, add `--trials 6 --parallel 6` to `env run`.
 
+For software tasks, start with the [task-authoring guide](sprint-docs/task-authoring.md):
+what to supply, what Sprint handles, and how to keep hidden tests separate from
+submitted code.
+
 ## Edit the task and evaluation
 
 The generated `environment.py` defines `experiment = Experiment(...)`.
