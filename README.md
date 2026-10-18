@@ -4,6 +4,18 @@ Build agent environments by supplying a task, its evaluation, and the constraint
 
 One distribution: **`sprint`**. One Python namespace: **`sprint`**.
 
+## Browser authoring
+
+Start `uv run sprint studio` and open **http://127.0.0.1:8765**. Sprint Studio
+lets you edit a task, add public text/source files, configure budgets, review a
+private verifier and download a standard Sprint project. Drafts persist in your
+browser. Preview checks syntax without executing authored Python.
+
+This initial local builder does not launch trials, generate evaluations with an
+LLM, or validate task quality. Custom verifiers still need authoring and testing.
+Exports include private evaluation and draft data; keep them private. The server
+binds only to localhost and is not a multi-user hosted service.
+
 ## 1. Install
 
 Python 3.12+ and [uv](https://docs.astral.sh/uv/) are required. Install from GitHub; Sprint is not published to PyPI.

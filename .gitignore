@@ -248,3 +248,4 @@ apps/*
 
 # Sprint execution records
 .sprint/
+.playwright-cli/

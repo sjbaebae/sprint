@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Local Sprint Studio provides browser-based task authoring, draft persistence, syntax-only preview and downloadable projects without executing authored code or provisioning resources.
+
 - `SoftwareSession` runs submitted command-line programs in disposable offline workers, keeping hidden answers and scoring outside the submitted code's sandbox.
 
 - Optional operator-side validation preparation runs after learner shutdown, retains remote evaluation call identities, and passes bounded trusted JSON to the isolated verifier without sharing provider credentials.

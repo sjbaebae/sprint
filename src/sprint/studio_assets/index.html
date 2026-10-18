@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sprint Studio — Build an environment</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23426f58'/%3E%3Ctext x='10' y='24' font-size='26' font-family='sans-serif' font-style='italic' fill='white'%3Es%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/studio.js" defer></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="Sprint Studio home"
+        ><span class="brand-mark">s</span>sprint<span class="studio-tag"
+          >studio</span
+        ></a
+      >
+      <div class="workspace-label">
+        <span class="workspace-icon">S</span>Personal workspace<span
+          class="chevron"
+          >⌄</span
+        >
+      </div>
+      <div class="nav-label">WORKSPACE</div>
+      <div class="nav-item active"><span>▧</span>Environment builder</div>
+      <div class="nav-item muted">
+        <span>◷</span>Trial review <small>Coming next</small>
+      </div>
+      <div class="sidebar-rule"></div>
+      <div class="nav-label">THIS ENVIRONMENT</div>
+      <button class="section-link selected" data-panel="task">
+        <span class="step">01</span>Task<span class="section-dot"></span>
+      </button>
+      <button class="section-link" data-panel="workspace">
+        <span class="step">02</span>Workspace
+      </button>
+      <button class="section-link" data-panel="evaluation">
+        <span class="step">03</span>Evaluation
+      </button>
+      <button class="section-link" data-panel="constraints">
+        <span class="step">04</span>Constraints
+      </button>
+      <div class="sidebar-bottom">
+        <span class="local-dot"></span>Local authoring<span class="version"
+          >v0.1</span
+        >
+        <p>Your drafts stay in this browser.</p>
+      </div>
+    </aside>
+    <div class="shell">
+      <header class="topbar">
+        <div class="breadcrumbs">
+          Environments <span>/</span>
+          <strong id="breadcrumb-name">Untitled environment</strong>
+        </div>
+        <div class="topbar-right">
+          <span id="save-state">Draft saved locally</span
+          ><span class="avatar">S</span>
+        </div>
+      </header>
+      <main>
+        <div class="page-heading">
+          <div>
+            <div class="eyebrow">ENVIRONMENT BUILDER</div>
+            <h1>Give an agent something<br />worth solving.</h1>
+            <p>
+              Start with a real task. Define what success looks like.<br />Sprint
+              takes care of the execution.
+            </p>
+          </div>
+          <div class="draft-badge"><span></span>Draft environment</div>
+        </div>
+        <div class="builder-layout">
+          <section class="editor">
+            <div class="tabs" role="tablist" aria-label="Environment sections">
+              <button
+                role="tab"
+                aria-selected="true"
+                data-panel="task"
+                class="selected"
+              >
+                Task</button
+              ><button role="tab" aria-selected="false" data-panel="workspace">
+                Workspace <span id="file-count">0</span></button
+              ><button role="tab" aria-selected="false" data-panel="evaluation">
+                Evaluation</button
+              ><button
+                role="tab"
+                aria-selected="false"
+                data-panel="constraints"
+              >
+                Constraints
+              </button>
+            </div>
+            <form id="builder">
+              <div class="panel" data-content="task">
+                <div class="panel-heading">
+                  <span class="number">01</span>
+                  <div>
+                    <h2>What should the agent accomplish?</h2>
+                    <p>A clear objective makes a better environment.</p>
+                  </div>
+                </div>
+                <label for="name">Environment name</label
+                ><input
+                  id="name"
+                  name="name"
+                  placeholder="e.g. incremental-parser"
+                  pattern="[a-z][a-z0-9-]{0,63}"
+                  required
+                />
+                <div class="field-hint">
+                  A short name for your environment. Lowercase, with hyphens.
+                </div>
+                <label for="objective"
+                  >Task instructions
+                  <span class="label-detail">Visible to the agent</span></label
+                ><textarea
+                  id="objective"
+                  name="objective"
+                  rows="8"
+                  placeholder="Describe the starting point, the desired improvement, and what the agent should submit…"
+                  required
+                ></textarea>
+                <div class="field-hint">
+                  Be specific about the outcome. Leave room for the agent to
+                  choose how.
+                </div>
+                <div class="templates-label">OR START WITH AN EXAMPLE</div>
+                <div class="template-grid">
+                  <button
+                    type="button"
+                    class="template"
+                    data-template="software"
+                  >
+                    <span class="template-icon">⌘</span
+                    ><strong>Fix a software bug</strong
+                    ><small>Repository → working patch</small></button
+                  ><button
+                    type="button"
+                    class="template"
+                    data-template="answer"
+                  >
+                    <span class="template-icon">↗</span
+                    ><strong>A first environment</strong
+                    ><small>Simple task → verified answer</small>
+                  </button>
+                </div>
+              </div>
+              <div class="panel" data-content="workspace" hidden>
+                <div class="panel-heading">
+                  <span class="number">02</span>
+                  <div>
+                    <h2>Give the agent a starting point.</h2>
+                    <p>Only these public files enter the learner workspace.</p>
+                  </div>
+                </div>
+                <label class="upload-area" for="upload"
+                  ><span class="upload-symbol">↑</span
+                  ><strong>Add source files</strong
+                  ><span>Choose text files, code, or configuration</span
+                  ><small
+                    >Up to 100 files · 2 MiB total · no credentials</small
+                  ></label
+                ><input type="file" id="upload" multiple hidden />
+                <div id="workspace-files" class="file-list"></div>
+                <div class="info-note">
+                  Files are exported under <code>workspace/</code>. Private
+                  answers belong in evaluation, not here.
+                </div>
+              </div>
+              <div class="panel" data-content="evaluation" hidden>
+                <div class="panel-heading">
+                  <span class="number">03</span>
+                  <div>
+                    <h2>Define success independently.</h2>
+                    <p>Evaluation stays separate from the agent’s workspace.</p>
+                  </div>
+                </div>
+                <label for="evaluation">Verification method</label
+                ><select id="evaluation">
+                  <option value="custom">Custom Python verifier</option>
+                  <option value="exact">Exact answer in answer.txt</option>
+                </select>
+                <div id="exact-fields" hidden>
+                  <label for="expected"
+                    >Expected answer
+                    <span class="label-detail">Private</span></label
+                  ><textarea id="expected" rows="3">42</textarea>
+                  <div class="field-hint">
+                    Compares trimmed text in the submitted answer.txt.
+                  </div>
+                </div>
+                <div id="custom-fields">
+                  <label for="verifier"
+                    >Verifier
+                    <span class="label-detail"
+                      >Private · evaluate.py</span
+                    ></label
+                  ><textarea
+                    id="verifier"
+                    class="code-editor"
+                    rows="12"
+                    spellcheck="false"
+                  ></textarea>
+                  <div class="field-hint">
+                    Return a score from 0 to 1. Syntax is checked; verifier code
+                    is never executed here.
+                  </div>
+                </div>
+                <div class="info-note">
+                  For executable submissions, use
+                  <code>SoftwareSession</code> to run code separately. Keep
+                  hidden answers and scoring outside that sandbox.
+                </div>
+              </div>
+              <div class="panel" data-content="constraints" hidden>
+                <div class="panel-heading">
+                  <span class="number">04</span>
+                  <div>
+                    <h2>Set the boundaries.</h2>
+                    <p>
+                      Start small. Expand after the environment is validated.
+                    </p>
+                  </div>
+                </div>
+                <div class="field-grid">
+                  <div>
+                    <label for="minutes"
+                      >Time limit
+                      <span class="label-detail">minutes</span></label
+                    ><input
+                      id="minutes"
+                      type="number"
+                      value="60"
+                      min="1"
+                      max="120"
+                    />
+                  </div>
+                  <div>
+                    <label for="actions">Action limit</label
+                    ><input
+                      id="actions"
+                      type="number"
+                      value="200"
+                      min="1"
+                      max="1000"
+                    />
+                  </div>
+                </div>
+                <label for="internet">Learner internet</label
+                ><select id="internet">
+                  <option value="full">Full internet access</option>
+                  <option value="none">No internet access</option>
+                </select>
+                <div class="field-hint">
+                  Offline learners require a separately configured inference
+                  transport.
+                </div>
+                <div class="field-grid">
+                  <div>
+                    <label for="harness">Harness</label
+                    ><select id="harness">
+                      <option value="bounded-codex">
+                        Codex · single agent
+                      </option>
+                      <option value="claude-code">Claude Code</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="model">Agent model</label
+                    ><input id="model" value="gpt-6-astra" />
+                  </div>
+                </div>
+                <div class="info-note">
+                  CPU learner by default. GPU workers and provider credentials
+                  can be added to the exported Sprint definition. This builder
+                  does not provision resources.
+                </div>
+              </div>
+            </form>
+            <div class="editor-footer">
+              <span
+                ><span class="lock-symbol">◇</span> Private evaluation, isolated
+                by default</span
+              ><button id="next" class="text-button" type="button">
+                Next: Workspace <span>→</span>
+              </button>
+            </div>
+          </section>
+          <aside class="summary">
+            <div class="summary-title">
+              <h2>Your environment</h2>
+              <span class="summary-icon">↗</span>
+            </div>
+            <div class="summary-graphic">
+              <div class="graphic-node">Task</div>
+              <div class="graphic-line"></div>
+              <div class="graphic-node center">Sprint</div>
+              <div class="graphic-line"></div>
+              <div class="graphic-node">Result</div>
+            </div>
+            <div class="summary-row">
+              <span>Agent</span><strong id="summary-model">Astra</strong>
+            </div>
+            <div class="summary-row">
+              <span>Budget</span
+              ><strong id="summary-budget">60 min · 200 actions</strong>
+            </div>
+            <div class="summary-row">
+              <span>Internet</span
+              ><strong id="summary-internet">Full access</strong>
+            </div>
+            <div class="summary-row">
+              <span>Evaluation</span
+              ><strong id="summary-evaluation">Custom verifier</strong>
+            </div>
+            <div class="summary-divider"></div>
+            <h3>Before your first run</h3>
+            <ul class="checklist">
+              <li id="check-task"><span>○</span>Describe the task</li>
+              <li id="check-eval"><span>○</span>Finish the verifier</li>
+              <li><span>○</span>Test a known solution</li>
+            </ul>
+            <p class="summary-note">
+              An export is a starting point, not a validated benchmark.
+            </p>
+            <button class="primary-button" id="preview">
+              Review environment <span>→</span></button
+            ><button class="secondary-button" id="export">
+              Download project <span>↓</span>
+            </button>
+            <p class="export-note">Standard Sprint Python. Yours to extend.</p>
+          </aside>
+        </div>
+        <div class="bottom-note">
+          <span>Built on Sprint</span
+          ><span>One task. Independent evaluation. Reproducible trials.</span>
+        </div>
+      </main>
+    </div>
+    <dialog id="review">
+      <div class="dialog-top">
+        <div>
+          <div class="eyebrow">PROJECT PREVIEW</div>
+          <h2>Review your environment</h2>
+        </div>
+        <button id="close-review" aria-label="Close preview">×</button>
+      </div>
+      <p id="validation-status"></p>
+      <div id="warnings"></div>
+      <div class="code-tabs" id="code-tabs"></div>
+      <pre id="code-preview"></pre>
+      <div class="dialog-footer">
+        <span>Generated locally · no resources launched</span
+        ><button id="review-export" class="primary-button">
+          Download project ↓
+        </button>
+      </div>
+    </dialog>
+    <div id="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>

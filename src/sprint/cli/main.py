@@ -51,6 +51,14 @@ app = Typer(
 )
 
 
+@app.command("studio")
+def studio_command():
+    """Open the local browser-based environment builder at localhost:8765."""
+    from sprint.studio import main as serve
+
+    serve()
+
+
 @app.callback()
 def main(
     ctx: typer.Context,
