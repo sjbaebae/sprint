@@ -252,3 +252,4 @@ $("export").onclick = download;
 $("review-export").onclick = download;
 $("close-review").onclick = () => $("review").close();
 update();
+window.studioDraft = () => structuredClone(draft);

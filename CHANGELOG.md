@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Studio can launch and cancel one local or Modal trial, follow retained live agent/lifecycle/worker records, inspect failures and rewards, and open the final review. Modal forwards command output incrementally through the existing trial callbacks.
+
 - Local Sprint Studio provides browser-based task authoring, draft persistence, syntax-only preview and downloadable projects without executing authored code or provisioning resources.
 
 - `SoftwareSession` runs submitted command-line programs in disposable offline workers, keeping hidden answers and scoring outside the submitted code's sandbox.

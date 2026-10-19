@@ -818,6 +818,26 @@ class TestEnvSecretCache:
         assert result.stderr == "training diagnostics"
         assert result.return_code == 7
 
+        delivered = asyncio.Event()
+
+        class Reader:
+            async def __aiter__(self):
+                yield "live chunk"
+                await delivered.wait()
+
+        async def observe(text, stream):
+            assert text == "live chunk"
+            assert stream in {"stdout", "stderr"}
+            delivered.set()
+
+        process.stdout = Reader()
+        process.stderr = Reader()
+        with env.scoped_output_callback(observe):
+            async with asyncio.timeout(1):
+                streamed = await env._sdk_exec("train")
+        assert delivered.is_set()
+        assert streamed.stdout == "live chunk"
+
     @pytest.mark.parametrize("failing_phase", ["stdout", "stderr", "wait"])
     async def test_sdk_exec_translates_unexpected_sandbox_exit_137(
         self,

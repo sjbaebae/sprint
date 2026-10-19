@@ -206,6 +206,11 @@ class Job:
         """Register a callback that runs when a trial starts."""
         return self.add_hook(TrialEvent.START, callback)
 
+    def add_log_callback(self, callback) -> "Job":
+        """Subscribe to trial execution output without changing lifecycle hooks."""
+        self._trial_queue.add_log_callback(callback)
+        return self
+
     def on_environment_started(self, callback: HookCallback) -> "Job":
         """Register a callback that runs when a trial environment starts."""
         return self.add_hook(TrialEvent.ENVIRONMENT_START, callback)

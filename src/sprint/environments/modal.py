@@ -1384,8 +1384,19 @@ class ModalEnvironment(ComposeServiceOpsMixin, BaseEnvironment):
             raise
 
         # Drain both pipes while waiting: a noisy stderr must not block stdout EOF.
-        stdout = asyncio.create_task(process.stdout.read.aio())
-        stderr = asyncio.create_task(process.stderr.read.aio())
+        callback = self._output_callback()
+
+        async def read_output(reader, stream):
+            if callback is None:
+                return await reader.read.aio()
+            chunks = []
+            async for chunk in reader:
+                chunks.append(chunk)
+                await callback(chunk, stream)
+            return "".join(chunks)
+
+        stdout = asyncio.create_task(read_output(process.stdout, "stdout"))
+        stderr = asyncio.create_task(read_output(process.stderr, "stderr"))
         return_code = asyncio.create_task(process.wait.aio())
         tasks = [stdout, stderr, return_code]
         try:

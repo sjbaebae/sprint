@@ -11,8 +11,17 @@ lets you edit a task, add public text/source files, configure budgets, review a
 private verifier and download a standard Sprint project. Drafts persist in your
 browser. Preview checks syntax without executing authored Python.
 
-This initial local builder does not launch trials, generate evaluations with an
-LLM, or validate task quality. Custom verifiers still need authoring and testing.
+Use **Run one trial** to launch on Modal or local Docker using the host's existing
+authentication. **Trial review** follows agent output, lifecycle events, worker
+feedback and results, with cancellation and a link to the complete saved review.
+Studio runs one trial at a time and cancels owned work on graceful server shutdown.
+An abruptly lost server leaves unknown ownership visible; it never silently
+restarts cloud work. Streaming timestamps are host receipt times unless a native
+event includes its own timestamp. The browser displays the latest 3,000 events;
+full records remain on disk under `.sprint/studio/runs/`.
+
+Studio does not generate evaluations with an LLM or validate task quality.
+Custom verifiers still need authoring and testing. Modal incurs provider charges.
 Exports include private evaluation and draft data; keep them private. The server
 binds only to localhost and is not a multi-user hosted service.
 

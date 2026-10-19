@@ -217,6 +217,11 @@ class TestTrialQueue:
         queue.add_hook(TrialEvent.END, hook_b)
         queue.add_hook(TrialEvent.ENVIRONMENT_START, hook_a)
 
+        async def output(entry):
+            pass
+
+        queue.add_log_callback(output)
+
         mock_trial = MagicMock()
         mock_trial.config = TrialConfig(
             task=TaskConfig(path=Path("/test/task")),
@@ -224,6 +229,7 @@ class TestTrialQueue:
             job_id=uuid4(),
         )
         queue._setup_hooks(mock_trial)
+        mock_trial.add_log_callback.assert_called_once_with(output)
 
         calls = mock_trial.add_hook.call_args_list
         wired = [(call.args[0], call.args[1]) for call in calls]

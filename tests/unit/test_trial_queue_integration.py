@@ -168,6 +168,12 @@ class TestTrialQueueIntegration:
 
             assert result is job
             assert job._trial_queue._hooks[TrialEvent.START][-1] is test_hook
+
+            async def output(entry):
+                return None
+
+            assert job.add_log_callback(output) is job
+            assert job._trial_queue._log_callbacks[-1] is output
         finally:
             job._close_logger_handlers()
 

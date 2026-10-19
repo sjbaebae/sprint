@@ -2,22 +2,26 @@
 
 import ast
 import io
+import json
 import zipfile
+from contextlib import asynccontextmanager
 from pathlib import Path, PurePosixPath
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, model_validator
 from starlette.middleware.trustedhost import TrustedHostMiddleware
+
+from sprint.studio_runs import StudioRuns, tail, tail_text
 
 
 class Draft(BaseModel):
     name: str = Field(pattern=r"^[a-z][a-z0-9-]{0,63}$")
     objective: str = Field(min_length=1, max_length=20000)
     minutes: int = Field(ge=1, le=120, default=60)
-    actions: int = Field(ge=1, le=1000, default=200)
+    actions: int = Field(ge=1, le=200, default=200)
     internet: Literal["full", "none"] = "full"
     model: str = Field(min_length=1, max_length=120, default="gpt-6-astra")
     harness: Literal["bounded-codex", "claude-code"] = "bounded-codex"
@@ -127,8 +131,23 @@ def render(draft: Draft):
     }
 
 
-def create_app():
-    app = FastAPI(title="Sprint Studio", docs_url=None, redoc_url=None)
+class Launch(BaseModel):
+    draft: Draft
+    backend: Literal["modal", "docker"] = "modal"
+
+
+def create_app(directory=None):
+    runs = StudioRuns(directory or Path(".sprint/studio/runs"))
+
+    @asynccontextmanager
+    async def lifespan(app):
+        yield
+        await runs.close()
+
+    app = FastAPI(
+        title="Sprint Studio", docs_url=None, redoc_url=None, lifespan=lifespan
+    )
+    app.state.runs = runs
     app.add_middleware(
         TrustedHostMiddleware,
         allowed_hosts=["localhost", "127.0.0.1", "[::1]", "testserver"],
@@ -175,6 +194,83 @@ def create_app():
             buffer.getvalue(),
             media_type="application/zip",
             headers={"Content-Disposition": f'attachment; filename="{draft.name}.zip"'},
+        )
+
+    @app.get("/api/runs")
+    async def list_runs():
+        return runs.list()
+
+    @app.post("/api/runs")
+    async def launch(request: Launch):
+        try:
+            result = render(request.draft)
+            if (
+                request.draft.evaluation == "custom"
+                and "NotImplementedError" in request.draft.verifier
+            ):
+                raise ValueError("Finish the private verifier before launching")
+            return runs.start(request.draft, result["files"], request.backend)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
+
+    def known_run(identity):
+        try:
+            return runs.snapshot(identity)
+        except (FileNotFoundError, ValueError) as error:
+            raise HTTPException(404, str(error)) from error
+
+    @app.get("/api/runs/{identity}")
+    async def run_status(identity: str):
+        return known_run(identity)
+
+    @app.get("/api/runs/{identity}/events")
+    async def run_events(identity: str, cursors: str = "{}"):
+        known_run(identity)
+        try:
+            offsets = json.loads(cursors)
+            if not isinstance(offsets, dict) or len(offsets) > 100:
+                raise ValueError("invalid cursors")
+            if any(type(value) is not int or value < 0 for value in offsets.values()):
+                raise ValueError("invalid cursor values")
+            return {
+                name: (tail_text if name.startswith("native:") else tail)(
+                    path, offsets.get(name, 0)
+                )
+                for name, path in runs.sources(identity).items()
+            }
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
+
+    @app.post("/api/runs/{identity}/cancel")
+    async def cancel_run(identity: str):
+        known_run(identity)
+        try:
+            return runs.cancel(identity)
+        except ValueError as error:
+            raise HTTPException(409, str(error)) from error
+
+    @app.get("/api/runs/{identity}/log")
+    async def run_log(identity: str, channel: str):
+        known_run(identity)
+        path = runs.sources(identity).get(channel)
+        if path is None or path.is_symlink() or not path.is_file():
+            raise HTTPException(404, "Log channel not available")
+        return FileResponse(
+            path, media_type="application/octet-stream", filename=path.name
+        )
+
+    @app.get("/api/runs/{identity}/review")
+    async def run_review(identity: str):
+        known_run(identity)
+        path = runs.root(identity) / "records/review.html"
+        if path.is_symlink() or not path.is_file():
+            raise HTTPException(404, "The saved review is not available yet")
+        return FileResponse(
+            path,
+            media_type="text/html",
+            headers={
+                "Content-Security-Policy": "sandbox; default-src 'none'; style-src 'unsafe-inline'"
+            },
         )
 
     app.mount(

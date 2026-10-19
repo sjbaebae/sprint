@@ -662,6 +662,19 @@ async def run(
     job = await Job.create(config)
     events_path = directory / "events.jsonl"
 
+    async def record_output(entry):
+        # Keep live output on the operator host, including before final collection.
+        # Chunking bounds individual records; timestamps are receipt times.
+        payload = entry.model_dump(mode="json")
+        text = payload.pop("text")
+        with (directory / "agent-events.jsonl").open("a") as stream:
+            for start in range(0, len(text), 16384):
+                stream.write(
+                    json.dumps({**payload, "text": text[start : start + 16384]}) + "\n"
+                )
+
+    job.add_log_callback(record_output)
+
     async def record(event):
         # Operator-side lifecycle times; not substituted for absent agent turn times.
         payload = {

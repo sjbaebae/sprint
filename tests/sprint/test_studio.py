@@ -2,11 +2,18 @@
 
 import io
 import zipfile
+import asyncio
+import json
+from types import SimpleNamespace
+
+import pytest
 
 from fastapi.testclient import TestClient
 
 from sprint.cli.env import load_experiment
 from sprint.studio import create_app
+from sprint.studio import Draft, render
+from sprint.studio_runs import StudioRuns, tail
 
 
 def test_export_compiles_private_verification_without_executing_it(tmp_path):
@@ -42,6 +49,7 @@ def test_studio_rejects_unsafe_files_bad_verifiers_and_cross_origin_requests():
         ).status_code
         == 422
     )
+
     assert (
         client.post(
             "/api/preview",
@@ -55,3 +63,50 @@ def test_studio_rejects_unsafe_files_bad_verifiers_and_cross_origin_requests():
         ).status_code
         == 403
     )
+
+
+@pytest.mark.asyncio
+async def test_live_records_cancel_and_unknown_owner_are_retained(
+    tmp_path, monkeypatch
+):
+    started = asyncio.Event()
+
+    async def execute(*, directory, backend):
+        directory.mkdir()
+        (directory / "agent-events.jsonl").write_text(
+            json.dumps({"phase": "agent", "text": "working\n"}) + "\n"
+        )
+        started.set()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            (directory / "cleanup-errors.json").write_text(
+                '[{"error":"test cleanup failed"}]'
+            )
+
+    monkeypatch.setattr(
+        "sprint.studio_runs.load_experiment", lambda path: SimpleNamespace(run=execute)
+    )
+    runs = StudioRuns(tmp_path)
+    draft = Draft(name="trial", objective="test", evaluation="exact")
+    state = runs.start(draft, render(draft)["files"], "modal")
+    await started.wait()
+    identity = state["id"]
+    source = runs.sources(identity)["agent"]
+    first = tail(source, 0)
+    assert first["events"][0]["text"] == "working\n"
+    assert tail(source, first["cursor"])["events"] == []
+    with source.open("a") as stream:
+        stream.write('{"text":"partial')
+    assert tail(source, first["cursor"])["cursor"] == first["cursor"]
+    with source.open("a") as stream:
+        stream.write('"}\n')
+    assert tail(source, first["cursor"])["events"] == [{"text": "partial"}]
+    assert StudioRuns(tmp_path).snapshot(identity)["status"] == "unknown"
+    runs.cancel(identity)
+    await runs.close()
+    snapshot = runs.snapshot(identity)
+    assert snapshot["status"] == "cancelled"
+    assert snapshot["cleanup_errors"] == [{"error": "test cleanup failed"}]
+    with pytest.raises(ValueError, match="identifier"):
+        runs.root("../elsewhere")

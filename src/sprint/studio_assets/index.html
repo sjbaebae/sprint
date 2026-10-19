@@ -9,7 +9,9 @@
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23426f58'/%3E%3Ctext x='10' y='24' font-size='26' font-family='sans-serif' font-style='italic' fill='white'%3Es%3C/text%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/runs.css" />
     <script src="/studio.js" defer></script>
+    <script src="/runs.js" defer></script>
   </head>
   <body>
     <aside class="sidebar">
@@ -25,10 +27,10 @@
         >
       </div>
       <div class="nav-label">WORKSPACE</div>
-      <div class="nav-item active"><span>▧</span>Environment builder</div>
-      <div class="nav-item muted">
-        <span>◷</span>Trial review <small>Coming next</small>
-      </div>
+      <button class="nav-item active" id="builder-nav">
+        <span>▧</span>Environment builder
+      </button>
+      <button class="nav-item" id="runs-nav"><span>◷</span>Trial review</button>
       <div class="sidebar-rule"></div>
       <div class="nav-label">THIS ENVIRONMENT</div>
       <button class="section-link selected" data-panel="task">
@@ -61,7 +63,7 @@
           ><span class="avatar">S</span>
         </div>
       </header>
-      <main>
+      <main id="builder-page">
         <div class="page-heading">
           <div>
             <div class="eyebrow">ENVIRONMENT BUILDER</div>
@@ -247,7 +249,7 @@
                       type="number"
                       value="200"
                       min="1"
-                      max="1000"
+                      max="200"
                     />
                   </div>
                 </div>
@@ -278,7 +280,8 @@
                 <div class="info-note">
                   CPU learner by default. GPU workers and provider credentials
                   can be added to the exported Sprint definition. This builder
-                  does not provision resources.
+                  exports the definition. Starting a trial provisions its
+                  learner.
                 </div>
               </div>
             </form>
@@ -334,11 +337,95 @@
               Download project <span>↓</span>
             </button>
             <p class="export-note">Standard Sprint Python. Yours to extend.</p>
+            <button class="secondary-button" id="open-launch">
+              Run one trial <span>↗</span>
+            </button>
           </aside>
         </div>
         <div class="bottom-note">
           <span>Built on Sprint</span
           ><span>One task. Independent evaluation. Reproducible trials.</span>
+        </div>
+      </main>
+      <main id="runs-page" hidden>
+        <div class="page-heading">
+          <div>
+            <div class="eyebrow">TRIAL REVIEW</div>
+            <h1>Watch the work unfold.</h1>
+            <p>
+              Agent output, execution feedback and lifecycle events.<br />Captured
+              live from Sprint’s own records.
+            </p>
+          </div>
+          <button id="refresh-runs" class="secondary-button compact">
+            Refresh trials ↻
+          </button>
+        </div>
+        <div class="run-layout">
+          <aside class="run-list" id="run-list">
+            <p>No trials yet. Start one from your environment.</p>
+          </aside>
+          <section class="run-detail">
+            <div id="run-empty" class="empty-run">
+              <h2>A clear view of every trial.</h2>
+              <p>Select a trial to follow its transcript and logs.</p>
+            </div>
+            <div id="run-content" hidden>
+              <div class="run-detail-heading">
+                <div>
+                  <h2 id="run-name"></h2>
+                  <span id="run-id"></span>
+                </div>
+                <span id="run-status" class="status-pill"></span>
+              </div>
+              <div class="run-metrics">
+                <div><span>Model</span><strong id="run-model"></strong></div>
+                <div><span>Budget</span><strong id="run-budget"></strong></div>
+                <div>
+                  <span>Reward</span><strong id="run-reward">Pending</strong>
+                </div>
+              </div>
+              <div id="run-errors" class="run-errors" hidden></div>
+              <div class="run-toolbar">
+                <div class="run-filters">
+                  <button data-stream="agent" class="selected">
+                    Transcript</button
+                  ><button data-stream="lifecycle">Lifecycle</button
+                  ><button data-stream="workers">Workers</button
+                  ><button data-stream="results">Results</button>
+                </div>
+                <button id="cancel-run" class="cancel-button">
+                  Cancel trial
+                </button>
+              </div>
+              <div class="stream-caption">
+                <span id="stream-connection">Connecting…</span
+                ><label
+                  ><input type="checkbox" id="follow-log" checked /> Follow
+                  output</label
+                >
+              </div>
+              <p class="timestamp-note">
+                Live times are captured on the host. Native timestamps and
+                structured turns, when available, remain in the final saved
+                review.
+              </p>
+              <div
+                id="transcript-log"
+                class="transcript-log"
+                role="log"
+                aria-label="Live agent transcript"
+              ></div>
+              <pre id="result-log" hidden></pre>
+              <div class="run-record-footer">
+                <div id="raw-logs"></div>
+                <span id="record-location"></span
+                ><a id="saved-review" target="_blank" rel="noopener" hidden
+                  >Open full saved review ↗</a
+                >
+              </div>
+            </div>
+          </section>
         </div>
       </main>
     </div>
@@ -359,6 +446,33 @@
         ><button id="review-export" class="primary-button">
           Download project ↓
         </button>
+      </div>
+    </dialog>
+    <dialog id="launch-dialog">
+      <div class="dialog-top">
+        <div>
+          <div class="eyebrow">ONE INDEPENDENT TRIAL</div>
+          <h2>Run this environment</h2>
+        </div>
+        <button id="close-launch" aria-label="Close launch">×</button>
+      </div>
+      <p class="launch-explanation">
+        Sprint will use the model sign-in and provider credentials already
+        configured on this host. Modal execution incurs provider charges. One
+        Studio trial runs at a time.
+      </p>
+      <label for="launch-backend">Execution backend</label
+      ><select id="launch-backend">
+        <option value="modal">Modal · cloud sandbox</option>
+        <option value="docker">Docker · local sandbox</option>
+      </select>
+      <div class="info-note">
+        Review your private verifier before starting. Authored verification code
+        will execute in Sprint’s separate verifier sandbox.
+      </div>
+      <div class="dialog-footer">
+        <span id="launch-feedback"></span
+        ><button id="start-trial" class="primary-button">Start trial →</button>
       </div>
     </dialog>
     <div id="toast" role="status" aria-live="polite" hidden></div>

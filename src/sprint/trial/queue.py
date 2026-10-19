@@ -7,7 +7,7 @@ from typing import Any
 from sprint.models.job.config import RetryConfig
 from sprint.models.trial.config import TrialConfig
 from sprint.models.trial.result import TrialResult
-from sprint.trial.hooks import HookCallback, TrialEvent, TrialHookEvent
+from sprint.trial.hooks import HookCallback, LogCallback, TrialEvent, TrialHookEvent
 from sprint.utils.logger import logger
 
 
@@ -41,6 +41,7 @@ class TrialQueue:
         self._n_concurrent = n_concurrent
         self._retry_config = retry_config if retry_config is not None else RetryConfig()
         self._hooks = hooks
+        self._log_callbacks: list[LogCallback] = []
         self._logger = logger.getChild(__name__)
         self._semaphore = asyncio.Semaphore(n_concurrent)
         self._agent_pool_limits: dict[str, int] = {}
@@ -50,6 +51,11 @@ class TrialQueue:
     def add_hook(self, event: TrialEvent, callback: HookCallback) -> "TrialQueue":
         """Register a callback for a trial lifecycle event and return the queue."""
         self._hooks[event].append(callback)
+        return self
+
+    def add_log_callback(self, callback: LogCallback) -> "TrialQueue":
+        """Subscribe before running; forward stdout/stderr from each trial."""
+        self._log_callbacks.append(callback)
         return self
 
     def on_trial_started(self, callback: HookCallback) -> "TrialQueue":
@@ -111,6 +117,8 @@ class TrialQueue:
 
     def _setup_hooks(self, trial) -> None:
         """Wire queue-level hooks to the trial."""
+        for callback in self._log_callbacks:
+            trial.add_log_callback(callback)
         if self._uses_agent_concurrency(trial.config):
             trial.add_hook(TrialEvent.AGENT_START, self._acquire_agent_permit)
             trial.add_hook(TrialEvent.AGENT_END, self._release_agent_permit)
